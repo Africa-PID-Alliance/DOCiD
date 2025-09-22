@@ -37,6 +37,7 @@ instance/
 *.db
 *.sqlite
 backend/temp/
+backend/.env
 
 # Node
 node_modules/
@@ -107,3 +108,6 @@ migrations/versions/
 # Test files
 test_*.png
 test_*.jpg
+
+# Git workflow documentation
+GIT_WORKFLOW.md
