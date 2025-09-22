@@ -1,0 +1,7 @@
+Subject: ROR API Integration Issue - Response Format Change
+
+Dear Management,
+
+I am writing to inform you about a recent issue with our ROR (Research Organization Registry) API integration that caused data retrieval failures. The ROR API recently updated their response format, changing from a simple flat structure to a more complex nested JSON structure. Specifically, organization names are now stored within a 'names' array with type indicators, country information has moved to a nested 'locations.geonames_details' object, and Wikipedia URLs are now part of a 'links' array. Additionally, our URL construction was incorrectly double-encoding query parameters, resulting in malformed API requests. These changes broke our existing data extraction logic, which was expecting the previous format with direct field access. The issue has now been resolved by updating our code to properly construct API URLs and parse the new nested response structure, ensuring reliable data retrieval from the ROR API going forward.
+
+Best regards

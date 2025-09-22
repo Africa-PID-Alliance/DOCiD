@@ -1,0 +1,1114 @@
+{
+  "number_of_results": 4842,
+  "time_taken": 20,
+  "items": [
+    {
+      "admin": {
+        "created": { "date": "2023-06-22", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 2006,
+      "external_ids": [],
+      "id": "https://ror.org/00dzfmv17",
+      "links": [{ "type": "website", "value": "https://www.tcc-africa.org" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "KE",
+            "country_name": "Kenya",
+            "country_subdivision_code": "30",
+            "country_subdivision_name": "Nairobi County",
+            "lat": -1.28333,
+            "lng": 36.81667,
+            "name": "Nairobi"
+          },
+          "geonames_id": 184745
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["alias"], "value": "TCC Africa" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Training Centre in Communication"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["nonprofit"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2025-06-24", "schema_version": "2.1" },
+        "last_modified": { "date": "2025-06-24", "schema_version": "2.1" }
+      },
+      "domains": ["narit.or.th"],
+      "established": null,
+      "external_ids": [],
+      "id": "https://ror.org/01zz2zk94",
+      "links": [
+        {
+          "type": "website",
+          "value": "https://www.narit.or.th/en/collaboration/itca"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "TH",
+            "country_name": "Thailand",
+            "country_subdivision_code": "50",
+            "country_subdivision_name": "Chiang Mai",
+            "lat": 18.79038,
+            "lng": 98.98468,
+            "name": "Chiang Mai"
+          },
+          "geonames_id": 1153671
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["acronym"], "value": "ITCA" },
+        {
+          "lang": "en",
+          "types": ["label", "ror_display"],
+          "value": "International Training Centre in Astronomy"
+        },
+        {
+          "lang": "th",
+          "types": ["label"],
+          "value": "ศูนย์ฝึกอบรมดาราศาสตร์นานาชาติภายใต้ยูเนสโก"
+        }
+      ],
+      "relationships": [
+        {
+          "label": "UNESCO",
+          "type": "parent",
+          "id": "https://ror.org/04h4z8k05"
+        },
+        {
+          "label": "National Astronomical Research Institute of Thailand",
+          "type": "parent",
+          "id": "https://ror.org/027rw9342"
+        }
+      ],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1986,
+      "external_ids": [
+        {
+          "all": ["grid.449992.b"],
+          "preferred": "grid.449992.b",
+          "type": "grid"
+        },
+        { "all": ["0000 0004 4912 4696"], "preferred": null, "type": "isni" },
+        { "all": ["Q760838"], "preferred": null, "type": "wikidata" }
+      ],
+      "id": "https://ror.org/02hdk9s78",
+      "links": [
+        { "type": "website", "value": "http://www.uonygn.gov.mm" },
+        {
+          "type": "wikipedia",
+          "value": "https://en.wikipedia.org/wiki/University_of_Nursing,_Yangon"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "MM",
+            "country_name": "Myanmar",
+            "country_subdivision_code": "06",
+            "country_subdivision_name": "Yangon",
+            "lat": 16.80528,
+            "lng": 96.15611,
+            "name": "Yangon"
+          },
+          "geonames_id": 1298824
+        }
+      ],
+      "names": [
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Institute of Nursing, Yangon"
+        },
+        { "lang": null, "types": ["acronym"], "value": "NTC" },
+        { "lang": "en", "types": ["alias"], "value": "Nurses Training Centre" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "University of Nursing Yangon"
+        },
+        {
+          "lang": "my",
+          "types": ["label"],
+          "value": "သူနာပြုတက္ကသိုလ်(ရန်ကုန်)"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1964,
+      "external_ids": [
+        {
+          "all": ["grid.462246.0"],
+          "preferred": "grid.462246.0",
+          "type": "grid"
+        },
+        { "all": ["0000 0004 0389 1777"], "preferred": null, "type": "isni" },
+        { "all": ["Q5522141"], "preferred": null, "type": "wikidata" }
+      ],
+      "id": "https://ror.org/01rwv5z20",
+      "links": [
+        { "type": "website", "value": "http://gardacollegelms.ie/" },
+        {
+          "type": "wikipedia",
+          "value": "https://en.wikipedia.org/wiki/Garda_S%C3%ADoch%C3%A1na_College"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "EU",
+            "continent_name": "Europe",
+            "country_code": "IE",
+            "country_name": "Ireland",
+            "country_subdivision_code": "M",
+            "country_subdivision_name": "Munster",
+            "lat": 52.79472,
+            "lng": -7.83389,
+            "name": "Templemore"
+          },
+          "geonames_id": 2961237
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["alias"], "value": "Garda College" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Garda Síochána College"
+        },
+        { "lang": "en", "types": ["alias"], "value": "Garda Training Centre" }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2025-05-05", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1956,
+      "external_ids": [
+        { "all": ["501100013262"], "preferred": null, "type": "fundref" },
+        {
+          "all": ["grid.449647.c"],
+          "preferred": "grid.449647.c",
+          "type": "grid"
+        },
+        { "all": ["Q7894435"], "preferred": null, "type": "wikidata" }
+      ],
+      "id": "https://ror.org/030847t23",
+      "links": [
+        { "type": "website", "value": "https://www.uitm.edu.my" },
+        {
+          "type": "wikipedia",
+          "value": "https://en.wikipedia.org/wiki/Universiti_Teknologi_MARA_System"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "MY",
+            "country_name": "Malaysia",
+            "country_subdivision_code": "10",
+            "country_subdivision_name": "Selangor",
+            "lat": 3.08507,
+            "lng": 101.53281,
+            "name": "Shah Alam"
+          },
+          "geonames_id": 1732903
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["alias"], "value": "MARA College" },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "MARA Institute of Technology"
+        },
+        { "lang": "en", "types": ["alias"], "value": "RIDA Training Centre" },
+        { "lang": null, "types": ["acronym"], "value": "UiTM" },
+        {
+          "lang": "ms",
+          "types": ["ror_display", "label"],
+          "value": "Universiti Teknologi MARA System"
+        }
+      ],
+      "relationships": [
+        {
+          "label": "Universiti Teknologi MARA",
+          "type": "child",
+          "id": "https://ror.org/05n8tts92"
+        }
+      ],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1972,
+      "external_ids": [
+        {
+          "all": ["grid.463647.4"],
+          "preferred": "grid.463647.4",
+          "type": "grid"
+        },
+        {
+          "all": ["0000 0004 5900 6685"],
+          "preferred": "0000 0004 5900 6685",
+          "type": "isni"
+        }
+      ],
+      "id": "https://ror.org/000epg022",
+      "links": [{ "type": "website", "value": "http://www.rectas.org/" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "NG",
+            "country_name": "Nigeria",
+            "country_subdivision_code": "OS",
+            "country_subdivision_name": "Osun State",
+            "lat": 7.4824,
+            "lng": 4.56032,
+            "name": "Ile-Ife"
+          },
+          "geonames_id": 2338900
+        }
+      ],
+      "names": [
+        { "lang": null, "types": ["acronym"], "value": "RECTAS" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Regional Centre for Training in Aerospace Surveys"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2024-02-13", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": null,
+      "external_ids": [],
+      "id": "https://ror.org/0231bqc61",
+      "links": [{ "type": "website", "value": "https://www.synchromedia.ca" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "NA",
+            "continent_name": "North America",
+            "country_code": "CA",
+            "country_name": "Canada",
+            "country_subdivision_code": "QC",
+            "country_subdivision_name": "Quebec",
+            "lat": 45.50884,
+            "lng": -73.58781,
+            "name": "Montreal"
+          },
+          "geonames_id": 6077243
+        }
+      ],
+      "names": [
+        {
+          "lang": "fr",
+          "types": ["ror_display", "label"],
+          "value": "Laboratoire de communications multimédias en téléprésence"
+        },
+        {
+          "lang": "en",
+          "types": ["label"],
+          "value": "Multimedia Communication in Telepresence"
+        },
+        { "lang": null, "types": ["acronym"], "value": "SYNCHROMEDIA" }
+      ],
+      "relationships": [
+        {
+          "label": "École de Technologie Supérieure",
+          "type": "parent",
+          "id": "https://ror.org/0020snb74"
+        }
+      ],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": null,
+      "external_ids": [
+        { "all": ["501100007624"], "preferred": null, "type": "fundref" },
+        {
+          "all": ["grid.478446.d"],
+          "preferred": "grid.478446.d",
+          "type": "grid"
+        },
+        { "all": ["0000 0004 6093 696X"], "preferred": null, "type": "isni" }
+      ],
+      "id": "https://ror.org/057rcgy56",
+      "links": [
+        {
+          "type": "website",
+          "value": "https://www.ee.iitb.ac.in/bharticentre/index.html"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "IN",
+            "country_name": "India",
+            "country_subdivision_code": "MH",
+            "country_subdivision_name": "Maharashtra",
+            "lat": 19.07283,
+            "lng": 72.88261,
+            "name": "Mumbai"
+          },
+          "geonames_id": 1275339
+        }
+      ],
+      "names": [
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Bharti Centre for Communication"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["funder", "other"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 2002,
+      "external_ids": [
+        {
+          "all": ["grid.442476.7"],
+          "preferred": "grid.442476.7",
+          "type": "grid"
+        },
+        { "all": ["0000 0001 0042 7862"], "preferred": null, "type": "isni" },
+        { "all": ["Q1765076"], "preferred": null, "type": "wikidata" }
+      ],
+      "id": "https://ror.org/00p8msr48",
+      "links": [
+        { "type": "website", "value": "http://www.saut.ac.tz/" },
+        {
+          "type": "wikipedia",
+          "value": "https://en.wikipedia.org/wiki/St._Augustine_University_of_Tanzania"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "TZ",
+            "country_name": "Tanzania",
+            "country_subdivision_code": "18",
+            "country_subdivision_name": "Mwanza",
+            "lat": -2.51667,
+            "lng": 32.9,
+            "name": "Mwanza"
+          },
+          "geonames_id": 152224
+        }
+      ],
+      "names": [
+        {
+          "lang": "sw",
+          "types": ["label"],
+          "value": "Chuo Kikuu cha Mtakatifu Agostino Tanzania"
+        },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Nyegezi Social Training Centre"
+        },
+        {
+          "lang": null,
+          "types": ["alias"],
+          "value": "Nyegezi Social Training Institute"
+        },
+        { "lang": null, "types": ["acronym"], "value": "SAUT" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "St. Augustine University of Tanzania"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1988,
+      "external_ids": [
+        {
+          "all": ["grid.458923.1"],
+          "preferred": "grid.458923.1",
+          "type": "grid"
+        }
+      ],
+      "id": "https://ror.org/003t41316",
+      "links": [{ "type": "website", "value": "http://www.rkk.no/en" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "EU",
+            "continent_name": "Europe",
+            "country_code": "NO",
+            "country_name": "Norway",
+            "country_subdivision_code": "11",
+            "country_subdivision_name": "Rogaland",
+            "lat": 58.97005,
+            "lng": 5.73332,
+            "name": "Stavanger"
+          },
+          "geonames_id": 3137115
+        }
+      ],
+      "names": [
+        { "lang": null, "types": ["acronym"], "value": "RKK" },
+        {
+          "lang": "no",
+          "types": ["alias"],
+          "value": "Rogaland Kurs og Kompetansesenter"
+        },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Rogaland Training & Education Centre"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["education"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2024-06-19", "schema_version": "2.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": null,
+      "external_ids": [
+        {
+          "all": ["501100007202"],
+          "preferred": "501100007202",
+          "type": "fundref"
+        },
+        { "all": ["Q45134908"], "preferred": "Q45134908", "type": "wikidata" }
+      ],
+      "id": "https://ror.org/052dp8730",
+      "links": [],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "NA",
+            "continent_name": "North America",
+            "country_code": "CA",
+            "country_name": "Canada",
+            "country_subdivision_code": "ON",
+            "country_subdivision_name": "Ontario",
+            "lat": 45.41117,
+            "lng": -75.69812,
+            "name": "Ottawa"
+          },
+          "geonames_id": 6094817
+        }
+      ],
+      "names": [
+        {
+          "lang": "en",
+          "types": ["label", "ror_display"],
+          "value": "CIHR Skin Research Training Centre"
+        },
+        { "lang": "en", "types": ["acronym"], "value": "CIHR-SRTC" },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Canadian Institutes of Health Research Skin Research Training Centre"
+        },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Skin Research Training Centre"
+        }
+      ],
+      "relationships": [
+        {
+          "label": "Canadian Institutes of Health Research",
+          "type": "parent",
+          "id": "https://ror.org/01gavpb45"
+        }
+      ],
+      "status": "active",
+      "types": ["facility", "funder", "government"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1974,
+      "external_ids": [
+        {
+          "all": ["grid.463384.e"],
+          "preferred": "grid.463384.e",
+          "type": "grid"
+        }
+      ],
+      "id": "https://ror.org/02544k771",
+      "links": [{ "type": "website", "value": "http://www.loyno.edu/~katc/" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "ZM",
+            "country_name": "Zambia",
+            "country_subdivision_code": "09",
+            "country_subdivision_name": "Lusaka Province",
+            "lat": -15.40669,
+            "lng": 28.28713,
+            "name": "Lusaka"
+          },
+          "geonames_id": 909137
+        }
+      ],
+      "names": [
+        { "lang": null, "types": ["acronym"], "value": "KATC" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Kasisi Agricultural Training Centre"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2019-02-17", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1996,
+      "external_ids": [
+        {
+          "all": ["grid.502115.2"],
+          "preferred": "grid.502115.2",
+          "type": "grid"
+        }
+      ],
+      "id": "https://ror.org/044t55e25",
+      "links": [{ "type": "website", "value": "http://www.padetc.org/" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "LA",
+            "country_name": "Laos",
+            "country_subdivision_code": "VT",
+            "country_subdivision_name": "Vientiane Prefecture",
+            "lat": 17.96667,
+            "lng": 102.6,
+            "name": "Vientiane"
+          },
+          "geonames_id": 1651944
+        }
+      ],
+      "names": [
+        { "lang": null, "types": ["acronym"], "value": "PADETC" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Participatory Development Training Centre"
+        },
+        { "lang": null, "types": ["acronym"], "value": "RIFS" },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Rice-based Integrated Farming System"
+        },
+        {
+          "lang": "lo",
+          "types": ["label"],
+          "value": "ສູນຝຶກອົບຮົມການພັດທະນາທີ່ມີສ່ວນຮ່ວມ"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["other"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 2003,
+      "external_ids": [
+        { "all": ["100017587"], "preferred": "100017587", "type": "fundref" },
+        {
+          "all": ["grid.423896.2"],
+          "preferred": "grid.423896.2",
+          "type": "grid"
+        },
+        { "all": ["0000 0004 1793 386X"], "preferred": null, "type": "isni" },
+        { "all": ["Q30284589"], "preferred": null, "type": "wikidata" }
+      ],
+      "id": "https://ror.org/02dq7z403",
+      "links": [
+        { "type": "website", "value": "http://www.eucentre.it/?lang=en" }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "EU",
+            "continent_name": "Europe",
+            "country_code": "IT",
+            "country_name": "Italy",
+            "country_subdivision_code": "25",
+            "country_subdivision_name": "Lombardy",
+            "lat": 45.19205,
+            "lng": 9.15917,
+            "name": "Pavia"
+          },
+          "geonames_id": 3171366
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["alias"], "value": "Eucentre Foundation" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "European Centre for Training and Research in Earthquake Engineering"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["funder", "nonprofit"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 2002,
+      "external_ids": [
+        {
+          "all": ["grid.483085.2"],
+          "preferred": "grid.483085.2",
+          "type": "grid"
+        }
+      ],
+      "id": "https://ror.org/02pt0wv95",
+      "links": [{ "type": "website", "value": "http://www.cetrad.org/" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "KE",
+            "country_name": "Kenya",
+            "country_subdivision_code": "20",
+            "country_subdivision_name": "Laikipia",
+            "lat": 0.00624,
+            "lng": 37.07398,
+            "name": "Nanyuki"
+          },
+          "geonames_id": 184433
+        }
+      ],
+      "names": [
+        { "lang": null, "types": ["acronym"], "value": "CETRAD" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Centre for Training and Integrated Research In ASAL Development"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": 1964,
+      "external_ids": [
+        {
+          "all": ["grid.463039.b"],
+          "preferred": "grid.463039.b",
+          "type": "grid"
+        },
+        { "all": ["0000 0001 2297 3813"], "preferred": null, "type": "isni" }
+      ],
+      "id": "https://ror.org/0167m9538",
+      "links": [
+        { "type": "website", "value": "http://www.cafrad.org/index.php/en/" }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AF",
+            "continent_name": "Africa",
+            "country_code": "MA",
+            "country_name": "Morocco",
+            "country_subdivision_code": "01",
+            "country_subdivision_name": "Tanger-Tetouan-Al Hoceima",
+            "lat": 35.76727,
+            "lng": -5.79975,
+            "name": "Tangier"
+          },
+          "geonames_id": 2530335
+        }
+      ],
+      "names": [
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "African Training and Research Centre in Administration for Development"
+        },
+        { "lang": null, "types": ["acronym"], "value": "CAFRAD" },
+        {
+          "lang": "fr",
+          "types": ["label"],
+          "value": "Centre Africain de Formation et de Recherche Administratives pour le Développement"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["government"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2025-06-24", "schema_version": "2.1" },
+        "last_modified": { "date": "2025-06-24", "schema_version": "2.1" }
+      },
+      "domains": ["icrtm.vast.vn"],
+      "established": null,
+      "external_ids": [],
+      "id": "https://ror.org/04357wy15",
+      "links": [{ "type": "website", "value": "http://icrtm.vast.vn" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "AS",
+            "continent_name": "Asia",
+            "country_code": "VN",
+            "country_name": "Vietnam",
+            "country_subdivision_code": "HN",
+            "country_subdivision_name": "Hanoi",
+            "lat": 21.0245,
+            "lng": 105.84117,
+            "name": "Hanoi"
+          },
+          "geonames_id": 1581130
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["acronym"], "value": "ICRTM" },
+        {
+          "lang": "en",
+          "types": ["label", "ror_display"],
+          "value": "International Centre of Research and Postgraduate Training in Mathematics"
+        },
+        {
+          "lang": "vi",
+          "types": ["label"],
+          "value": "Trung tâm Nghiên cứu và Đào tạo toán học quốc tế"
+        }
+      ],
+      "relationships": [
+        {
+          "label": "UNESCO",
+          "type": "parent",
+          "id": "https://ror.org/04h4z8k05"
+        }
+      ],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2018-11-14", "schema_version": "1.0" },
+        "last_modified": { "date": "2024-12-11", "schema_version": "2.1" }
+      },
+      "domains": [],
+      "established": null,
+      "external_ids": [
+        {
+          "all": ["grid.417671.2"],
+          "preferred": "grid.417671.2",
+          "type": "grid"
+        }
+      ],
+      "id": "https://ror.org/034x2fx50",
+      "links": [{ "type": "website", "value": "http://www.ict.csiro.au/" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "OC",
+            "continent_name": "Oceania",
+            "country_code": "AU",
+            "country_name": "Australia",
+            "country_subdivision_code": "NSW",
+            "country_subdivision_name": "New South Wales",
+            "lat": -33.86785,
+            "lng": 151.20732,
+            "name": "Sydney"
+          },
+          "geonames_id": 2147714
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["alias"], "value": "ICT Centre" },
+        {
+          "lang": "en",
+          "types": ["ror_display", "label"],
+          "value": "Information and Communication Technologies Centre"
+        }
+      ],
+      "relationships": [
+        {
+          "label": "Commonwealth Scientific and Industrial Research Organisation",
+          "type": "parent",
+          "id": "https://ror.org/03qn8fb07"
+        }
+      ],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2025-02-26", "schema_version": "2.1" },
+        "last_modified": { "date": "2025-06-24", "schema_version": "2.1" }
+      },
+      "domains": ["ccsd.cnrs.fr"],
+      "established": 2000,
+      "external_ids": [
+        {
+          "all": ["0000 0004 0521 1595"],
+          "preferred": "0000 0004 0521 1595",
+          "type": "isni"
+        },
+        { "all": ["Q2945988"], "preferred": "Q2945988", "type": "wikidata" }
+      ],
+      "id": "https://ror.org/00680hx61",
+      "links": [
+        { "type": "website", "value": "https://www.ccsd.cnrs.fr" },
+        {
+          "type": "wikipedia",
+          "value": "https://en.wikipedia.org/wiki/Centre_pour_la_communication_scientifique_directe"
+        }
+      ],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "EU",
+            "continent_name": "Europe",
+            "country_code": "FR",
+            "country_name": "France",
+            "country_subdivision_code": "ARA",
+            "country_subdivision_name": "Auvergne-Rhône-Alpes",
+            "lat": 45.76601,
+            "lng": 4.8795,
+            "name": "Villeurbanne"
+          },
+          "geonames_id": 2968254
+        }
+      ],
+      "names": [
+        { "lang": "fr", "types": ["acronym"], "value": "CCSD" },
+        {
+          "lang": "en",
+          "types": ["label"],
+          "value": "Center for Direct Scientific Communication"
+        },
+        {
+          "lang": "en",
+          "types": ["alias"],
+          "value": "Centre for Direct Scientific Communication"
+        },
+        {
+          "lang": "fr",
+          "types": ["label", "ror_display"],
+          "value": "Centre pour la Communication Scientifique Directe"
+        },
+        {
+          "lang": "es",
+          "types": ["label"],
+          "value": "Centro para la Comunicación Científica Directa"
+        },
+        { "lang": null, "types": ["alias"], "value": "UAR 3668" },
+        { "lang": null, "types": ["alias"], "value": "UAR3668" }
+      ],
+      "relationships": [
+        {
+          "label": "Centre National de la Recherche Scientifique",
+          "type": "parent",
+          "id": "https://ror.org/02feahw73"
+        },
+        {
+          "label": "Institut national de recherche en sciences et technologies du numérique",
+          "type": "parent",
+          "id": "https://ror.org/02kvxyf05"
+        },
+        {
+          "label": "Institut National de Recherche pour l'Agriculture, l'Alimentation et l'Environnement",
+          "type": "parent",
+          "id": "https://ror.org/003vg9w96"
+        }
+      ],
+      "status": "active",
+      "types": ["facility"]
+    },
+    {
+      "admin": {
+        "created": { "date": "2025-02-26", "schema_version": "2.1" },
+        "last_modified": { "date": "2025-02-26", "schema_version": "2.1" }
+      },
+      "domains": ["vuku.cz"],
+      "established": 2005,
+      "external_ids": [],
+      "id": "https://ror.org/05tgyyk02",
+      "links": [{ "type": "website", "value": "https://vuku.cz" }],
+      "locations": [
+        {
+          "geonames_details": {
+            "continent_code": "EU",
+            "continent_name": "Europe",
+            "country_code": "CZ",
+            "country_name": "Czechia",
+            "country_subdivision_code": "64",
+            "country_subdivision_name": "South Moravian",
+            "lat": 49.19522,
+            "lng": 16.60796,
+            "name": "Brno"
+          },
+          "geonames_id": 3078610
+        }
+      ],
+      "names": [
+        { "lang": "en", "types": ["acronym"], "value": "RICA" },
+        {
+          "lang": "en",
+          "types": ["label", "ror_display"],
+          "value": "Research Institute of Communication in Art"
+        },
+        { "lang": "cs", "types": ["acronym"], "value": "VUKU" },
+        {
+          "lang": "cs",
+          "types": ["label"],
+          "value": "Výzkumný ústav komunikace v umění"
+        }
+      ],
+      "relationships": [],
+      "status": "active",
+      "types": ["nonprofit"]
+    }
+  ],
+  "meta": {
+    "types": [
+      { "id": "facility", "title": "facility", "count": 1681 },
+      { "id": "nonprofit", "title": "nonprofit", "count": 801 },
+      { "id": "education", "title": "education", "count": 678 },
+      { "id": "healthcare", "title": "healthcare", "count": 629 },
+      { "id": "funder", "title": "funder", "count": 600 },
+      { "id": "other", "title": "other", "count": 458 },
+      { "id": "government", "title": "government", "count": 269 },
+      { "id": "company", "title": "company", "count": 217 },
+      { "id": "archive", "title": "archive", "count": 121 }
+    ],
+    "countries": [
+      { "id": "fr", "title": "France", "count": 772 },
+      { "id": "gb", "title": "United Kingdom", "count": 433 },
+      { "id": "us", "title": "United States", "count": 349 },
+      { "id": "ca", "title": "Canada", "count": 342 },
+      { "id": "in", "title": "India", "count": 321 },
+      { "id": "de", "title": "Germany", "count": 190 },
+      { "id": "pl", "title": "Poland", "count": 157 },
+      { "id": "au", "title": "Australia", "count": 153 },
+      { "id": "es", "title": "Spain", "count": 144 },
+      { "id": "cz", "title": "Czech Republic", "count": 102 }
+    ],
+    "continents": [
+      { "id": "eu", "title": "Europe", "count": 2776 },
+      { "id": "as", "title": "Asia", "count": 735 },
+      { "id": "na", "title": "North America", "count": 708 },
+      { "id": "af", "title": "Africa", "count": 400 },
+      { "id": "oc", "title": "Oceania", "count": 173 },
+      { "id": "sa", "title": "South America", "count": 52 }
+    ],
+    "statuses": [{ "id": "active", "title": "active", "count": 4842 }]
+  }
+}

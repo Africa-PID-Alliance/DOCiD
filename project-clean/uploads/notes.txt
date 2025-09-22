@@ -1,0 +1,47 @@
+ALTER TABLE "publication_documents"
+ALTER "identifier_type_id" TYPE integer,
+ALTER "identifier_type_id" DROP DEFAULT,
+ALTER "identifier_type_id" DROP NOT NULL,
+ALTER "generated_identifier" TYPE character varying(255),
+ALTER "generated_identifier" DROP DEFAULT,
+ALTER "generated_identifier" DROP NOT NULL;
+COMMENT ON COLUMN "publication_documents"."identifier_type_id" IS '';
+COMMENT ON COLUMN "publication_documents"."generated_identifier" IS '';
+COMMENT ON TABLE "publication_documents" IS '';
+
+chmod +x /Users/ekariz/Projects/AMBAND/DOCiD/backend/scripts/check_null_identifiers.py
+cd /Users/ekariz/Projects/AMBAND/DOCiD/backend
+python scripts/check_null_identifiers.py
+
+
+
+he script  needs to have this  workflow .1. select  publication_documents where  column identifier_cstr is null . step 2 .get parents publication using column publication_id step 3 register the documents with cstr  step 4 . get  identifier from csrt registration response and update table publication_documents column identifier_cstr  step 5. loop .  NB: a success csrt response is  
+  {
+  "code": 200,
+  "components": [
+    {
+      "identifier": "KE154.11.DOCID.EXAMPLE.001",
+      "status": "success"
+    }
+  ],
+  "detail": "Success",
+  "status": "0",
+  "total": 1
+}
+ 
+
+
+ cd /Users/ekariz/Projects/AMBAND/DOCiD/backend && source venv_new/bin/activate && python init_migrations.py current
+
+
+ Available commands:
+1. Initialize migrations repository
+2. Create a new migration
+3. Apply migrations (upgrade)
+4. Rollback migrations (downgrade)
+5. Show current migration
+6. Show migration history
+7. Exit
+
+Enter your choice (1-7): 3
+

@@ -1,0 +1,114 @@
+cstr@cinc.cn
+
+Your CSTR prefix : KE154
+Your account information:     
+username：info@africapidalliance.org
+clientid：202504295484
+secret：de07fcaebe9a4822e3bb881687a7241a
+
+cordra push date  not created_on
+user_id,
+resource_type_id,doi
+add resource_type_name
+
+make schema documentation  at
+https://app.readthedocs.org/dashboard/#/email
+
+crst_identifier
+
+curl -X POST "http://127.0.0.1:5000/api/v1/cstr/register?res_name=v3_scientific_data" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prefix": "KE154",
+    "metadatas": [
+      {
+        "identifier": "KE154.11.500.14351/31a4d7e69285ec051fa3",
+        "titles": [
+          {
+            "lang": "en",
+            "name": "Sample Biodiversity Dataset"
+          }
+        ],
+        "creators": [
+          {
+            "type": "1",
+            "person": {
+              "names": [
+                {
+                  "lang": "en",
+                  "name": "Erastus Kariuki"
+                }
+              ],
+              "emails": ["eratus.kariuki@outlook.com"]
+            }
+          }
+        ],
+        "publisher": {
+          "names": [
+            {
+              "lang": "en",
+              "name": "Africa PID Allicance"
+            }
+          ]
+        },
+        "publish_date": "2025-04-15",
+        "language": "en",
+        "cstr_state": "2",
+        "urls": ["https://cordra.kenet.or.ke/#objects/20.500.14351/31a4d7e69285ec051fa3"],
+        "resource_type": "11",
+        "type": 1
+      }
+    ]
+  }'
+
+
+  {
+  "code": 200,
+  "components": [
+    {
+      "identifier": "KE154.11.DOCID.EXAMPLE.001",
+      "status": "success"
+    }
+  ],
+  "detail": "Success",
+  "status": "0",
+  "total": 1
+}
+
+
+save cstr url for each publication in step 3 and return in publication payload.
+
+
+
+identifier must  begin with prefix  and  then '11' 
+
+{
+  "code": 200,
+  "components": [
+    {
+      "identifier": "KE154.11.500.14351/31a4d7e69285ec051fa3",
+      "status": "success"
+    }
+  ],
+  "detail": "Success",
+  "status": "0",
+  "total": 1
+}
+
+
+Creators
+
+// Extract the required keys
+const metadata = response.metadatas[0]; // Assuming the first metadata object
+const identifier = metadata.identifier;
+
+const fullName = metadata.creators[0].person.names[0].name;
+const fullNameArray = fullName.split(" "); // Split the full name using space as a delimiter
+const familyName = fullNameArray[0];
+const givenName = fullNameArray[1] || ""; // Handle cases where there might not be a second name
+
+// Log the results
+console.log("Identifier:", identifier);
+console.log("Full Name:", fullName);
+console.log("Family Name:", familyName);
+console.log("Given Name:", givenName);

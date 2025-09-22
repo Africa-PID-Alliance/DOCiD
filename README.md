@@ -1,6 +1,6 @@
 # DOCiD Platform
 
-A comprehensive Document Identifier Management System providing persistent identifiers (PIDs), metadata management, and scholarly communication tools.
+A comprehensive Document Identifier Management System providing persistent identifiers (PIDs) 
 
 ## Overview
 

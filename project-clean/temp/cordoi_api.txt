@@ -1,0 +1,141 @@
+{
+  "schemaAcls": {
+    "User": {
+      "defaultAclRead": [
+        "authenticated"
+      ],
+      "defaultAclWrite": [
+        "self"
+      ],
+      "aclCreate": []
+    },
+    "CordraDesign": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    },
+    "Schema": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    }
+  },
+  "defaultAcls": {
+    "defaultAclRead": [
+      "authenticated"
+    ],
+    "defaultAclWrite": [
+      "creator"
+    ],
+    "aclCreate": [
+      "authenticated"
+    ]
+  }
+}
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+{
+  "schemaAcls": {
+    "User": {
+      "defaultAclRead": [
+        "authenticated"
+      ],
+      "defaultAclWrite": [
+        "self"
+      ],
+      "aclCreate": []
+    },
+    "CordraDesign": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    },
+    "Schema": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    },
+    "APA_Handle_ID": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [
+        "creator"
+      ],
+      "aclCreate": [
+        "authenticated"
+      ]
+    }
+  },
+  "defaultAcls": {
+    "defaultAclRead": [
+      "authenticated"
+    ],
+    "defaultAclWrite": [
+      "creator"
+    ],
+    "aclCreate": [
+      "authenticated"
+    ]
+  }
+}
+
+..............
+
+
+{
+  "schemaAcls": {
+    "User": {
+      "defaultAclRead": [
+        "authenticated"
+      ],
+      "defaultAclWrite": [
+        "self"
+      ],
+      "aclCreate": []
+    },
+    "CordraDesign": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    },
+    "Schema": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    },
+    "APA_Handle_ID": {
+      "defaultAclRead": [
+        "public"
+      ],
+      "defaultAclWrite": [],
+      "aclCreate": []
+    }
+  },
+  "defaultAcls": {
+    "defaultAclRead": [
+      "authenticated"
+    ],
+    "defaultAclWrite": [
+      "creator"
+    ],
+    "aclCreate": [
+      "authenticated"
+    ]
+  }
+}

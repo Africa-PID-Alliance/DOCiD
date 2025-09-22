@@ -1,0 +1,87 @@
+=== PUBLICATIONS PUBLISH REQUEST ===
+Request URL: http://localhost:3000/api/publications/publish
+Content-Type: multipart/form-data; boundary=----geckoformboundaryb1ca81fa55da33a9e1665b3cc49f07d3
+=== FORM DATA ENTRIES ===
+publicationPoster: 
+documentDocid: 20.500.14351/186154712b2d5f6791d8
+documentTitle: yyy
+documentDescription: <p>jjnjn</p>
+resourceType: 2
+user_id: 2
+owner: E. Kariz
+avatar: null
+doi: 20.500.14351/186154712b2d5f6791d8
+filesPublications_0_file: [File] wrti_species_summary_20250821_132041.pdf (18373 bytes, application/pdf)
+filesPublications[0][file_type]: application/pdf
+filesPublications[0][title]: test
+filesPublications[0][description]: test
+filesPublications[0][identifier]: 1
+filesPublications[0][publication_type]: 10
+filesPublications[0][generated_identifier]: 20.500.14351/10198a6228d58e90bc15
+filesDocuments[0][title]: test
+filesDocuments[0][description]: test
+filesDocuments[0][identifier]: 1
+filesDocuments[0][publication_type]: 4
+filesDocuments[0][generated_identifier]: 20.500.14351/919fba085c41dcf43590
+filesDocuments_0_file: [File] Screenshot 2025-08-15 at 07-55-53 Create Health Record WRTI BioAtlas.png (296592 bytes, image/png)
+creators[0][family_name]: Kariuki
+creators[0][given_name]: Erastus
+creators[0][identifier]: orcid
+creators[0][role]: 1
+creators[0][orcid_id]: 0000-0002-7453-6460
+organization[0][name]: Kenyatta University
+organization[0][other_name]: 
+organization[0][type]: UNIVERSITY
+organization[0][country]: Kenya
+organization[0][ror_id]: 05p2z3x69
+funders[0][name]: Gates Foundation
+funders[0][other_name]: 
+funders[0][type]: 1
+funders[0][country]: United States
+funders[0][ror_id]: 0456r8d26
+projects[0][title]: AFRICA PID ALLIANCE DOCiD Example  RAiD title added by Erastus... 06:55:17
+projects[0][raid_id]: https://app.demo.raid.org.au/raids/10.80368/b1adfb3a
+projects[0][description]: undefined=== PUBLICATIONS PUBLISH REQUEST ===
+Request URL: http://localhost:3000/api/publications/publish
+Content-Type: multipart/form-data; boundary=----geckoformboundaryb1ca81fa55da33a9e1665b3cc49f07d3
+=== FORM DATA ENTRIES ===
+publicationPoster: 
+documentDocid: 20.500.14351/186154712b2d5f6791d8
+documentTitle: yyy
+documentDescription: <p>jjnjn</p>
+resourceType: 2
+user_id: 2
+owner: E. Kariz
+avatar: null
+doi: 20.500.14351/186154712b2d5f6791d8
+filesPublications_0_file: [File] wrti_species_summary_20250821_132041.pdf (18373 bytes, application/pdf)
+filesPublications[0][file_type]: application/pdf
+filesPublications[0][title]: test
+filesPublications[0][description]: test
+filesPublications[0][identifier]: 1
+filesPublications[0][publication_type]: 10
+filesPublications[0][generated_identifier]: 20.500.14351/10198a6228d58e90bc15
+filesDocuments[0][title]: test
+filesDocuments[0][description]: test
+filesDocuments[0][identifier]: 1
+filesDocuments[0][publication_type]: 4
+filesDocuments[0][generated_identifier]: 20.500.14351/919fba085c41dcf43590
+filesDocuments_0_file: [File] Screenshot 2025-08-15 at 07-55-53 Create Health Record WRTI BioAtlas.png (296592 bytes, image/png)
+creators[0][family_name]: Kariuki
+creators[0][given_name]: Erastus
+creators[0][identifier]: orcid
+creators[0][role]: 1
+creators[0][orcid_id]: 0000-0002-7453-6460
+organization[0][name]: Kenyatta University
+organization[0][other_name]: 
+organization[0][type]: UNIVERSITY
+organization[0][country]: Kenya
+organization[0][ror_id]: 05p2z3x69
+funders[0][name]: Gates Foundation
+funders[0][other_name]: 
+funders[0][type]: 1
+funders[0][country]: United States
+funders[0][ror_id]: 0456r8d26
+projects[0][title]: AFRICA PID ALLIANCE DOCiD Example  RAiD title added by Erastus... 06:55:17
+projects[0][raid_id]: https://app.demo.raid.org.au/raids/10.80368/b1adfb3a
+projects[0][description]: undefined

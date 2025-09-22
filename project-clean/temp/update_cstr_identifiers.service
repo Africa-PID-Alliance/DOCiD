@@ -1,0 +1,14 @@
+[Unit]
+Description=CSTR Identifier Update Service
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/DOCiD/backend
+ExecStart=/path/to/DOCiD/backend/update_all_cstr_identifiers.py
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
