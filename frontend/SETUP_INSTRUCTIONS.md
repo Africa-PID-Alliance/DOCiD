@@ -12,7 +12,7 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository (if not already done)
 ```bash
 git clone [repository-url]
-cd /Users/ekariz/Projects/AMBAND/DOCiD/frontendv2/docid
+cd [project-directory]/frontend
 ```
 
 ### 2. Install Dependencies
