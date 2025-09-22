@@ -112,3 +112,6 @@ test_*.jpg
 
 # Git workflow documentation
 GIT_WORKFLOW.md
+
+# Claude AI configuration
+backend/CLAUDE.md
