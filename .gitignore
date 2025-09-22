@@ -38,6 +38,7 @@ instance/
 *.sqlite
 backend/temp/
 backend/.env
+backend/uploads/
 
 # Node
 node_modules/
