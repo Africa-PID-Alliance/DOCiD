@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - API Reference</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link active">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#cultural-protocols" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#validation-rules" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>API Reference</h1>
+                    <div class="subtitle">Complete REST API documentation for DOCiD publication and document identifier management</div>
+                </header>
+
+                <!-- API Overview -->
+                <section id="api-overview">
+                    <h2>API Design Principles</h2>
+                    <p class="lead">The DOCiD API is built following RESTful principles with comprehensive support for metadata management, persistent identifiers, and scholarly communication workflows.</p>
+                    
+                    <div class="grid">
+                        <div class="card">
+                            <h3>🔗 RESTful Architecture</h3>
+                            <ul>
+                                <li>Resource-oriented URLs following REST conventions</li>
+                                <li>HTTP verb semantics (GET, POST, PUT, DELETE)</li>
+                                <li>Standard HTTP status code usage</li>
+                                <li>JSON-based request/response payloads</li>
+                                <li>Consistent API versioning via URL prefix</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card">
+                            <h3>🔐 Authentication & Authorization</h3>
+                            <ul>
+                                <li>JWT-based authentication with access/refresh tokens</li>
+                                <li>Bearer token authorization headers</li>
+                                <li>Social OAuth integration (Google, ORCID, GitHub)</li>
+                                <li>Role-based access control (user, admin, superadmin)</li>
+                                <li>Resource-level permission management</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card">
+                            <h3>⚠️ Error Handling</h3>
+                            <ul>
+                                <li>Consistent error response format across all endpoints</li>
+                                <li>HTTP status code compliance with detailed error codes</li>
+                                <li>Comprehensive validation error messages</li>
+                                <li>Request parameter validation and sanitization</li>
+                                <li>Graceful handling of external service failures</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- API Response Format -->
+                <section id="response-format">
+                    <h2>Standard Response Format</h2>
+                    <p>All API responses follow a consistent structure for both success and error cases, facilitating predictable client-side handling.</p>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Success Response Structure</div>
+                            <div class="property-meta">
+                                <span class="property-badge">HTTP 200-299</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <div class="code-example">
+                                <div class="code-header">Standard Success Response</div>
+                                <div class="code-content">
+                                    <pre><code>{
+    "status": "success",
+    "data": {
+        // Response payload with requested data
+        "publication": {
+            "id": 1,
+            "document_title": "Research Publication Title",
+            "doi": "10.5555/docid.example.001"
+        }
+    },
+    "message": "Operation completed successfully",
+    "timestamp": "2024-01-15T10:30:00Z"
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Error Response Structure</div>
+                            <div class="property-meta">
+                                <span class="property-badge">HTTP 400-599</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <div class="code-example">
+                                <div class="code-header">Standard Error Response</div>
+                                <div class="code-content">
+                                    <pre><code>{
+    "status": "error",
+    "error": "Validation failed for publication data",
+    "code": "VALIDATION_ERROR",
+    "details": {
+        "field_errors": {
+            "document_title": "Title is required and cannot be empty",
+            "creators": "At least one creator must be specified"
+        },
+        "request_id": "req_abc123def456"
+    },
+    "timestamp": "2024-01-15T10:30:00Z"
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Authentication Endpoints -->
+                <section id="authentication-endpoints">
+                    <h2>Authentication Endpoints</h2>
+                    <p>Authentication system supporting both traditional email/password and social OAuth providers (Google, ORCID, GitHub) with JWT-based session management.</p>
+            
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">POST /api/v1/auth/login</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Authentication</span>
+                                <span>User Login</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Authenticate user credentials and receive JWT access and refresh tokens for subsequent API requests.</p>
+                            
+                            <h4>Request Parameters:</h4>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Field</th>
+                                            <th>Type</th>
+                                            <th>Required</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>email</code></td>
+                                            <td>string</td>
+                                            <td>Yes</td>
+                                            <td>User's registered email address</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>password</code></td>
+                                            <td>string</td>
+                                            <td>Yes</td>
+                                            <td>User's password (minimum 8 characters)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="code-example">
+                                <div class="code-header">Request Example</div>
+                                <div class="code-content">
+                                    <pre><code>POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "amara.okonkwo@uct.ac.za",
+    "password": "SecurePass123!"
+}</code></pre>
+                                </div>
+                            </div>
+                            
+                            <div class="code-example">
+                                <div class="code-header">Success Response (HTTP 200)</div>
+                                <div class="code-content">
+                                    <pre><code>{
+    "status": "success",
+    "data": {
+        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "expires_in": 3600,
+        "user": {
+            "user_id": 1,
+            "full_name": "Dr. Amara Okonkwo",
+            "email": "amara.okonkwo@uct.ac.za",
+            "role": "user",
+            "orcid_id": "0000-0002-1234-5678",
+            "affiliation": "University of Cape Town",
+            "ror_id": "https://ror.org/01ggx4157"
+        }
+    },
+    "message": "Authentication successful"
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/v1/auth/store-registration-token</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>User Registration</h4>
+                    <p>Register new user account</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "email": "user@example.com",
+    "full_name": "John Doe",
+    "password": "secure_password",
+    "orcid_id": "0000-0000-0000-0000",
+    "affiliation": "University Name"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/v1/auth/request-password-reset</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Password Reset Request</h4>
+                    <p>Request password reset email</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "email": "user@example.com"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+                </section>
+
+                <!-- Publication Management -->
+                <section id="publication-endpoints">
+                    <h2>Publication Management Endpoints</h2>
+                    <p>Comprehensive publication lifecycle management including creation, metadata management, identifier assignment, and external service integration based on the Publications model.</p>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/v1/publications/publish</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Create Publication</h4>
+                    <p>Create new publication with metadata</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "title": "Research Paper Title",
+    "abstract": "Paper abstract...",
+    "resource_type_id": 1,
+    "publication_type_id": 1,
+    "creators": [
+        {
+            "creator_name": "John Doe",
+            "orcid_id": "0000-0000-0000-0000",
+            "role_id": 1,
+            "affiliation": "University Name"
+        }
+    ],
+    "organizations": [
+        {
+            "organization_name": "University Name",
+            "ror_id": "ror_id_here",
+            "country": "Country Name"
+        }
+    ],
+    "funders": [
+        {
+            "funder_name": "Grant Agency",
+            "grant_number": "GRANT-2023-001",
+            "award_amount": 50000.00
+        }
+    ]
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/publications/get-publications</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get Publications List</h4>
+                    <p>Retrieve paginated list of publications</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    <p><strong>Query Parameters:</strong> page, limit, resource_type</p>
+                    
+                    <div class="code-example">
+                        <h4>Response</h4>
+                        <pre><code>{
+    "publications": [
+        {
+            "id": 1,
+            "title": "Research Paper Title",
+            "docid": "DOCID.001",
+            "doi": "10.5555/example.doi",
+            "resource_type": "dataset",
+            "creators": [...],
+            "organizations": [...],
+            "created_at": "2023-01-01T00:00:00Z"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "pages": 5,
+        "total": 50,
+        "limit": 10
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/publications/get-publication/{id}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get Single Publication</h4>
+                    <p>Retrieve detailed publication information</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/publications/docid/{docid}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get Publication by DocID</h4>
+                    <p>Retrieve publication using DocID identifier</p>
+                </div>
+            </div>
+        </section>
+
+                </section>
+
+                <!-- Comments System -->
+                <section id="comments-endpoints">
+                    <h2>Comments System Endpoints</h2>
+                    <p>Hierarchical commenting system supporting threaded discussions, moderation, and engagement tracking based on the PublicationComments model with parent-child relationships.</p>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/publications/{publication_id}/comments</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get Publication Comments</h4>
+                    <p>Retrieve hierarchical comments for a publication</p>
+                    <p><strong>Query Parameters:</strong> include_replies=true</p>
+                    
+                    <div class="code-example">
+                        <h4>Response</h4>
+                        <pre><code>{
+    "publication_id": 1,
+    "total_comments": 5,
+    "comments": [
+        {
+            "id": 1,
+            "user_id": 1,
+            "user_name": "John Doe",
+            "comment_text": "Great research work!",
+            "comment_type": "general",
+            "status": "active",
+            "likes_count": 3,
+            "created_at": "2023-01-01T10:00:00Z",
+            "replies": [
+                {
+                    "id": 2,
+                    "user_id": 2,
+                    "user_name": "Jane Smith",
+                    "comment_text": "I agree, very insightful.",
+                    "parent_comment_id": 1,
+                    "created_at": "2023-01-01T11:00:00Z"
+                }
+            ]
+        }
+    ]
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/publications/{publication_id}/comments</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Add Comment</h4>
+                    <p>Add new comment to publication</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "user_id": 1,
+    "comment_text": "This is a great contribution to the field.",
+    "comment_type": "review"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/publications/{publication_id}/comments</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Add Reply</h4>
+                    <p>Add reply to existing comment</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "user_id": 1,
+    "comment_text": "Thank you for the feedback!",
+    "comment_type": "general",
+    "parent_comment_id": 1
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method put">PUT</span>
+                    <span class="endpoint-url">/api/comments/{comment_id}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Edit Comment</h4>
+                    <p>Edit existing comment (author only)</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "user_id": 1,
+    "comment_text": "Updated comment text"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method delete">DELETE</span>
+                    <span class="endpoint-url">/api/comments/{comment_id}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Delete Comment</h4>
+                    <p>Soft delete comment (author or admin)</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "user_id": 1
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/comments/{comment_id}/like</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Like Comment</h4>
+                    <p>Toggle like status for comment</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/comments/stats/{publication_id}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get Comment Statistics</h4>
+                    <p>Retrieve comment analytics for publication</p>
+                    
+                    <div class="code-example">
+                        <h4>Response</h4>
+                        <pre><code>{
+    "publication_id": 1,
+    "statistics": {
+        "total_comments": 10,
+        "top_level_comments": 7,
+        "replies": 3,
+        "unique_commenters": 5,
+        "total_likes": 15,
+        "comment_types": {
+            "general": 6,
+            "review": 3,
+            "question": 1
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+                </section>
+
+                <!-- External Service Integration -->
+                <section id="external-service-endpoints">
+                    <h2>External Service Integration Endpoints</h2>
+                    <p>Integration endpoints for scholarly communication infrastructure including Crossref, ROR, ORCID, CORDRA, and CSTR services for metadata enrichment and identifier resolution.</p>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/crossref/doi/{doi}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get DOI Metadata from Crossref</h4>
+                    <p>Retrieve metadata for specific DOI</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/v1/crossref/search</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Search Crossref Database</h4>
+                    <p>Search publications in Crossref</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    
+                    <div class="code-example">
+                        <h4>Request Body</h4>
+                        <pre><code>{
+    "query": "machine learning",
+    "rows": 10,
+    "sort": "relevance"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/ror/search</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Search ROR Organizations</h4>
+                    <p>Search research organizations</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    <p><strong>Query Parameters:</strong> query</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">GET</span>
+                    <span class="endpoint-url">/api/v1/orcid/{orcid_id}</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Get ORCID Information</h4>
+                    <p>Retrieve researcher profile from ORCID</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/api/v1/cordoi/assign-identifier/apa-handle</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Assign Handle Identifier</h4>
+                    <p>Assign Handle identifier via CORDRA</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="reference-data-endpoints">
+            <h2>Reference Data Endpoints</h2>
+            
+            <div class="grid">
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">GET</span>
+                        <span class="endpoint-url">/api/v1/publications/get-resource-types</span>
+                    </div>
+                    <div class="endpoint-content">
+                        <h4>Get Resource Types</h4>
+                        <p>Retrieve available resource type classifications</p>
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">GET</span>
+                        <span class="endpoint-url">/api/v1/publications/get-creators-roles</span>
+                    </div>
+                    <div class="endpoint-content">
+                        <h4>Get Creator Roles</h4>
+                        <p>Retrieve available creator role taxonomies</p>
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">GET</span>
+                        <span class="endpoint-url">/api/v1/publications/get-publication-types</span>
+                    </div>
+                    <div class="endpoint-content">
+                        <h4>Get Publication Types</h4>
+                        <p>Retrieve document type classifications</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="file-upload-endpoints">
+            <h2>File Upload Endpoints</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-url">/uploads</span>
+                </div>
+                <div class="endpoint-content">
+                    <h4>Upload Publication Files</h4>
+                    <p>Upload files associated with publications</p>
+                    <p><strong>Authorization:</strong> Bearer {jwt_token}</p>
+                    <p><strong>Content-Type:</strong> multipart/form-data</p>
+                    
+                    <div class="code-example">
+                        <h4>Form Data</h4>
+                        <pre><code>file: [binary file data]
+publication_id: 1
+file_type: document</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="rate-limiting">
+            <h2>Rate Limiting</h2>
+            <p>The API implements rate limiting on sensitive endpoints:</p>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint Category</th>
+                            <th>Rate Limit</th>
+                            <th>Time Window</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Authentication endpoints</td>
+                            <td>5 requests</td>
+                            <td>per minute</td>
+                        </tr>
+                        <tr>
+                            <td>Publication creation</td>
+                            <td>10 requests</td>
+                            <td>per hour</td>
+                        </tr>
+                        <tr>
+                            <td>External service calls</td>
+                            <td>100 requests</td>
+                            <td>per hour</td>
+                        </tr>
+                        <tr>
+                            <td>Comment creation</td>
+                            <td>30 requests</td>
+                            <td>per hour</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="code-example">
+                <h4>Rate Limit Headers</h4>
+                <pre><code>X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200</code></pre>
+            </div>
+        </section>
+
+        <section class="error-codes">
+            <h2>HTTP Status Codes & Error Codes</h2>
+            
+            <div class="grid">
+                <div class="feature">
+                    <h4>HTTP Status Codes</h4>
+                    <ul>
+                        <li><strong>200 OK</strong> - Successful request</li>
+                        <li><strong>201 Created</strong> - Resource created successfully</li>
+                        <li><strong>400 Bad Request</strong> - Invalid request data</li>
+                        <li><strong>401 Unauthorized</strong> - Authentication required</li>
+                        <li><strong>403 Forbidden</strong> - Insufficient permissions</li>
+                        <li><strong>404 Not Found</strong> - Resource not found</li>
+                        <li><strong>409 Conflict</strong> - Resource conflict</li>
+                        <li><strong>422 Unprocessable Entity</strong> - Validation error</li>
+                        <li><strong>429 Too Many Requests</strong> - Rate limit exceeded</li>
+                        <li><strong>500 Internal Server Error</strong> - Server error</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>Application Error Codes</h4>
+                    <ul>
+                        <li><strong>INVALID_CREDENTIALS</strong> - Login credentials incorrect</li>
+                        <li><strong>USER_NOT_FOUND</strong> - User account does not exist</li>
+                        <li><strong>PUBLICATION_NOT_FOUND</strong> - Publication does not exist</li>
+                        <li><strong>COMMENT_NOT_FOUND</strong> - Comment does not exist</li>
+                        <li><strong>UNAUTHORIZED_ACCESS</strong> - Insufficient permissions</li>
+                        <li><strong>VALIDATION_ERROR</strong> - Input validation failed</li>
+                        <li><strong>EXTERNAL_SERVICE_ERROR</strong> - External API error</li>
+                        <li><strong>DATABASE_ERROR</strong> - Database operation failed</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="architecture.html" class="nav-prev">System Architecture</a>
+                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p>API Reference • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

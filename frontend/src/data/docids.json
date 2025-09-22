@@ -1,0 +1,114 @@
+{
+  "docids": [
+    {
+      "id": "DOC001",
+      "title": "Traditional Healing Methods in Western Kenya",
+      "type": "Indigenous Knowledge",
+      "creator": "Dr. Jane Doe",
+      "creatorAvatar": "/avatars/avatar1.jpg",
+      "dateCreated": "Jan 15, 2024",
+      "likes": 245,
+      "comments": 28,
+      "views": 1256
+    },
+    {
+      "id": "DOC002",
+      "title": "Medicinal Plants Patent: Natural Compounds for Modern Medicine",
+      "type": "Patent",
+      "creator": "Prof. John Smith",
+      "creatorAvatar": "/avatars/avatar2.jpg",
+      "dateCreated": "Jan 20, 2024",
+      "likes": 189,
+      "comments": 15,
+      "views": 892
+    },
+    {
+      "id": "DOC003",
+      "title": "Maasai Traditional Dance Documentation",
+      "type": "Cultural Heritage",
+      "creator": "Sarah Kimani",
+      "creatorAvatar": "/avatars/avatar3.jpg",
+      "dateCreated": "Feb 1, 2024",
+      "likes": 312,
+      "comments": 45,
+      "views": 1678
+    },
+    {
+      "id": "DOC004",
+      "title": "Sustainable Agriculture Research Initiative",
+      "type": "Project",
+      "creator": "Dr. Michael Odhiambo",
+      "creatorAvatar": "/avatars/avatar4.jpg",
+      "dateCreated": "Feb 5, 2024",
+      "likes": 167,
+      "comments": 23,
+      "views": 789
+    },
+    {
+      "id": "DOC005",
+      "title": "African Innovation Fund Grant Program",
+      "type": "Funder",
+      "creator": "Elizabeth Wanjiku",
+      "creatorAvatar": "/avatars/avatar5.jpg",
+      "dateCreated": "Feb 10, 2024",
+      "likes": 198,
+      "comments": 12,
+      "views": 945
+    },
+    {
+      "id": "DOC006",
+      "title": "Indigenous Plant Conservation Data Management",
+      "type": "DMP (Data Management Plan)",
+      "creator": "Dr. Robert Muthomi",
+      "creatorAvatar": "/avatars/avatar6.jpg",
+      "dateCreated": "Feb 15, 2024",
+      "likes": 145,
+      "comments": 18,
+      "views": 678
+    },
+    {
+      "id": "DOC007",
+      "title": "Traditional Fishing Techniques of Lake Victoria",
+      "type": "Indigenous Knowledge",
+      "creator": "James Otieno",
+      "creatorAvatar": "/avatars/avatar7.jpg",
+      "dateCreated": "Feb 20, 2024",
+      "likes": 278,
+      "comments": 34,
+      "views": 1432
+    },
+    {
+      "id": "DOC008",
+      "title": "Innovative Water Purification Method",
+      "type": "Patent",
+      "creator": "Dr. Alice Mutua",
+      "creatorAvatar": "/avatars/avatar8.jpg",
+      "dateCreated": "Feb 25, 2024",
+      "likes": 223,
+      "comments": 27,
+      "views": 1123
+    },
+    {
+      "id": "DOC009",
+      "title": "East African Traditional Music Archive",
+      "type": "Cultural Heritage",
+      "creator": "Peter Kamau",
+      "creatorAvatar": "/avatars/avatar9.jpg",
+      "dateCreated": "Mar 1, 2024",
+      "likes": 334,
+      "comments": 56,
+      "views": 1892
+    },
+    {
+      "id": "DOC010",
+      "title": "Biodiversity Conservation Project",
+      "type": "Project",
+      "creator": "Dr. Lucy Wairimu",
+      "creatorAvatar": "/avatars/avatar10.jpg",
+      "dateCreated": "Mar 5, 2024",
+      "likes": 289,
+      "comments": 31,
+      "views": 1345
+    }
+  ]
+} 

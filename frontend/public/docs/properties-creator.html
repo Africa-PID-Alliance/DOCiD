@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Property 2: Creator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">1. Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link active">2. Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">3. Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Property 2: Creator</h1>
+                    <div class="subtitle">The main researchers involved in producing the data, or the authors of the publication</div>
+                </header>
+
+                <!-- Property Overview -->
+                <section class="property">
+                    <div class="property-header">
+                        <div class="property-title">2. Creator</div>
+                        <div class="property-meta">
+                            <span class="property-badge">Required</span>
+                            <span>Occurrence: 1-n</span>
+                            <span>Database: publication_creators</span>
+                        </div>
+                    </div>
+                    
+                    <div class="property-content">
+                        <div class="property-description">
+                            <p>The main researchers involved in producing the data, or the authors of the publication, in priority order. The personal name format should be: family, given.</p>
+                            
+                            <p><strong>DOCiD Implementation:</strong> The PublicationCreators model provides comprehensive support for multiple creator identifiers, roles, and affiliations. It supports international identifier schemes and flexible role assignments for diverse research collaboration patterns found in African institutions.</p>
+                        </div>
+
+                        <!-- Property Sub-properties -->
+                        <div class="property-subproperties">
+                            <h3>Sub-properties</h3>
+                            
+                            <!-- 2.1 familyName -->
+                            <div class="subproperty" id="creator-family-name">
+                                <div class="subproperty-title">2.1 familyName</div>
+                                <div class="property-meta">
+                                    <span class="property-badge">Required</span>
+                                    <span>Occurrences: 1</span>
+                                    <span>Type: String</span>
+                                </div>
+                                
+                                <p><strong>Definition:</strong> The surname or last name of the creator.</p>
+                                
+                                <div class="code-example">
+                                    <div class="code-header">Database Schema</div>
+                                    <div class="code-content">
+                                        <pre><code>family_name = Column(String(255), nullable=False)</code></pre>
+                                    </div>
+                                </div>
+                                
+                                <h4>Allowed values, examples, other constraints:</h4>
+                                <ul>
+                                    <li><strong>Data Type:</strong> UTF-8 text string</li>
+                                    <li><strong>Maximum Length:</strong> 255 characters</li>
+                                    <li><strong>Character Set:</strong> Unicode support for international characters including African scripts</li>
+                                    <li><strong>Required:</strong> Must be provided for all creators</li>
+                                </ul>
+                                
+                                <h4>Examples:</h4>
+                                <ul>
+                                    <li>Okonkwo</li>
+                                    <li>Al-Zahra</li>
+                                    <li>Mthembu</li>
+                                    <li>van der Merwe</li>
+                                    <li>Diallo</li>
+                                    <li>Ogundipe</li>
+                                    <li>Kimani</li>
+                                    <li>Asante</li>
+                                </ul>
+                                
+                                <div class="notice notice-info">
+                                    <h4>African Naming Conventions</h4>
+                                    <p>Supports diverse African family name structures including patronymic systems, clan names, and compound family names. Accommodates naming conventions from various African cultures including Bantu, Afroasiatic, and Niger-Congo language families.</p>
+                                </div>
+                            </div>
+
+                            <!-- 2.2 givenName -->
+                            <div class="subproperty" id="creator-given-name">
+                                <div class="subproperty-title">2.2 givenName</div>
+                                <div class="property-meta">
+                                    <span class="property-badge optional">Optional</span>
+                                    <span>Occurrences: 0-1</span>
+                                    <span>Type: String</span>
+                                </div>
+                                
+                                <p><strong>Definition:</strong> The personal or first name of the creator, including middle names.</p>
+                                
+                                <div class="code-example">
+                                    <div class="code-header">Database Schema</div>
+                                    <div class="code-content">
+                                        <pre><code>given_name = Column(String(255))</code></pre>
+                                    </div>
+                                </div>
+                                
+                                <h4>Allowed values, examples, other constraints:</h4>
+                                <ul>
+                                    <li><strong>Data Type:</strong> UTF-8 text string</li>
+                                    <li><strong>Maximum Length:</strong> 255 characters</li>
+                                    <li><strong>Character Set:</strong> Unicode support for international characters</li>
+                                    <li><strong>Optional:</strong> May be omitted for creators known primarily by family name</li>
+                                    <li><strong>Multiple Names:</strong> Can include multiple given names separated by spaces</li>
+                                </ul>
+                                
+                                <h4>Examples based on the 2.1 family names:</h4>
+                                <ul>
+                                    <li>Amara (for Okonkwo, Amara)</li>
+                                    <li>Fatima (for Al-Zahra, Fatima)</li>
+                                    <li>Themba (for Mthembu, Themba)</li>
+                                    <li>Sarah Nomsa (for van der Merwe, Sarah Nomsa)</li>
+                                    <li>Mariama (for Diallo, Mariama)</li>
+                                    <li>Adebayo (for Ogundipe, Adebayo)</li>
+                                    <li>Michael Mwangi (for Kimani, Michael Mwangi)</li>
+                                    <li>Kwame (for Asante, Kwame)</li>
+                                </ul>
+                                
+                                <div class="notice notice-info">
+                                    <h4>Cultural Considerations</h4>
+                                    <p>The given name field is optional to accommodate naming conventions where individuals may be known primarily by their family name or single name, which is common in some African cultures. This also respects traditional naming systems where titles or honorifics may be more important than given names.</p>
+                                </div>
+                            </div>
+
+                            <!-- 2.3 nameIdentifier -->
+                            <div class="subproperty" id="creator-name-identifier">
+                                <div class="subproperty-title">2.3 nameIdentifier</div>
+                                <div class="property-meta">
+                                    <span class="property-badge optional">Optional</span>
+                                    <span>Occurrences: 0-n</span>
+                                    <span>Type: String</span>
+                                </div>
+                                
+                                <p><strong>Definition:</strong> Uniquely identifies an individual or legal entity, according to various identifier schemes. The format is dependent upon the identifier scheme.</p>
+                                
+                                <div class="code-example">
+                                    <div class="code-header">Database Schema</div>
+                                    <div class="code-content">
+                                        <pre><code>identifier = Column(String(500))  # Stores the full resolvable URL
+identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 'viaf')</code></pre>
+                                    </div>
+                                </div>
+                                
+                                <h4>Allowed values, examples, other constraints:</h4>
+                                <ul>
+                                    <li><strong>Data Type:</strong> UTF-8 text string (full resolvable URL)</li>
+                                    <li><strong>Maximum Length:</strong> 500 characters</li>
+                                    <li><strong>Format:</strong> Complete HTTP/HTTPS URL to the identifier resource</li>
+                                    <li><strong>Validation:</strong> Must be a valid URL format</li>
+                                    <li><strong>Uniqueness:</strong> Should uniquely identify the individual globally</li>
+                                    <li><strong>Persistence:</strong> Should be persistent and resolvable over time</li>
+                                </ul>
+                                
+                                <h4>Examples by identifier type:</h4>
+                                
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Identifier Type</th>
+                                                <th>Example</th>
+                                                <th>Pattern</th>
+                                                <th>Authority</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>ORCID</strong></td>
+                                                <td>https://orcid.org/0000-0002-1825-0097</td>
+                                                <td>https://orcid.org/0000-0000-0000-000X</td>
+                                                <td>ORCID, Inc.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>ISNI</strong></td>
+                                                <td>https://isni.org/isni/0000000121032683</td>
+                                                <td>https://isni.org/isni/[16 digits]</td>
+                                                <td>ISNI International Agency</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>VIAF</strong></td>
+                                                <td>http://viaf.org/viaf/102333412</td>
+                                                <td>http://viaf.org/viaf/[numeric ID]</td>
+                                                <td>OCLC Research</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>ResearcherID</strong></td>
+                                                <td>http://www.researcherid.com/rid/A-5678-2012</td>
+                                                <td>http://www.researcherid.com/rid/[ID]</td>
+                                                <td>Clarivate Analytics</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Scopus ID</strong></td>
+                                                <td>http://www.scopus.com/inward/authorDetails.url?authorID=7410587685</td>
+                                                <td>http://www.scopus.com/[path]?authorID=[ID]</td>
+                                                <td>Elsevier</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>African Identifiers</strong></td>
+                                                <td>https://researchers.africa.org/profile/12345</td>
+                                                <td>Regional identifier schemes</td>
+                                                <td>African research networks</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h4>Format Requirements:</h4>
+                                <ul>
+                                    <li><strong>ORCID:</strong> Must follow pattern https://orcid.org/0000-0000-0000-000X (where X is 0-9 or X)</li>
+                                    <li><strong>ISNI:</strong> Must be 16 digits with optional spaces or hyphens in display format</li>
+                                    <li><strong>VIAF:</strong> Numeric identifier appended to base URL</li>
+                                    <li><strong>HTTP/HTTPS:</strong> All identifiers must use secure protocols where available</li>
+                                    <li><strong>Case Sensitivity:</strong> URLs are case-sensitive and must match exactly</li>
+                                </ul>
+                                
+                                <div class="notice notice-info">
+                                    <h4>DOCiD Implementation Notes</h4>
+                                    <p>DOCiD stores the complete resolvable URL rather than just the identifier value to ensure proper resolution and to support multiple identifier schemes simultaneously. The system validates identifier formats before storage and can resolve identifiers to retrieve additional metadata about creators.</p>
+                                </div>
+                            </div>
+
+                            <!-- 2.4 nameIdentifierScheme -->
+                            <div class="subproperty" id="creator-name-identifier-scheme">
+                                <div class="subproperty-title">2.4 nameIdentifierScheme</div>
+                                <div class="property-meta">
+                                    <span class="property-badge optional">Optional</span>
+                                    <span>Occurrences: 0-1</span>
+                                    <span>Controlled Vocabulary</span>
+                                </div>
+                                
+                                <p><strong>Definition:</strong> The name of the name identifier scheme. This is automatically determined based on the identifier URL format and stored in the identifier_type field.</p>
+                                
+                                <h4>Allowed values, examples, other constraints:</h4>
+                                <ul>
+                                    <li><strong>Data Type:</strong> Controlled vocabulary from predefined list</li>
+                                    <li><strong>Case Sensitivity:</strong> Lowercase preferred</li>
+                                    <li><strong>Validation:</strong> Must correspond to supported identifier schemes</li>
+                                    <li><strong>Auto-Detection:</strong> DOCiD can auto-detect scheme from URL pattern</li>
+                                </ul>
+                                
+                                <h4>Supported Schemes:</h4>
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Scheme Value</th>
+                                                <th>Display Name</th>
+                                                <th>Standard</th>
+                                                <th>URL Pattern</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>orcid</code></td>
+                                                <td>ORCID</td>
+                                                <td>Open Researcher and Contributor ID</td>
+                                                <td>https://orcid.org/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>isni</code></td>
+                                                <td>ISNI</td>
+                                                <td>ISO 27729 International Standard Name Identifier</td>
+                                                <td>https://isni.org/isni/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>viaf</code></td>
+                                                <td>VIAF</td>
+                                                <td>Virtual International Authority File</td>
+                                                <td>http://viaf.org/viaf/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>dai</code></td>
+                                                <td>DAI</td>
+                                                <td>Digital Author Identifier (Netherlands)</td>
+                                                <td>http://www.narcis.nl/person/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>researcherid</code></td>
+                                                <td>ResearcherID</td>
+                                                <td>Web of Science ResearcherID</td>
+                                                <td>http://www.researcherid.com/rid/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>scopusid</code></td>
+                                                <td>Scopus ID</td>
+                                                <td>Scopus Author Identifier</td>
+                                                <td>http://www.scopus.com/inward/authorDetails.url?authorID=*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>lcnaf</code></td>
+                                                <td>LCNAF</td>
+                                                <td>Library of Congress Name Authority File</td>
+                                                <td>http://id.loc.gov/vocabulary/relators/*</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>gnd</code></td>
+                                                <td>GND</td>
+                                                <td>Gemeinsame Normdatei</td>
+                                                <td>http://d-nb.info/gnd/*</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h4>Examples:</h4>
+                                <ul>
+                                    <li>For identifier "https://orcid.org/0000-0002-1825-0097" → scheme: "orcid"</li>
+                                    <li>For identifier "https://isni.org/isni/0000000121032683" → scheme: "isni"</li>
+                                    <li>For identifier "http://viaf.org/viaf/102333412" → scheme: "viaf"</li>
+                                    <li>For identifier "http://www.researcherid.com/rid/A-5678-2012" → scheme: "researcherid"</li>
+                                </ul>
+                                
+                                <div class="notice notice-info">
+                                    <h4>Automatic Detection</h4>
+                                    <p>DOCiD automatically detects the identifier scheme based on the URL pattern and populates the identifier_type field. This ensures consistency and reduces manual input errors.</p>
+                                </div>
+                            </div>
+
+                            <!-- 2.5 affiliation -->
+                            <div class="subproperty" id="creator-affiliation">
+                                <div class="subproperty-title">2.5 affiliation</div>
+                                <div class="property-meta">
+                                    <span class="property-badge optional">Optional</span>
+                                    <span>Occurrences: 0-n</span>
+                                    <span>Type: Related Entity</span>
+                                </div>
+                                
+                                <p><strong>Definition:</strong> The organizational or institutional affiliation of the creator. In DOCiD, affiliations are managed through the PublicationOrganization model with comprehensive organization metadata.</p>
+                                
+                                <h4>Allowed values, examples, other constraints:</h4>
+                                <ul>
+                                    <li><strong>Implementation:</strong> Separate PublicationOrganization model</li>
+                                    <li><strong>Multiple Affiliations:</strong> Supports multiple institutional affiliations per creator</li>
+                                    <li><strong>Organization Identifiers:</strong> Integrated with ROR (Research Organization Registry)</li>
+                                    <li><strong>Geographic Information:</strong> Includes country and regional data</li>
+                                    <li><strong>Organization Types:</strong> Academic, government, commercial, NGO classifications</li>
+                                </ul>
+                                
+                                <h4>Affiliation Structure (PublicationOrganization model):</h4>
+                                <div class="code-example">
+                                    <div class="code-header">Related Model Schema</div>
+                                    <div class="code-content">
+                                        <pre><code>class PublicationOrganization(db.Model):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False)
+    name = Column(String(255), nullable=False)  # Organization name
+    type = Column(String(255), nullable=False)  # Organization type
+    other_name = Column(String(255))  # Alternative names
+    country = Column(String(255))  # Country location
+    identifier = Column(String(500))  # ROR ID or other identifier
+    identifier_type = Column(String(50))  # Type of identifier (ror, grid, isni)</code></pre>
+                                    </div>
+                                </div>
+                                
+                                <h4>Examples of organization affiliations:</h4>
+                                <ul>
+                                    <li><strong>University of Cape Town</strong> (ROR: https://ror.org/01ggx4157) - South Africa</li>
+                                    <li><strong>University of Ghana</strong> (ROR: https://ror.org/05591te55) - Ghana</li>
+                                    <li><strong>American University in Cairo</strong> (ROR: https://ror.org/03gc78e51) - Egypt</li>
+                                    <li><strong>University of the Witwatersrand</strong> (ROR: https://ror.org/03rp50963) - South Africa</li>
+                                    <li><strong>Council for Scientific and Industrial Research</strong> (ROR: https://ror.org/0145zh013) - South Africa</li>
+                                    <li><strong>University of Ibadan</strong> (ROR: https://ror.org/01za5dv85) - Nigeria</li>
+                                    <li><strong>Université Cheikh Anta Diop</strong> (ROR: https://ror.org/03qx6w235) - Senegal</li>
+                                    <li><strong>Kenya Education Network (KENET)</strong> (ROR: https://ror.org/04b4z2r68) - Kenya</li>
+                                </ul>
+                                
+                                <h4>Organization Types:</h4>
+                                <ul>
+                                    <li><strong>Education:</strong> Universities, colleges, schools</li>
+                                    <li><strong>Government:</strong> Government agencies and departments</li>
+                                    <li><strong>Company:</strong> Commercial and industry organizations</li>
+                                    <li><strong>Healthcare:</strong> Hospitals, medical centers, health organizations</li>
+                                    <li><strong>Nonprofit:</strong> NGOs, foundations, civil society organizations</li>
+                                    <li><strong>Other:</strong> Research institutes, international organizations</li>
+                                </ul>
+                                
+                                <div class="notice notice-info">
+                                    <h4>DOCiD Organization Integration</h4>
+                                    <p>Creator affiliations in DOCiD are managed through a sophisticated organization model that integrates with ROR (Research Organization Registry) for global organization identification. This ensures accurate institutional attribution and supports advanced search and analytics capabilities.</p>
+                                </div>
+                                
+                                <h4>API Integration Example:</h4>
+                                <div class="code-example">
+                                    <div class="code-header">Creator with Affiliation</div>
+                                    <div class="code-content">
+                                        <pre><code>{
+  "creators": [
+    {
+      "family_name": "Okonkwo",
+      "given_name": "Amara",
+      "identifier": "https://orcid.org/0000-0002-1234-5678",
+      "identifier_type": "orcid",
+      "role_id": "author"
+    }
+  ],
+  "organizations": [
+    {
+      "name": "University of Cape Town",
+      "type": "Education",
+      "country": "South Africa",
+      "identifier": "https://ror.org/01ggx4157",
+      "identifier_type": "ror"
+    }
+  ]
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Database Model Details -->
+                <section>
+                    <h2>PublicationCreators Database Model</h2>
+                    
+                    <div class="code-example">
+                        <div class="code-header">Complete Model Definition</div>
+                        <div class="code-content">
+                            <pre><code>class PublicationCreators(db.Model):
+    """
+    Creators related to publications
+    """
+    __tablename__ = 'publication_creators'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+    family_name = Column(String(255), nullable=False)
+    given_name = Column(String(255))
+    identifier = Column(String(500))  # Stores the full resolvable URL
+    identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 'viaf')
+    role_id = Column(String(255), nullable=False)
+
+    # Relationships
+    publication = relationship('Publications', back_populates='publication_creators')
+
+    def __repr__(self):
+        return f"&lt;PublicationCreators(id={self.id}, family_name='{self.family_name}', publication_id={self.publication_id})&gt;"</code></pre>
+                        </div>
+                    </div>
+
+                    <h3>Field Specifications</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Type</th>
+                                    <th>Constraints</th>
+                                    <th>Purpose</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>id</strong></td>
+                                    <td>Integer</td>
+                                    <td>Primary Key, Auto-increment</td>
+                                    <td>Unique identifier for creator record</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>publication_id</strong></td>
+                                    <td>Integer</td>
+                                    <td>Foreign Key, Not Null, Indexed</td>
+                                    <td>Links creator to specific publication</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>family_name</strong></td>
+                                    <td>String(255)</td>
+                                    <td>Not Null</td>
+                                    <td>Creator's surname/family name</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>given_name</strong></td>
+                                    <td>String(255)</td>
+                                    <td>Nullable</td>
+                                    <td>Creator's first/given name(s)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>identifier</strong></td>
+                                    <td>String(500)</td>
+                                    <td>Nullable</td>
+                                    <td>Full resolvable URL for creator identifier</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>identifier_type</strong></td>
+                                    <td>String(50)</td>
+                                    <td>Nullable</td>
+                                    <td>Type of identifier (orcid, isni, viaf, etc.)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>role_id</strong></td>
+                                    <td>String(255)</td>
+                                    <td>Not Null</td>
+                                    <td>Creator's role in the publication</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- API Examples -->
+                <section>
+                    <h2>API Examples</h2>
+                    
+                    <h3>Creating Publication with Creators</h3>
+                    <div class="code-example">
+                        <div class="code-header">POST /api/v1/publications/publish</div>
+                        <div class="code-content">
+                            <pre><code>{
+  "title": "AI Applications in African Healthcare Systems",
+  "description": "Comprehensive study on machine learning applications in healthcare across Sub-Saharan Africa",
+  "resource_type_id": 1,
+  "publication_type_id": 1,
+  "creators": [
+    {
+      "family_name": "Okonkwo",
+      "given_name": "Amara",
+      "identifier": "https://orcid.org/0000-0002-1234-5678",
+      "identifier_type": "orcid",
+      "role_id": "author"
+    },
+    {
+      "family_name": "Al-Zahra",
+      "given_name": "Fatima",
+      "identifier": "https://orcid.org/0000-0004-3456-7890",
+      "identifier_type": "orcid",
+      "role_id": "co-author"
+    },
+    {
+      "family_name": "Mthembu",
+      "given_name": "Themba",
+      "identifier": "https://isni.org/isni/0000000121032683",
+      "identifier_type": "isni",
+      "role_id": "data-collector"
+    }
+  ]
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <h3>API Response</h3>
+                    <div class="code-example">
+                        <div class="code-header">Response</div>
+                        <div class="code-content">
+                            <pre><code>{
+  "status": "success",
+  "data": {
+    "id": 123,
+    "title": "AI Applications in African Healthcare Systems",
+    "document_docid": "DOCID.123",
+    "doi": "10.5555/docid.123",
+    "creators": [
+      {
+        "id": 456,
+        "family_name": "Okonkwo",
+        "given_name": "Amara",
+        "identifier": "https://orcid.org/0000-0002-1234-5678",
+        "identifier_type": "orcid",
+        "role_id": "author",
+        "full_name": "Okonkwo, Amara"
+      },
+      {
+        "id": 457,
+        "family_name": "Al-Zahra",
+        "given_name": "Fatima",
+        "identifier": "https://orcid.org/0000-0004-3456-7890",
+        "identifier_type": "orcid",
+        "role_id": "co-author",
+        "full_name": "Al-Zahra, Fatima"
+      },
+      {
+        "id": 458,
+        "family_name": "Mthembu",
+        "given_name": "Themba",
+        "identifier": "https://isni.org/isni/0000000121032683",
+        "identifier_type": "isni",
+        "role_id": "data-collector",
+        "full_name": "Mthembu, Themba"
+      }
+    ]
+  },
+  "message": "Publication created successfully"
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <h3>Adding Creators to Existing Publication</h3>
+                    <div class="code-example">
+                        <div class="code-header">POST /api/v1/publications/publication/{id}/creators</div>
+                        <div class="code-content">
+                            <pre><code>{
+  "creators": [
+    {
+      "family_name": "Kimani",
+      "given_name": "Michael",
+      "identifier": "https://orcid.org/0000-0009-8901-2345",
+      "identifier_type": "orcid",
+      "role_id": "reviewer"
+    }
+  ]
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <h3>Updating Creator Information</h3>
+                    <div class="code-example">
+                        <div class="code-header">PUT /api/v1/publications/creators/{creator_id}</div>
+                        <div class="code-content">
+                            <pre><code>{
+  "family_name": "Okonkwo",
+  "given_name": "Amara Chioma",
+  "identifier": "https://orcid.org/0000-0002-1234-5678",
+  "identifier_type": "orcid",
+  "role_id": "lead-author"
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Creator Roles -->
+                <section>
+                    <h2>Creator Roles</h2>
+                    <p>DOCiD supports a comprehensive set of creator roles that reflect diverse African research collaboration patterns and traditional knowledge systems.</p>
+                    
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Role ID</th>
+                                    <th>Role Name</th>
+                                    <th>Description</th>
+                                    <th>Context</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>author</strong></td>
+                                    <td>Author</td>
+                                    <td>Primary content creator</td>
+                                    <td>Standard academic authorship</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>co-author</strong></td>
+                                    <td>Co-Author</td>
+                                    <td>Collaborative content creator</td>
+                                    <td>Multi-author publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>lead-author</strong></td>
+                                    <td>Lead Author</td>
+                                    <td>Primary responsible author</td>
+                                    <td>Corresponding author role</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>editor</strong></td>
+                                    <td>Editor</td>
+                                    <td>Content editor and reviewer</td>
+                                    <td>Editorial oversight</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>contributor</strong></td>
+                                    <td>Contributor</td>
+                                    <td>Secondary contributor</td>
+                                    <td>General contribution</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>data-collector</strong></td>
+                                    <td>Data Collector</td>
+                                    <td>Data collection specialist</td>
+                                    <td>Research data gathering</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>supervisor</strong></td>
+                                    <td>Supervisor</td>
+                                    <td>Research supervisor</td>
+                                    <td>Academic supervision</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>project-leader</strong></td>
+                                    <td>Project Leader</td>
+                                    <td>Project coordinator</td>
+                                    <td>Project management</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>translator</strong></td>
+                                    <td>Translator</td>
+                                    <td>Language translator</td>
+                                    <td>Multilingual publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>reviewer</strong></td>
+                                    <td>Reviewer</td>
+                                    <td>Peer reviewer</td>
+                                    <td>Quality assurance</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>knowledge-holder</strong></td>
+                                    <td>Knowledge Holder</td>
+                                    <td>Traditional knowledge contributor</td>
+                                    <td>Indigenous knowledge systems</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>community-representative</strong></td>
+                                    <td>Community Representative</td>
+                                    <td>Community liaison and representative</td>
+                                    <td>Community-based research</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Validation and Constraints -->
+                <section>
+                    <h2>Validation and Constraints</h2>
+                    
+                    <h3>Required Fields</h3>
+                    <ul>
+                        <li><strong>family_name:</strong> Must be provided for all creators</li>
+                        <li><strong>role_id:</strong> Must reference a valid creator role</li>
+                        <li><strong>publication_id:</strong> Must reference an existing publication</li>
+                    </ul>
+
+                    <h3>Identifier Validation</h3>
+                    <div class="code-example">
+                        <div class="code-header">ORCID Validation Pattern</div>
+                        <div class="code-content">
+                            <pre><code># ORCID format: https://orcid.org/0000-0000-0000-0000
+orcid_pattern = r'^https://orcid\.org/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$'
+
+# Example valid ORCID:
+"https://orcid.org/0000-0002-1825-0097"</code></pre>
+                        </div>
+                    </div>
+
+                    <h3>Cultural Sensitivity Guidelines</h3>
+                    <div class="notice notice-warning">
+                        <h4>Naming Conventions</h4>
+                        <ul>
+                            <li>Support for single names where culturally appropriate</li>
+                            <li>Flexible handling of complex family name structures</li>
+                            <li>Accommodation for titles and honorifics in Indigenous contexts</li>
+                            <li>Respectful handling of Traditional Knowledge attributions</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Best Practices -->
+                <section>
+                    <h2>Best Practices</h2>
+                    
+                    <h3>Creator Ordering</h3>
+                    <p>Creators should be listed in order of contribution significance, following academic conventions or community protocols for Traditional Knowledge.</p>
+                    
+                    <h3>Identifier Usage</h3>
+                    <ul>
+                        <li><strong>ORCID preferred:</strong> Use ORCID identifiers when available for academic researchers</li>
+                        <li><strong>Full URLs:</strong> Store complete resolvable URLs rather than just identifier values</li>
+                        <li><strong>Type specification:</strong> Always specify the identifier type for proper resolution</li>
+                        <li><strong>Validation:</strong> Validate identifier formats before storage</li>
+                    </ul>
+
+                    <h3>Role Assignment</h3>
+                    <ul>
+                        <li><strong>Accurate roles:</strong> Assign roles that accurately reflect actual contributions</li>
+                        <li><strong>Cultural sensitivity:</strong> Use appropriate roles for Traditional Knowledge contributions</li>
+                        <li><strong>Community consent:</strong> Ensure community consent for Traditional Knowledge attributions</li>
+                    </ul>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="properties-identifier.html" class="nav-prev">1. Identifier</a>
+                    <a href="properties-title.html" class="nav-next">3. Title</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p>Property 2: Creator • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

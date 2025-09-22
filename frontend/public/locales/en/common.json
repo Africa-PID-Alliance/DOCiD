@@ -1,0 +1,20 @@
+{
+  "welcome": "Welcome to the DOCiD™",
+  "hero_description": "Bridging technology and tradition in Africa, we focus on indigenous knowledge and digital patent containers to preserve cultural heritage and foster innovation.",
+  "get_started": "Get Started",
+  "nav": {
+    "home": "Home",
+    "docids": "DOCiD™s",
+    "about": "About Us"
+  },
+  "user_menu": {
+    "welcome": "Welcome",
+    "sign_in_message": "Sign in to access all features",
+    "login": "Login",
+    "login_desc": "Access your account",
+    "register": "Register",
+    "register_desc": "Create a new account",
+    "language": "Language",
+    "select_language": "Select Language"
+  }
+} 

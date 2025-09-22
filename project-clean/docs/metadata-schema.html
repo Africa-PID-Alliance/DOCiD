@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Metadata Properties</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link active">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#cultural-protocols" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#validation-rules" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>DOCiD Metadata Properties</h1>
+                    <div class="subtitle">Comprehensive metadata framework for publication and document identifier management following international standards</div>
+                </header>
+
+                <!-- Schema Overview -->
+                <section id="schema-overview">
+                    <h2>Metadata Schema Overview</h2>
+                    <p class="lead">DOCiD implements a comprehensive metadata schema designed for "Publication and Citation of Research Data and Other Research Outputs". Based on DataCite Metadata Schema 4.6, it provides a robust framework for documenting research artifacts with precise, standardized information, while extending capabilities for African research contexts and Indigenous knowledge systems.</p>
+                    
+                    <div class="grid">
+                        <div class="card">
+                            <h3>📋 Schema Characteristics</h3>
+                            <ul>
+                                <li>20 core properties following DataCite standards</li>
+                                <li>Extensive controlled vocabulary lists for field standardization</li>
+                                <li>Hierarchical metadata structures with Publications model</li>
+                                <li>JSON-based flexible metadata extensions</li>
+                                <li>Multi-identifier support (DOI, Handle, DocID, CSTR)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card">
+                            <h3>🔑 Core Design Principles</h3>
+                            <ul>
+                                <li><strong>Interoperability:</strong> Full DataCite 4.6 compliance</li>
+                                <li><strong>Extensibility:</strong> JSON metadata fields for custom properties</li>
+                                <li><strong>Cultural Sensitivity:</strong> Local Contexts and Indigenous protocols</li>
+                                <li><strong>Quality Assurance:</strong> Comprehensive validation and constraints</li>
+                                <li><strong>African Context:</strong> Multilingual and regional adaptations</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Core Properties -->
+                <section id="core-properties">
+                    <h2>Core Metadata Properties (20 Primary Elements)</h2>
+                    <p>DOCiD implements the complete DataCite Metadata Schema 4.6 with 20 core metadata properties, mapped to the Publications model and related entities:</p>
+            
+            <div class="schema-grid">
+                <div class="schema-group">
+                    <h4>Required Properties</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>DOCiD Field</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>1. Identifier</strong></td>
+                                    <td>Required</td>
+                                    <td>Unique persistent identifier</td>
+                                    <td>docid, doi, handle</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>2. Creator</strong></td>
+                                    <td>Required</td>
+                                    <td>Primary authors/creators</td>
+                                    <td>publication_creators</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>3. Title</strong></td>
+                                    <td>Required</td>
+                                    <td>Primary title of the resource</td>
+                                    <td>title</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>4. Publisher</strong></td>
+                                    <td>Required</td>
+                                    <td>Publishing organization</td>
+                                    <td>publication_organizations</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>5. Publication Year</strong></td>
+                                    <td>Required</td>
+                                    <td>Year of publication</td>
+                                    <td>created_at, publication_date</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>10. Resource Type</strong></td>
+                                    <td>Required</td>
+                                    <td>Type classification</td>
+                                    <td>resource_type_id</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="optional-properties">
+            <h2>Optional Metadata Properties</h2>
+            <div class="schema-grid">
+                <div class="schema-group">
+                    <h4>Descriptive Properties</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Description</th>
+                                    <th>DOCiD Implementation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>6. Subject</strong></td>
+                                    <td>Keywords and classification</td>
+                                    <td>subjects, keywords (JSON field)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>7. Contributor</strong></td>
+                                    <td>Additional contributors</td>
+                                    <td>publication_creators (role-based)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>8. Date</strong></td>
+                                    <td>Important dates</td>
+                                    <td>created_at, updated_at, publication_date</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>9. Language</strong></td>
+                                    <td>Primary language</td>
+                                    <td>language (metadata field)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>17. Description</strong></td>
+                                    <td>Abstract and summaries</td>
+                                    <td>abstract, description</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="schema-group">
+                    <h4>Technical Properties</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Description</th>
+                                    <th>DOCiD Implementation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>11. Alternate Identifier</strong></td>
+                                    <td>Additional identifiers</td>
+                                    <td>publication_identifiers table</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>12. Related Identifier</strong></td>
+                                    <td>Cross-references</td>
+                                    <td>related_publications, citations</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>13. Size</strong></td>
+                                    <td>File and data sizes</td>
+                                    <td>file_metadata (JSON field)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>14. Format</strong></td>
+                                    <td>File formats and media types</td>
+                                    <td>publication_files table</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>15. Version</strong></td>
+                                    <td>Version information</td>
+                                    <td>version, status fields</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>16. Rights</strong></td>
+                                    <td>License and permissions</td>
+                                    <td>license, rights (metadata fields)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="extended-properties">
+            <h2>Extended Properties</h2>
+            <div class="schema-grid">
+                <div class="schema-group">
+                    <h4>Geographic & Contextual</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Description</th>
+                                    <th>DOCiD Implementation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>18. Geo Location</strong></td>
+                                    <td>Geographic information</td>
+                                    <td>geo_location (JSON field)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>19. Funding Reference</strong></td>
+                                    <td>Funding information</td>
+                                    <td>publication_funders table</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>20. Related Item</strong></td>
+                                    <td>Related publications</td>
+                                    <td>publication_relations table</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="publication-model" id="publication-model">
+            <h2>DOCiD Publication Model</h2>
+            <p>The core Publications model implements the metadata schema with extensive relational connections:</p>
+            
+            <div class="code-example">
+                <h4>Publications Model Structure</h4>
+                <pre><code>class Publications(db.Model):
+    # Core Identifiers
+    id = db.Column(db.Integer, primary_key=True)
+    docid = db.Column(db.String(50), unique=True)  # Property 1: Identifier
+    doi = db.Column(db.String(100), unique=True)   # Property 1: Identifier
+    handle = db.Column(db.String(200))             # Property 1: Identifier
+    
+    # Required Properties
+    title = db.Column(db.Text, nullable=False)      # Property 3: Title
+    resource_type_id = db.Column(db.Integer, db.ForeignKey('resource_types.id'))  # Property 10
+    publication_type_id = db.Column(db.Integer, db.ForeignKey('publication_types.id'))
+    
+    # Descriptive Properties
+    abstract = db.Column(db.Text)                   # Property 17: Description
+    description = db.Column(db.Text)               # Property 17: Description
+    language = db.Column(db.String(10))            # Property 9: Language
+    
+    # Technical Properties
+    version = db.Column(db.String(50))             # Property 15: Version
+    status = db.Column(db.String(20), default='draft')
+    
+    # Dates (Property 8)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    publication_date = db.Column(db.DateTime)      # Property 5: Publication Year
+    
+    # JSON Metadata Fields
+    metadata = db.Column(db.JSON)                  # Extended metadata
+    subjects = db.Column(db.JSON)                  # Property 6: Subject
+    keywords = db.Column(db.JSON)                  # Property 6: Subject
+    geo_location = db.Column(db.JSON)              # Property 18: Geo Location
+    file_metadata = db.Column(db.JSON)             # Property 13: Size, 14: Format
+    rights = db.Column(db.JSON)                    # Property 16: Rights
+    
+    # Relationships
+    user_id = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'))
+    
+    # Related entities via foreign keys
+    creators = db.relationship('PublicationCreators')           # Property 2: Creator
+    organizations = db.relationship('PublicationOrganization')  # Property 4: Publisher
+    funders = db.relationship('PublicationFunders')            # Property 19: Funding Reference
+    files = db.relationship('PublicationFiles')                # Property 14: Format
+    identifiers = db.relationship('PublicationIdentifiers')     # Property 11: Alternate Identifier
+    comments = db.relationship('PublicationComments')
+    relations = db.relationship('PublicationRelations')         # Property 20: Related Item</code></pre>
+            </div>
+        </section>
+
+        <section class="creator-model" id="creator-model">
+            <h2>Creator Management (Property 2)</h2>
+            <p>The PublicationCreators model implements comprehensive creator/author management with role-based assignments:</p>
+            
+            <div class="code-example">
+                <h4>PublicationCreators Model</h4>
+                <pre><code>class PublicationCreators(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id'))
+    
+    # Creator Information
+    creator_name = db.Column(db.String(255), nullable=False)
+    given_name = db.Column(db.String(100))
+    family_name = db.Column(db.String(100))
+    
+    # Identifiers
+    orcid_id = db.Column(db.String(19))           # ORCID integration
+    scopus_id = db.Column(db.String(50))
+    researcher_id = db.Column(db.String(50))
+    
+    # Role and Affiliation
+    role_id = db.Column(db.Integer, db.ForeignKey('creators_roles.id'))
+    affiliation = db.Column(db.String(500))
+    affiliation_identifier = db.Column(db.String(100))  # ROR ID
+    
+    # Order and metadata
+    creator_order = db.Column(db.Integer)
+    creator_metadata = db.Column(db.JSON)
+    
+    # Relationships
+    role = db.relationship('CreatorsRoles')
+    publication = db.relationship('Publications')</code></pre>
+            </div>
+            
+            <div class="feature">
+                <h4>Creator Roles (Controlled Vocabulary)</h4>
+                <ul>
+                    <li><strong>Author:</strong> Primary content creator</li>
+                    <li><strong>Editor:</strong> Content editor and reviewer</li>
+                    <li><strong>Contributor:</strong> Secondary contributor</li>
+                    <li><strong>Translator:</strong> Language translator</li>
+                    <li><strong>Reviewer:</strong> Peer reviewer</li>
+                    <li><strong>Supervisor:</strong> Research supervisor</li>
+                    <li><strong>Project Leader:</strong> Project coordinator</li>
+                    <li><strong>Data Collector:</strong> Data collection specialist</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="organization-model">
+            <h2>Organization Management (Property 4)</h2>
+            <p>The PublicationOrganization model manages institutional affiliations with ROR integration:</p>
+            
+            <div class="code-example">
+                <h4>PublicationOrganization Model</h4>
+                <pre><code>class PublicationOrganization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id'))
+    
+    # Organization Information
+    organization_name = db.Column(db.String(255), nullable=False)
+    organization_name_local = db.Column(db.String(255))  # Local language name
+    
+    # Identifiers
+    ror_id = db.Column(db.String(50))             # ROR integration
+    grid_id = db.Column(db.String(50))
+    isni = db.Column(db.String(50))
+    
+    # Classification
+    organization_type = db.Column(db.String(100))  # University, Institute, Government
+    organization_role = db.Column(db.String(50))   # Publisher, Funder, Host
+    
+    # Geographic Information
+    country = db.Column(db.String(100))
+    country_code = db.Column(db.String(3))
+    city = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    
+    # Additional metadata
+    organization_metadata = db.Column(db.JSON)
+    
+    # Relationships
+    publication = db.relationship('Publications')</code></pre>
+            </div>
+        </section>
+
+        <section class="funding-model">
+            <h2>Funding Reference (Property 19)</h2>
+            <p>The PublicationFunders model implements structured funding information management:</p>
+            
+            <div class="code-example">
+                <h4>PublicationFunders Model</h4>
+                <pre><code>class PublicationFunders(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id'))
+    
+    # Funder Information
+    funder_name = db.Column(db.String(255), nullable=False)
+    funder_name_local = db.Column(db.String(255))
+    
+    # Identifiers
+    funder_id = db.Column(db.String(100))         # Crossref Funder ID
+    doi = db.Column(db.String(100))               # Funder DOI
+    ror_id = db.Column(db.String(50))             # ROR ID if applicable
+    
+    # Grant Information
+    grant_number = db.Column(db.String(100))
+    grant_title = db.Column(db.String(500))
+    program_name = db.Column(db.String(255))
+    
+    # Financial Information
+    award_amount = db.Column(db.Numeric(15, 2))
+    currency = db.Column(db.String(3))            # ISO currency code
+    
+    # Classification
+    funder_type_id = db.Column(db.Integer, db.ForeignKey('funder_types.id'))
+    funding_scheme = db.Column(db.String(100))
+    
+    # Geographic and temporal scope
+    funding_country = db.Column(db.String(100))
+    funding_start_date = db.Column(db.Date)
+    funding_end_date = db.Column(db.Date)
+    
+    # Additional metadata
+    funding_metadata = db.Column(db.JSON)
+    
+    # Relationships
+    funder_type = db.relationship('FunderTypes')
+    publication = db.relationship('Publications')</code></pre>
+            </div>
+        </section>
+
+        <section class="identifier-model">
+            <h2>Identifier Management (Properties 1, 11, 12)</h2>
+            <p>DOCiD implements comprehensive identifier management across multiple schemes:</p>
+            
+            <div class="code-example">
+                <h4>PublicationIdentifiers Model</h4>
+                <pre><code>class PublicationIdentifiers(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id'))
+    
+    # Identifier Information
+    identifier_value = db.Column(db.String(255), nullable=False)
+    identifier_type_id = db.Column(db.Integer, db.ForeignKey('publication_identifier_types.id'))
+    
+    # Relationship and validation
+    relation_type = db.Column(db.String(50))      # Property 12: Related Identifier
+    is_primary = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Metadata
+    assigned_date = db.Column(db.DateTime, default=datetime.utcnow)
+    assigned_by = db.Column(db.String(100))       # System or external service
+    validation_status = db.Column(db.String(20))  # valid, invalid, pending
+    
+    # Additional context
+    identifier_metadata = db.Column(db.JSON)
+    
+    # Relationships
+    identifier_type = db.relationship('PublicationIdentifierTypes')
+    publication = db.relationship('Publications')</code></pre>
+            </div>
+            
+            <div class="feature">
+                <h4>Supported Identifier Types</h4>
+                <ul>
+                    <li><strong>DOI:</strong> Digital Object Identifier</li>
+                    <li><strong>DocID:</strong> DOCiD internal identifier</li>
+                    <li><strong>Handle:</strong> Handle System identifier</li>
+                    <li><strong>CSTR:</strong> China Science and Technology Resource ID</li>
+                    <li><strong>ISBN:</strong> International Standard Book Number</li>
+                    <li><strong>ISSN:</strong> International Standard Serial Number</li>
+                    <li><strong>PMID:</strong> PubMed Identifier</li>
+                    <li><strong>ArXiv:</strong> ArXiv preprint identifier</li>
+                    <li><strong>URN:</strong> Uniform Resource Name</li>
+                    <li><strong>URL:</strong> Uniform Resource Locator</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="controlled-vocabularies" id="controlled-vocabularies">
+            <h2>Controlled Vocabularies</h2>
+            <p>DOCiD implements comprehensive controlled vocabularies for consistent metadata classification:</p>
+            
+            <div class="schema-grid">
+                <div class="schema-group">
+                    <h4>Resource Types (Property 10)</h4>
+                    <ul>
+                        <li><strong>Dataset:</strong> Research data collections</li>
+                        <li><strong>Publication:</strong> Traditional publications</li>
+                        <li><strong>Software:</strong> Research software and code</li>
+                        <li><strong>Image:</strong> Visual research materials</li>
+                        <li><strong>Video:</strong> Audiovisual content</li>
+                        <li><strong>Audio:</strong> Audio recordings</li>
+                        <li><strong>Model:</strong> Research models</li>
+                        <li><strong>Workflow:</strong> Research workflows</li>
+                        <li><strong>Other:</strong> Miscellaneous resources</li>
+                    </ul>
+                </div>
+                
+                <div class="schema-group">
+                    <h4>Publication Types</h4>
+                    <ul>
+                        <li><strong>Journal Article:</strong> Peer-reviewed articles</li>
+                        <li><strong>Conference Paper:</strong> Conference proceedings</li>
+                        <li><strong>Book:</strong> Monographs and textbooks</li>
+                        <li><strong>Book Chapter:</strong> Book sections</li>
+                        <li><strong>Thesis:</strong> Academic dissertations</li>
+                        <li><strong>Report:</strong> Technical and research reports</li>
+                        <li><strong>Preprint:</strong> Pre-publication versions</li>
+                        <li><strong>Review:</strong> Literature reviews</li>
+                        <li><strong>Editorial:</strong> Editorial content</li>
+                    </ul>
+                </div>
+                
+                <div class="schema-group">
+                    <h4>Subject Classifications (Property 6)</h4>
+                    <ul>
+                        <li><strong>OECD Fields of Science:</strong> International classification</li>
+                        <li><strong>Library of Congress Subject Headings:</strong> LCSH integration</li>
+                        <li><strong>African Knowledge Systems:</strong> Indigenous classifications</li>
+                        <li><strong>Sustainable Development Goals:</strong> UN SDG alignment</li>
+                        <li><strong>Custom Keywords:</strong> User-defined terms</li>
+                    </ul>
+                </div>
+                
+                <div class="schema-group">
+                    <h4>Relation Types (Property 12)</h4>
+                    <ul>
+                        <li><strong>IsCitedBy:</strong> Citation relationships</li>
+                        <li><strong>Cites:</strong> Reference relationships</li>
+                        <li><strong>IsSupplementTo:</strong> Supplementary materials</li>
+                        <li><strong>IsSupplementedBy:</strong> Main-supplement relation</li>
+                        <li><strong>IsVersionOf:</strong> Version relationships</li>
+                        <li><strong>HasVersion:</strong> Reverse version relation</li>
+                        <li><strong>IsPartOf:</strong> Collection membership</li>
+                        <li><strong>HasPart:</strong> Collection composition</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="cultural-metadata">
+            <h2>Cultural and Indigenous Metadata</h2>
+            <p>DOCiD extends standard metadata schemas to support Indigenous knowledge systems and cultural protocols:</p>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>🏛️ Local Contexts Integration</h4>
+                    <ul>
+                        <li><strong>TK Labels:</strong> Traditional Knowledge labels</li>
+                        <li><strong>BC Protocols:</strong> Biocultural Community protocols</li>
+                        <li><strong>Community Protocols:</strong> Local governance systems</li>
+                        <li><strong>Cultural Metadata:</strong> Indigenous classification systems</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>🌍 African Research Context</h4>
+                    <ul>
+                        <li><strong>Language Support:</strong> Multilingual metadata</li>
+                        <li><strong>Regional Classifications:</strong> African-specific taxonomies</li>
+                        <li><strong>Institution Types:</strong> African university classifications</li>
+                        <li><strong>Funding Schemes:</strong> African research funding models</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="code-example">
+                <h4>Cultural Metadata JSON Structure</h4>
+                <pre><code>{
+    "cultural_protocols": {
+        "tk_labels": [
+            "TK Attribution",
+            "TK Traditional",
+            "TK Sacred/Secret"
+        ],
+        "bc_protocols": [
+            "BC Provenance",
+            "BC Consent",
+            "BC Open to Collaborate"
+        ],
+        "community_protocols": {
+            "community_id": "community_001",
+            "protocol_name": "Community Research Protocol",
+            "governance_system": "traditional_council",
+            "contact_information": "community@example.org"
+        },
+        "indigenous_classifications": {
+            "knowledge_system": "Ubuntu Knowledge Framework",
+            "classification_scheme": "traditional_medicine",
+            "cultural_context": "Southern African Indigenous Knowledge"
+        }
+    },
+    "language_metadata": {
+        "primary_language": "en",
+        "secondary_languages": ["zu", "xh", "af"],
+        "translated_titles": {
+            "zu": "Translated title in Zulu",
+            "xh": "Translated title in Xhosa"
+        },
+        "translated_abstracts": {
+            "zu": "Abstract in Zulu...",
+            "xh": "Abstract in Xhosa..."
+        }
+    }
+}</code></pre>
+            </div>
+        </section>
+
+        <section class="validation-constraints">
+            <h2>Data Validation & Constraints</h2>
+            <p>DOCiD implements comprehensive validation rules to ensure metadata quality and consistency:</p>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>✅ Format Validation</h4>
+                    <ul>
+                        <li><strong>Email:</strong> Valid email format for user accounts</li>
+                        <li><strong>ORCID ID:</strong> Format xxxx-xxxx-xxxx-xxxx with checksum</li>
+                        <li><strong>DOI:</strong> Valid DOI format (10.xxxx/xxxxx)</li>
+                        <li><strong>ROR ID:</strong> Valid ROR identifier format</li>
+                        <li><strong>URL:</strong> Valid URL format for web resources</li>
+                        <li><strong>Handle:</strong> Valid Handle System format</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>🔗 Referential Integrity</h4>
+                    <ul>
+                        <li><strong>Foreign Key Constraints:</strong> All relationships validated</li>
+                        <li><strong>Cascading Deletes:</strong> Dependent records management</li>
+                        <li><strong>Unique Constraints:</strong> Identifier uniqueness enforcement</li>
+                        <li><strong>Not Null Constraints:</strong> Required field validation</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>📊 Business Rules</h4>
+                    <ul>
+                        <li><strong>Creator Minimum:</strong> At least one creator required</li>
+                        <li><strong>Title Validation:</strong> Non-empty title requirement</li>
+                        <li><strong>Date Consistency:</strong> Publication date validation</li>
+                        <li><strong>Role Validation:</strong> Valid creator roles only</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>🌐 External Validation</h4>
+                    <ul>
+                        <li><strong>ORCID Verification:</strong> Real-time ORCID validation</li>
+                        <li><strong>ROR Validation:</strong> Organization identifier verification</li>
+                        <li><strong>DOI Resolution:</strong> DOI accessibility checking</li>
+                        <li><strong>Crossref Validation:</strong> External DOI metadata validation</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="metadata-workflow">
+            <h2>Metadata Workflow</h2>
+            <p>DOCiD implements a comprehensive metadata lifecycle workflow:</p>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>1️⃣ Creation Phase</h4>
+                    <ul>
+                        <li>Basic metadata entry</li>
+                        <li>Required field validation</li>
+                        <li>Initial identifier assignment (DocID)</li>
+                        <li>Creator and organization association</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>2️⃣ Enrichment Phase</h4>
+                    <ul>
+                        <li>External service integration</li>
+                        <li>Automatic metadata enhancement</li>
+                        <li>ORCID and ROR resolution</li>
+                        <li>Subject classification assignment</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>3️⃣ Validation Phase</h4>
+                    <ul>
+                        <li>Comprehensive metadata validation</li>
+                        <li>External identifier verification</li>
+                        <li>Quality score calculation</li>
+                        <li>Completeness assessment</li>
+                    </ul>
+                </div>
+                
+                <div class="feature">
+                    <h4>4️⃣ Publication Phase</h4>
+                    <ul>
+                        <li>DOI registration (if applicable)</li>
+                        <li>Handle assignment via CORDRA</li>
+                        <li>External platform synchronization</li>
+                        <li>Public visibility activation</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="interoperability">
+            <h2>Interoperability & Standards Compliance</h2>
+            <p>DOCiD metadata schema ensures compatibility with international standards and platforms:</p>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Standard</th>
+                            <th>Compliance Level</th>
+                            <th>Implementation</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>DataCite Metadata Schema 4.6</strong></td>
+                            <td>Full compliance</td>
+                            <td>Core 20 properties implementation</td>
+                            <td>DOI registration and citation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dublin Core (DC)</strong></td>
+                            <td>Core elements mapping</td>
+                            <td>15 core DC elements mapped</td>
+                            <td>Basic interoperability</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MODS (Metadata Object Description Schema)</strong></td>
+                            <td>Selective mapping</td>
+                            <td>Bibliographic elements</td>
+                            <td>Library system integration</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ORCID Metadata</strong></td>
+                            <td>Full integration</td>
+                            <td>Creator identification</td>
+                            <td>Author disambiguation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ROR Metadata</strong></td>
+                            <td>Full integration</td>
+                            <td>Organization identification</td>
+                            <td>Institutional attribution</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Crossref Schema</strong></td>
+                            <td>DOI registration compliance</td>
+                            <td>Publication metadata</td>
+                            <td>DOI minting and citation tracking</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="api-reference.html" class="nav-prev">API Reference</a>
+                    <a href="external-services.html" class="nav-next">External Services</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p>Metadata Properties • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

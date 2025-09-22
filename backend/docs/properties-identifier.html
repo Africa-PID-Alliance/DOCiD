@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Property 1: Identifier</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link active">1. Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">3. Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#cultural-protocols" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#validation-rules" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Property 1: Identifier</h1>
+                    <div class="subtitle">A persistent identifier that identifies a resource</div>
+                </header>
+
+                <!-- Property Overview -->
+                <section id="property-overview">
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">1. Identifier</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Occurrences: 1</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p><strong>Definition:</strong> A persistent identifier that identifies a resource.</p>
+                            
+                            <h4>Allowed values, examples, other constraints:</h4>
+                            <p>The format is open, but the preferred format is a single HTTP URI. The identifier must be globally unique and persistent.</p>
+                            
+                            <h4>DOCiD Implementation:</h4>
+                            <p>DOCiD supports multiple identifier schemes through the Publications model with dedicated fields for different identifier types:</p>
+                            
+                            <div class="code-example">
+                                <div class="code-header">Publications Model - Identifier Fields</div>
+                                <div class="code-content">
+                                    <pre><code>class Publications(db.Model):
+    __tablename__ = 'publications'
+    
+    # Primary identifier
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # DOCiD specific identifier
+    document_docid = Column(String(255), nullable=False)
+    
+    # DOI identifier
+    doi = Column(String(50), nullable=False)
+    
+    # Additional identifiers can be stored in related tables
+    # See PublicationIdentifiers for alternate identifiers</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sub-properties -->
+                <section id="identifier-subproperties">
+                    <h2>Sub-properties</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">1.1 identifierType</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Occurrences: 1</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p><strong>Definition:</strong> The type of identifier.</p>
+                            
+                            <h4>Allowed values:</h4>
+                            <ul>
+                                <li><strong>DOI:</strong> Digital Object Identifier</li>
+                                <li><strong>Handle:</strong> Handle System identifier</li>
+                                <li><strong>DocID:</strong> DOCiD internal identifier</li>
+                                <li><strong>CSTR:</strong> China Science and Technology Resource identifier</li>
+                                <li><strong>URN:</strong> Uniform Resource Name</li>
+                                <li><strong>URL:</strong> Uniform Resource Locator</li>
+                                <li><strong>Other:</strong> Other identifier schemes</li>
+                            </ul>
+                            
+                            <h4>Examples:</h4>
+                            <div class="code-example">
+                                <div class="code-header">Identifier Type Examples</div>
+                                <div class="code-content">
+                                    <pre><code># DOI
+https://doi.org/10.5555/docid.2024.001
+
+# Handle
+https://hdl.handle.net/20.500.12345/12345
+
+# DocID
+DOCID.AFRICA.2024.001
+
+# CSTR
+CSTR:16389.09.A08V-0001</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Related Models -->
+                <section id="related-models">
+                    <h2>Related Database Models</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">PublicationIdentifiers Model</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Alternate Identifiers</span>
+                                <span>Table: publication_identifiers</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>For storing multiple alternate identifiers for a single publication:</p>
+                            
+                            <div class="code-example">
+                                <div class="code-header">PublicationIdentifiers Model Schema</div>
+                                <div class="code-content">
+                                    <pre><code>class PublicationIdentifiers(db.Model):
+    __tablename__ = 'publication_identifiers'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False)
+    
+    # Identifier Information
+    identifier_value = Column(String(255), nullable=False)
+    identifier_type_id = Column(Integer, ForeignKey('identifier_types.id'))
+    
+    # Relationship and validation
+    relation_type = Column(String(50))  # IsIdenticalTo, IsVersionOf, etc.
+    is_primary = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    
+    # Metadata
+    assigned_date = Column(DateTime, default=datetime.utcnow)
+    validation_status = Column(String(20))  # valid, invalid, pending</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- API Examples -->
+                <section id="api-examples">
+                    <h2>API Implementation</h2>
+                    
+                    <div class="code-example">
+                        <div class="code-header">Publication Creation with Identifiers</div>
+                        <div class="code-content">
+                            <pre><code>POST /api/v1/publications/publish
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+    "document_title": "Traditional Medicine Knowledge Systems in Southern Africa",
+    "document_description": "Comprehensive study of traditional healing practices...",
+    "document_docid": "DOCID.AFRICA.2024.001",
+    "doi": "10.5555/docid.2024.001",
+    "resource_type_id": 1,
+    "creators": [...],
+    "alternate_identifiers": [
+        {
+            "identifier_value": "https://hdl.handle.net/20.500.12345/12345",
+            "identifier_type": "Handle",
+            "relation_type": "IsIdenticalTo"
+        },
+        {
+            "identifier_value": "CSTR:16389.09.A08V-0001",
+            "identifier_type": "CSTR",
+            "relation_type": "IsVersionOf"
+        }
+    ]
+}</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="code-example">
+                        <div class="code-header">Identifier Resolution Endpoint</div>
+                        <div class="code-content">
+                            <pre><code>GET /api/v1/publications/docid/DOCID.AFRICA.2024.001
+Authorization: Bearer {jwt_token}
+
+Response:
+{
+    "status": "success",
+    "data": {
+        "id": 1,
+        "document_docid": "DOCID.AFRICA.2024.001",
+        "doi": "10.5555/docid.2024.001",
+        "document_title": "Traditional Medicine Knowledge Systems in Southern Africa",
+        "identifiers": [
+            {
+                "type": "DOI",
+                "value": "https://doi.org/10.5555/docid.2024.001",
+                "is_primary": true
+            },
+            {
+                "type": "Handle", 
+                "value": "https://hdl.handle.net/20.500.12345/12345",
+                "is_primary": false
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Examples -->
+                <section id="examples">
+                    <h2>African Research Examples</h2>
+                    
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Resource Type</th>
+                                    <th>Primary Identifier</th>
+                                    <th>Alternate Identifiers</th>
+                                    <th>Institution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Research Dataset</td>
+                                    <td>10.5555/uct.dataset.2024.001</td>
+                                    <td>DOCID.UCT.2024.001<br>hdl:20.500.11910/12345</td>
+                                    <td>University of Cape Town</td>
+                                </tr>
+                                <tr>
+                                    <td>Thesis</td>
+                                    <td>10.5555/wits.thesis.2024.005</td>
+                                    <td>DOCID.WITS.2024.005<br>urn:nbn:za:wits-123456</td>
+                                    <td>University of the Witwatersrand</td>
+                                </tr>
+                                <tr>
+                                    <td>Traditional Knowledge</td>
+                                    <td>DOCID.IKAMVA.2024.TK.001</td>
+                                    <td>LC-TK-A001<br>urn:tk:southern-africa:001</td>
+                                    <td>iKamva Traditional Council</td>
+                                </tr>
+                                <tr>
+                                    <td>Software</td>
+                                    <td>10.5555/github.africaai.2024</td>
+                                    <td>DOCID.GITHUB.2024.001<br>github:africa-ai/toolkit</td>
+                                    <td>Africa AI Consortium</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <div></div>
+                    <a href="properties-creator.html" class="nav-next">2. Creator</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p>Property 1: Identifier • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

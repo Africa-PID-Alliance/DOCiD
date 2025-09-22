@@ -1,0 +1,20 @@
+{
+  "welcome": "Bienvenue sur DOCiD™",
+  "hero_description": "En établissant un pont entre la technologie et la tradition en Afrique, nous nous concentrons sur les connaissances autochtones et les conteneurs de brevets numériques pour préserver le patrimoine culturel et favoriser l'innovation.",
+  "get_started": "Commencer",
+  "nav": {
+    "home": "Accueil",
+    "docids": "DOCiD™s",
+    "about": "À Propos"
+  },
+  "user_menu": {
+    "welcome": "Bienvenue",
+    "sign_in_message": "Connectez-vous pour accéder à toutes les fonctionnalités",
+    "login": "Connexion",
+    "login_desc": "Accéder à votre compte",
+    "register": "S'inscrire",
+    "register_desc": "Créer un nouveau compte",
+    "language": "Langue",
+    "select_language": "Sélectionner la langue"
+  }
+} 

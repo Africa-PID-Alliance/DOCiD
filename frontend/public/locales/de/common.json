@@ -1,0 +1,20 @@
+{
+  "welcome": "Willkommen bei DOCiD™",
+  "hero_description": "Wir verbinden Technologie und Tradition in Afrika und konzentrieren uns auf indigenes Wissen und digitale Patentcontainer, um das kulturelle Erbe zu bewahren und Innovation zu fördern.",
+  "get_started": "Loslegen",
+  "nav": {
+    "home": "Startseite",
+    "docids": "DOCiD™s",
+    "about": "Über Uns"
+  },
+  "user_menu": {
+    "welcome": "Willkommen",
+    "sign_in_message": "Melden Sie sich an, um alle Funktionen zu nutzen",
+    "login": "Anmelden",
+    "login_desc": "Zugang zu Ihrem Konto",
+    "register": "Registrieren",
+    "register_desc": "Neues Konto erstellen",
+    "language": "Sprache",
+    "select_language": "Sprache auswählen"
+  }
+} 

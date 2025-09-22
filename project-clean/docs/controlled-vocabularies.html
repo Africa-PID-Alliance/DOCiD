@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Controlled Vocabularies</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">1. Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">3. Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link active">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Controlled Vocabularies</h1>
+                    <div class="subtitle">Standardized terms and values used throughout the DOCiD metadata schema</div>
+                </header>
+
+                <!-- Resource Types -->
+                <section id="resource-types">
+                    <h2>Resource Types</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Resource Type Classification</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Table: resource_types</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Controlled vocabulary for classifying different types of research outputs and publications:</p>
+                            
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>African Context Examples</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Dataset</td>
+                                            <td>Collection of data</td>
+                                            <td>Climate data, Agricultural surveys, Health statistics</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Text</td>
+                                            <td>Textual resources</td>
+                                            <td>Research papers, Theses, Traditional stories</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Software</td>
+                                            <td>Computer programs</td>
+                                            <td>Agricultural modeling tools, Language processing software</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Image</td>
+                                            <td>Visual materials</td>
+                                            <td>Satellite imagery, Cultural artifacts, Medical scans</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>Sound</td>
+                                            <td>Audio recordings</td>
+                                            <td>Oral histories, Traditional music, Language samples</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Audiovisual</td>
+                                            <td>Video content</td>
+                                            <td>Documentary films, Educational videos, Cultural ceremonies</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>Collection</td>
+                                            <td>Aggregated resources</td>
+                                            <td>Digital libraries, Museum collections, Archive series</td>
+                                        </tr>
+                                        <tr>
+                                            <td>8</td>
+                                            <td>Event</td>
+                                            <td>Documented events</td>
+                                            <td>Conferences, Workshops, Community gatherings</td>
+                                        </tr>
+                                        <tr>
+                                            <td>9</td>
+                                            <td>PhysicalObject</td>
+                                            <td>Physical items</td>
+                                            <td>Archaeological artifacts, Traditional tools, Specimens</td>
+                                        </tr>
+                                        <tr>
+                                            <td>10</td>
+                                            <td>Service</td>
+                                            <td>Web services</td>
+                                            <td>APIs, Online databases, Digital platforms</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Creator Roles -->
+                <section id="creator-roles">
+                    <h2>Creator Roles</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Creator Role Types</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Optional</span>
+                                <span>Table: creators_roles</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Standardized roles for publication creators and contributors:</p>
+                            
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Role</th>
+                                            <th>Description</th>
+                                            <th>African Research Context</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Author</td>
+                                            <td>Primary author of the work</td>
+                                            <td>Researcher, Academic writer, Traditional knowledge keeper</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Editor</td>
+                                            <td>Editorial oversight</td>
+                                            <td>Journal editor, Book editor, Collection curator</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Translator</td>
+                                            <td>Language translation</td>
+                                            <td>Local language translator, Cultural mediator</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>DataCollector</td>
+                                            <td>Data collection and gathering</td>
+                                            <td>Field researcher, Survey coordinator, Community liaison</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>DataCurator</td>
+                                            <td>Data curation and management</td>
+                                            <td>Database manager, Archive specialist, Digital librarian</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Supervisor</td>
+                                            <td>Academic supervision</td>
+                                            <td>Thesis supervisor, Research director, Mentor</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>ContactPerson</td>
+                                            <td>Primary contact</td>
+                                            <td>Principal investigator, Project coordinator</td>
+                                        </tr>
+                                        <tr>
+                                            <td>8</td>
+                                            <td>Producer</td>
+                                            <td>Content production</td>
+                                            <td>Film producer, Audio producer, Exhibition curator</td>
+                                        </tr>
+                                        <tr>
+                                            <td>9</td>
+                                            <td>Contributor</td>
+                                            <td>General contribution</td>
+                                            <td>Community contributor, Technical assistant, Advisor</td>
+                                        </tr>
+                                        <tr>
+                                            <td>10</td>
+                                            <td>Other</td>
+                                            <td>Other roles not specified</td>
+                                            <td>Traditional authority, Cultural consultant, Elder</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Publication Types -->
+                <section id="publication-types">
+                    <h2>Publication Types</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Publication Categories</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Table: publication_types</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Classification of publication types for African research contexts:</p>
+                            
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Examples in African Context</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Journal Article</td>
+                                            <td>Peer-reviewed article</td>
+                                            <td>African Journal of Science, South African Medical Journal</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Conference Paper</td>
+                                            <td>Conference presentation</td>
+                                            <td>African Mathematics Conference, AIMS Conference</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Book</td>
+                                            <td>Published book</td>
+                                            <td>Academic monograph, Traditional knowledge compilation</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Book Chapter</td>
+                                            <td>Chapter in edited book</td>
+                                            <td>Handbook contributions, Edited volume chapters</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>Thesis</td>
+                                            <td>Academic thesis</td>
+                                            <td>PhD dissertations, Masters theses, Honours projects</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Report</td>
+                                            <td>Technical or research report</td>
+                                            <td>Government reports, NGO studies, Research institution reports</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>Dataset</td>
+                                            <td>Research data collection</td>
+                                            <td>Climate datasets, Survey data, Experimental results</td>
+                                        </tr>
+                                        <tr>
+                                            <td>8</td>
+                                            <td>Software</td>
+                                            <td>Research software</td>
+                                            <td>Analysis tools, Educational software, Modeling platforms</td>
+                                        </tr>
+                                        <tr>
+                                            <td>9</td>
+                                            <td>Preprint</td>
+                                            <td>Pre-publication version</td>
+                                            <td>Working papers, Draft manuscripts, Early findings</td>
+                                        </tr>
+                                        <tr>
+                                            <td>10</td>
+                                            <td>Other</td>
+                                            <td>Other publication types</td>
+                                            <td>Multimedia presentations, Interactive exhibits</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Subject Classifications -->
+                <section id="subject-classifications">
+                    <h2>Subject Classifications</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Research Subject Areas</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Optional</span>
+                                <span>Multiple classification schemes</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Subject classification schemes relevant to African research:</p>
+                            
+                            <h4>African-Focused Subject Areas:</h4>
+                            <div class="grid">
+                                <div class="card">
+                                    <h3>🌍 African Studies</h3>
+                                    <ul>
+                                        <li>African History</li>
+                                        <li>African Languages</li>
+                                        <li>African Literature</li>
+                                        <li>African Politics</li>
+                                        <li>Pan-African Studies</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>🌱 Agriculture & Environment</h3>
+                                    <ul>
+                                        <li>Sustainable Agriculture</li>
+                                        <li>Climate Change</li>
+                                        <li>Biodiversity Conservation</li>
+                                        <li>Water Resources</li>
+                                        <li>Food Security</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>🏥 Health & Medicine</h3>
+                                    <ul>
+                                        <li>Traditional Medicine</li>
+                                        <li>Public Health</li>
+                                        <li>Tropical Diseases</li>
+                                        <li>Community Health</li>
+                                        <li>Maternal Health</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>🎭 Culture & Society</h3>
+                                    <ul>
+                                        <li>Indigenous Knowledge</li>
+                                        <li>Cultural Heritage</li>
+                                        <li>Traditional Arts</li>
+                                        <li>Oral Traditions</li>
+                                        <li>Community Development</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <h4>Standard Classification Schemes:</h4>
+                            <ul>
+                                <li><strong>UNESCO:</strong> UNESCO Nomenclature for fields of science and technology</li>
+                                <li><strong>Fields of Research (FoR):</strong> Australian Research Council classification</li>
+                                <li><strong>Library of Congress:</strong> Library of Congress Classification</li>
+                                <li><strong>Dewey Decimal:</strong> Dewey Decimal Classification</li>
+                                <li><strong>JEL:</strong> Journal of Economic Literature classification</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Language Codes -->
+                <section id="language-codes">
+                    <h2>Language Codes</h2>
+                    
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">African Languages (ISO 639-1)</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Standard</span>
+                                <span>ISO 639-1 codes</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Commonly used language codes for African languages and official languages:</p>
+                            
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Language</th>
+                                            <th>Countries/Regions</th>
+                                            <th>Speakers (approx.)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>sw</td>
+                                            <td>Swahili (Kiswahili)</td>
+                                            <td>Kenya, Tanzania, Uganda, DRC</td>
+                                            <td>100+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ha</td>
+                                            <td>Hausa</td>
+                                            <td>Nigeria, Niger, Ghana</td>
+                                            <td>70+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>yo</td>
+                                            <td>Yoruba</td>
+                                            <td>Nigeria, Benin, Togo</td>
+                                            <td>45+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>zu</td>
+                                            <td>Zulu (isiZulu)</td>
+                                            <td>South Africa</td>
+                                            <td>12+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>xh</td>
+                                            <td>Xhosa (isiXhosa)</td>
+                                            <td>South Africa</td>
+                                            <td>8+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>af</td>
+                                            <td>Afrikaans</td>
+                                            <td>South Africa, Namibia</td>
+                                            <td>7+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>am</td>
+                                            <td>Amharic</td>
+                                            <td>Ethiopia</td>
+                                            <td>25+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ar</td>
+                                            <td>Arabic</td>
+                                            <td>North Africa, Sudan</td>
+                                            <td>300+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>en</td>
+                                            <td>English</td>
+                                            <td>Official in many countries</td>
+                                            <td>Lingua franca</td>
+                                        </tr>
+                                        <tr>
+                                            <td>fr</td>
+                                            <td>French</td>
+                                            <td>West/Central Africa</td>
+                                            <td>Francophone Africa</td>
+                                        </tr>
+                                        <tr>
+                                            <td>pt</td>
+                                            <td>Portuguese</td>
+                                            <td>Angola, Mozambique, Guinea-Bissau</td>
+                                            <td>Lusophone Africa</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Footer -->
+                <footer class="doc-footer">
+                    <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                    <p>Controlled Vocabularies • African PID Alliance</p>
+                    <div class="license">
+                        <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

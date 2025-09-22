@@ -1,0 +1,22 @@
+--- a/app/models.py
++++ b/app/models.py
+@@ -489,6 +489,9 @@ class PublicationFiles(db.Model):
+     file_url = Column(String(255), nullable=False)
+     identifier = Column(String(100), nullable=False)
+     generated_identifier = Column(String(100), nullable=False)
++    handle_identifier = Column(String(100), nullable=True)  # Handle for CORDRA
++    external_identifier = Column(String(100), nullable=True)  # DOI from DataCite/Crossref
++    external_identifier_type = Column(String(50), nullable=True)  # Type of external identifier (DOI, etc.)
+ 
+     # Relationships
+     publication = relationship('Publications', back_populates='publications_files')
+@@ -512,6 +515,9 @@ class PublicationDocuments(db.Model):
+     identifier_type_id = Column(Integer, ForeignKey('identifier_types.id'), nullable=True)
+     generated_identifier = Column(String(255), nullable=True)
+     identifier_cstr = Column(String(100), nullable=True)
++    handle_identifier = Column(String(100), nullable=True)  # Handle for CORDRA
++    external_identifier = Column(String(100), nullable=True)  # DOI from DataCite/Crossref
++    external_identifier_type = Column(String(50), nullable=True)  # Type of external identifier (DOI, etc.)
+ 
+     # Relationships
+     publication = relationship('Publications', back_populates='publication_documents')

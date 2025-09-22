@@ -1,0 +1,20 @@
+{
+  "welcome": "Karibu kwenye DOCiD™",
+  "hero_description": "Tukiunganisha teknolojia na utamaduni barani Afrika, tunalenga maarifa ya asili na vyombo vya hataza dijitali kuhifadhi urithi wa kitamaduni na kukuza uvumbuzi.",
+  "get_started": "Anza Sasa",
+  "nav": {
+    "home": "Nyumbani",
+    "docids": "DOCiD™s",
+    "about": "Kuhusu Sisi"
+  },
+  "user_menu": {
+    "welcome": "Karibu",
+    "sign_in_message": "Ingia ili kupata huduma zote",
+    "login": "Ingia",
+    "login_desc": "Fikia akaunti yako",
+    "register": "Jisajili",
+    "register_desc": "Fungua akaunti mpya",
+    "language": "Lugha",
+    "select_language": "Chagua Lugha"
+  }
+} 
