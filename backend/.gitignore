@@ -149,3 +149,4 @@ fe.zip
 frontend*.zip
 docs.zip
 run.sh
+push_changes.sh
