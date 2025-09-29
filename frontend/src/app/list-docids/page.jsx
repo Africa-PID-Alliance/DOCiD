@@ -673,7 +673,9 @@ const ListDocIds = () => {
                             <CardMedia
                               component="img"
                               image={doc.publication_poster_url ?
-                                `${process.env.NEXT_PUBLIC_NODE_URL}/${doc.publication_poster_url}` :
+                                (doc.publication_poster_url.startsWith('http') ?
+                                  doc.publication_poster_url :
+                                  `${process.env.NEXT_PUBLIC_NODE_URL}/${doc.publication_poster_url}`) :
                                 `/assets/images/Logo2.png`}
                               alt={doc.title || 'DOCiD Logo'}
                               className="card-media"
