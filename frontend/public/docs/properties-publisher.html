@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema - Property 4: Publisher</title>
+    <title>DOCiD™ Metadata Schema - Property 4: Publisher</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
             
@@ -29,7 +29,7 @@
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
@@ -66,6 +66,12 @@
                                     <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
                                 </li>
                                 <li class="nav-item">
@@ -73,6 +79,30 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
                                 </li>
                             </ul>
                         </li>
@@ -93,9 +123,6 @@
                         </li>
                         <li class="nav-item">
                             <a href="properties-publisher.html" class="nav-link active">4. Publisher</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
                         </li>
                     </ul>
                 </div>
@@ -144,7 +171,7 @@
                             <h4>Allowed values, examples, other constraints:</h4>
                             <p>Examples: World Data Center for Climate; GeoForschungsZentrum Potsdam; University of Cape Town; African Institute for Mathematical Sciences</p>
                             
-                            <h4>DOCiD Implementation:</h4>
+                            <h4>DOCiD™ Implementation:</h4>
                             <p>Publishers are managed through the PublicationOrganization model with ROR integration for institutional identification:</p>
                             
                             <div class="code-example">
@@ -305,7 +332,7 @@
                     
                     <div class="grid">
                         <div class="card">
-                            <h3>🎓 Academic Institutions</h3>
+                            <h3>Academic Institutions</h3>
                             <ul>
                                 <li><strong>University:</strong> Comprehensive higher education institutions</li>
                                 <li><strong>College:</strong> Specialized higher education institutions</li>
@@ -316,7 +343,7 @@
                         </div>
                         
                         <div class="card">
-                            <h3>🔬 Research Organizations</h3>
+                            <h3>Research Organizations</h3>
                             <ul>
                                 <li><strong>Government Research Institute:</strong> State research organizations</li>
                                 <li><strong>Private Research Institute:</strong> Independent research entities</li>
@@ -327,7 +354,7 @@
                         </div>
                         
                         <div class="card">
-                            <h3>🏛️ Government Entities</h3>
+                            <h3>Government Entities</h3>
                             <ul>
                                 <li><strong>Ministry:</strong> Government ministerial departments</li>
                                 <li><strong>Agency:</strong> Government agencies and parastatals</li>
@@ -338,7 +365,7 @@
                         </div>
                         
                         <div class="card">
-                            <h3>🤝 International Organizations</h3>
+                            <h3>International Organizations</h3>
                             <ul>
                                 <li><strong>NGO:</strong> Non-governmental organizations</li>
                                 <li><strong>Foundation:</strong> Research foundations</li>
@@ -503,13 +530,13 @@ Response:
                 <!-- Navigation -->
                 <div class="page-nav">
                     <a href="properties-title.html" class="nav-prev">3. Title</a>
-                    <a href="properties-publication-year.html" class="nav-next">5. Publication Year</a>
+                    <a href="properties-resource-type.html" class="nav-next">5. Resource Type</a>
                 </div>
             </div>
 
             <!-- Footer -->
             <footer class="doc-footer">
-                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p><strong>DOCiD™ Metadata Schema Documentation v1.0</strong></p>
                 <p>Property 4: Publisher • African PID Alliance</p>
                 <div class="license">
                     <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>

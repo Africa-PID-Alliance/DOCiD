@@ -7,14 +7,13 @@ set -e  # Exit on any error
 
 echo "🚀 Starting DOCiD Frontend Production Deployment Package..."
 
-# Always run fresh production build to ensure latest changes
-echo "🔨 Running production build..."
-npm run build
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed! Please fix build errors before deploying."
-    exit 1
+# Check if build exists
+if [ ! -d ".next" ]; then
+    echo "❌ Build directory (.next) not found. Running production build first..."
+    npm run build
+else
+    echo "✅ Build directory found"
 fi
-echo "✅ Production build completed successfully"
 
 # Define deployment filename with timestamp
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

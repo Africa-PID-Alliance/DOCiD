@@ -46,7 +46,7 @@ if [ ! -f ".env" ]; then
         print_message $GREEN ".env file created. Please update it with your configuration."
     else
         print_message $YELLOW "No .env.example file found. Creating basic .env file..."
-        echo "REACT_APP_API_URL=http://localhost:5000/api/v1" > .env
+        echo "REACT_APP_API_URL=http://localhost:5001/api/v1" > .env
         echo "REACT_APP_BASE_URL=http://localhost:3000" >> .env
         print_message $GREEN ".env file created with default values."
     fi

@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema - System Architecture</title>
+    <title>DOCiD™ Metadata Schema - System Architecture</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="doc-wrapper">
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Documentation</div>
@@ -29,16 +31,19 @@
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties
+                                        (1-8)</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication
+                                        Model</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled
+                                        Vocabularies</a>
                                 </li>
                             </ul>
                         </li>
@@ -46,7 +51,8 @@
                             <a href="api-reference.html" class="nav-link">API Reference</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                    <a href="api-reference.html#authentication-endpoints"
+                                        class="nav-link">Authentication</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
@@ -66,6 +72,12 @@
                                     <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
                                 </li>
                                 <li class="nav-item">
@@ -73,6 +85,30 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
                                 </li>
                             </ul>
                         </li>
@@ -83,11 +119,24 @@
                     <div class="nav-section-title">Properties</div>
                     <ul class="nav-list">
                         <li class="nav-item">
-                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
                         </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                       <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                       
                     </ul>
                 </div>
-                
+
                 <div class="nav-section">
                     <div class="nav-section-title">Appendices</div>
                     <ul class="nav-list">
@@ -113,13 +162,17 @@
             <div class="content-wrapper">
                 <header class="doc-header">
                     <h1>System Architecture</h1>
-                    <div class="subtitle">Comprehensive overview of DOCiD's architectural components, design patterns, and data models</div>
+                    <div class="subtitle">Comprehensive overview of DOCiD™'s architectural components, design patterns,
+                        and data models</div>
                 </header>
 
                 <!-- Architecture Overview -->
                 <section id="architecture-overview">
                     <h2>Architecture Overview</h2>
-                    <p class="lead">The DOCiD (Document ID) system is a sophisticated platform designed to serve as a comprehensive publication and document identifier management system. The system is architected with a focus on persistent identifier (PID) services, metadata management, and scholarly communication tools, specifically tailored for African academic and research institutions.</p>
+                    <p>The DOCiD™ (Digital Object Container Identifier) system is a sophisticated platform
+                        designed to serve as a comprehensive publication and document identifier management system. The
+                        system is architected with a focus on persistent identifier (PID) services, metadata management,
+                        and scholarly communication tools, specifically designed to support cultural heritage centres, museums, patent offices, funders, facilities, and publishing infrastructures.</p>
                 </section>
 
                 <!-- Core Components -->
@@ -127,7 +180,7 @@
                     <h2>Core Architecture Components</h2>
                     <div class="grid">
                         <div class="card">
-                            <h3>🏗️ Application Layer</h3>
+                            <h3>Application Layer</h3>
                             <ul>
                                 <li>Application factory pattern with comprehensive extension integration</li>
                                 <li>Blueprint-based modular architecture with 20+ service-specific routes</li>
@@ -135,9 +188,9 @@
                                 <li>Swagger/OpenAPI documentation integration via Flasgger</li>
                             </ul>
                         </div>
-                        
+
                         <div class="card">
-                            <h3>⚙️ Service Layer</h3>
+                            <h3>Service Layer</h3>
                             <ul>
                                 <li>External service integration abstractions</li>
                                 <li>Background processing for batch operations</li>
@@ -145,9 +198,9 @@
                                 <li>Error handling and fallback mechanisms</li>
                             </ul>
                         </div>
-                        
+
                         <div class="card">
-                            <h3>💾 Data Layer</h3>
+                            <h3>Data Layer</h3>
                             <ul>
                                 <li>SQLAlchemy ORM with PostgreSQL backend</li>
                                 <li>Complex relational model with cascading relationships</li>
@@ -161,14 +214,16 @@
                 <!-- Architectural Patterns -->
                 <section id="patterns">
                     <h2>Key Architectural Patterns</h2>
-                    
+
                     <div class="property">
                         <div class="property-header">
-                            <div class="property-title">🔑 Identifier Management Centralization</div>
+                            <div class="property-title">Identifier Management Centralization</div>
                         </div>
                         <div class="property-content">
-                            <p>The system implements a centralized approach to managing multiple persistent identifier types including DOIs, DocIDs, Handles, and other PIDs. This ensures consistency across all identifier operations and provides a unified interface for external systems.</p>
-                            
+                            <p>The system implements a centralized approach to managing multiple persistent identifier
+                                types including DOIs, DOCiD™s, Handles, and other PIDs. This ensures consistency across
+                                all identifier operations and provides a unified interface for external systems.</p>
+
                             <h4>Key Features:</h4>
                             <ul>
                                 <li>Unified identifier assignment and management</li>
@@ -178,14 +233,16 @@
                             </ul>
                         </div>
                     </div>
-                    
+
                     <div class="property">
                         <div class="property-header">
-                            <div class="property-title">🌳 Hierarchical Data Structures</div>
+                            <div class="property-title">Hierarchical Data Structures</div>
                         </div>
                         <div class="property-content">
-                            <p>Comments system implements a sophisticated tree structure allowing for threaded discussions with parent-child relationships, status management, and moderation capabilities.</p>
-                            
+                            <p>Comments system implements a sophisticated tree structure allowing for threaded
+                                discussions with parent-child relationships, status management, and moderation
+                                capabilities.</p>
+
                             <h4>Implementation Details:</h4>
                             <ul>
                                 <li>Self-referential database relationships</li>
@@ -195,14 +252,16 @@
                             </ul>
                         </div>
                     </div>
-                    
+
                     <div class="property">
                         <div class="property-header">
-                            <div class="property-title">🔗 Service Integration Abstraction</div>
+                            <div class="property-title">Service Integration Abstraction</div>
                         </div>
                         <div class="property-content">
-                            <p>External service connectors are abstracted into dedicated service classes, providing consistent interfaces for interacting with Crossref, CSTR, CORDRA, ROR, ORCID, and Local Contexts APIs.</p>
-                            
+                            <p>External service connectors are abstracted into dedicated service classes, providing
+                                consistent interfaces for interacting with Crossref, CSTR, CORDRA, ROR, ORCID, and Local
+                                Contexts APIs.</p>
+
                             <h4>Service Patterns:</h4>
                             <ul>
                                 <li>Standardized authentication token management</li>
@@ -217,10 +276,11 @@
                 <!-- Database Architecture -->
                 <section id="database">
                     <h2>Database Architecture</h2>
-                    <p>The system utilizes PostgreSQL as the primary database, leveraging advanced features like JSON fields, full-text search, and complex indexing strategies.</p>
-                    
+                    <p>The system utilizes PostgreSQL as the primary database, leveraging advanced features like JSON
+                        fields, full-text search, and complex indexing strategies.</p>
+
                     <h3>Core Data Models</h3>
-                    
+
                     <!-- Publications Model -->
                     <div class="property">
                         <div class="property-header">
@@ -231,8 +291,9 @@
                             </div>
                         </div>
                         <div class="property-content">
-                            <p>Central entity managing publication metadata with DocID/DOI assignment and cascading relationships to files, creators, organizations, funders, and projects.</p>
-                            
+                            <p>Central entity managing publication metadata with DOCiD™/DOI assignment and cascading
+                                relationships to files, creators, organizations, funders, and projects.</p>
+
                             <div class="code-example">
                                 <div class="code-header">Publications Model Schema</div>
                                 <div class="code-content">
@@ -268,8 +329,9 @@
                             </div>
                         </div>
                         <div class="property-content">
-                            <p>Comprehensive user management with social authentication support and rich profile information including ORCID and ROR ID integration.</p>
-                            
+                            <p>Comprehensive user management with social authentication support and rich profile
+                                information including ORCID and ROR ID integration.</p>
+
                             <div class="code-example">
                                 <div class="code-header">UserAccount Model Schema</div>
                                 <div class="code-content">
@@ -307,8 +369,9 @@
                             </div>
                         </div>
                         <div class="property-content">
-                            <p>Author/creator management with role assignment and multiple identifier scheme support.</p>
-                            
+                            <p>Author/creator management with role assignment and multiple identifier scheme support.
+                            </p>
+
                             <div class="code-example">
                                 <div class="code-header">PublicationCreators Model Schema</div>
                                 <div class="code-content">
@@ -327,7 +390,7 @@
     publication = relationship('Publications', back_populates='publication_creators')</code></pre>
                                 </div>
                             </div>
-                            
+
                             <h4>Supported Creator Identifiers:</h4>
                             <ul>
                                 <li><strong>ORCID:</strong> https://orcid.org/0000-0000-0000-0000</li>
@@ -349,8 +412,9 @@
                             </div>
                         </div>
                         <div class="property-content">
-                            <p>Hierarchical comment structure with parent-child relationships, status management, and engagement tracking.</p>
-                            
+                            <p>Hierarchical comment structure with parent-child relationships, status management, and
+                                engagement tracking.</p>
+
                             <div class="code-example">
                                 <div class="code-header">PublicationComments Model Schema</div>
                                 <div class="code-content">
@@ -371,10 +435,11 @@
     parent_comment = db.relationship('PublicationComments', remote_side=[id], backref='replies')</code></pre>
                                 </div>
                             </div>
-                            
+
                             <h4>Comment Features:</h4>
                             <ul>
-                                <li><strong>Hierarchical Structure:</strong> Parent-child relationships for threaded discussions</li>
+                                <li><strong>Hierarchical Structure:</strong> Parent-child relationships for threaded
+                                    discussions</li>
                                 <li><strong>Comment Types:</strong> general, review, question, suggestion</li>
                                 <li><strong>Status Management:</strong> active, edited, deleted, flagged states</li>
                                 <li><strong>Engagement:</strong> Like counts and reply threading</li>
@@ -387,10 +452,10 @@
                 <!-- Authentication & Authorization -->
                 <section id="auth">
                     <h2>Authentication & Authorization</h2>
-                    
+
                     <div class="grid">
                         <div class="card">
-                            <h3>🔐 JWT-Based Authentication</h3>
+                            <h3>JWT-Based Authentication</h3>
                             <ul>
                                 <li>JWT-Extended implementation</li>
                                 <li>Access and refresh token management</li>
@@ -398,19 +463,19 @@
                                 <li>Social authentication integration</li>
                             </ul>
                         </div>
-                        
+
                         <div class="card">
-                            <h3>🌐 Social Authentication Providers</h3>
+                            <h3>Social Authentication Providers</h3>
                             <ul>
                                 <li>Google OAuth 2.0</li>
                                 <li>ORCID OAuth 2.0</li>
                                 <li>GitHub OAuth 2.0</li>
-                                <li>Facebook OAuth 2.0</li>
+                               
                             </ul>
                         </div>
-                        
+
                         <div class="card">
-                            <h3>👤 Permission Management</h3>
+                            <h3>Permission Management</h3>
                             <ul>
                                 <li>User role hierarchy (user, admin, superadmin)</li>
                                 <li>Resource-based permissions</li>
@@ -424,7 +489,7 @@
                 <!-- Database Relationships -->
                 <section id="relationships">
                     <h2>Database Relationships</h2>
-                    
+
                     <div class="table-wrapper">
                         <table>
                             <thead>
@@ -480,8 +545,9 @@
                 <!-- Reference Data Models -->
                 <section id="reference-data">
                     <h2>Reference Data Models</h2>
-                    <p>DOCiD implements comprehensive controlled vocabularies for consistent metadata classification.</p>
-                    
+                    <p>DOCiD™ implements comprehensive controlled vocabularies for consistent metadata classification.
+                    </p>
+
                     <div class="table-wrapper">
                         <table>
                             <thead>
@@ -537,10 +603,11 @@
 
             <!-- Footer -->
             <footer class="doc-footer">
-                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p><strong>DOCiD™ Metadata Schema Documentation v1.0</strong></p>
                 <p>System Architecture • African PID Alliance</p>
                 <div class="license">
-                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/"
+                            target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
                 </div>
             </footer>
         </main>
@@ -562,7 +629,7 @@
         }
 
         // Show/hide scroll to top button
-        window.addEventListener('scroll', function() {
+        window.addEventListener('scroll', function () {
             const scrollTop = document.getElementById('scrollTop');
             if (window.pageYOffset > 300) {
                 scrollTop.classList.add('visible');
@@ -572,17 +639,18 @@
         });
 
         // Close sidebar on mobile when clicking outside
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.querySelector('.mobile-menu-toggle');
-            
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(event.target) && 
-                !toggle.contains(event.target) && 
+
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
             }
         });
     </script>
 </body>
+
 </html>

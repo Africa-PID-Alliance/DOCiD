@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema Documentation v1.0</title>
+    <title>DOCiD™ Metadata Schema Documentation v1.0</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
             
@@ -29,7 +29,7 @@
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
@@ -66,6 +66,12 @@
                                     <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
                                 </li>
                                 <li class="nav-item">
@@ -74,8 +80,55 @@
                                 <li class="nav-item">
                                     <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
                             </ul>
                         </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                       
                     </ul>
                 </div>
                 
@@ -103,11 +156,12 @@
         <main class="main-content">
             <div class="content-wrapper">
                 <header class="doc-header">
-                    <h1>DOCiD Metadata Schema</h1>
+                    <h1>DOCiD™ Metadata Schema</h1>
                     <div class="subtitle">Publication and Citation of Research Data and Other Research Outputs</div>
-                    <div class="version">Version 1.0 • Released 2024</div>
+                    <div class="version">Version 1.0 • Released 2025</div>
                 </header>
 
+               
 
                 <!-- Table of Contents -->
                 <section class="toc">
@@ -118,7 +172,7 @@
                                 <span class="toc-number">1.</span>
                                 <div class="toc-title">Introduction</div>
                             </a>
-                            <div class="toc-description">Overview of DOCiD metadata schema, purpose, and scope for African research institutions</div>
+                            <div class="toc-description">Overview of DOCiD™ metadata schema, purpose, and scope for African research institutions</div>
                         </li>
                         
                         <li class="toc-item">
@@ -154,32 +208,16 @@
                                 <span class="toc-number">3.</span>
                                 <div class="toc-title">Metadata Properties</div>
                             </a>
-                            <div class="toc-description">Complete specification of 20 core metadata properties following DataCite standards</div>
+                            <div class="toc-description">Complete specification of 8 core metadata properties.</div>
                             <ul class="toc-sublist">
                                 <li class="toc-item">
                                     <a href="metadata-schema.html#core-properties" class="toc-link">
                                         <span class="toc-number">3.1</span>
-                                        <div class="toc-title">Required Properties (1-6, 10)</div>
+                                        <div class="toc-title">Required Properties</div>
                                     </a>
                                 </li>
-                                <li class="toc-item">
-                                    <a href="metadata-schema.html#optional-properties" class="toc-link">
-                                        <span class="toc-number">3.2</span>
-                                        <div class="toc-title">Optional Properties (7-9, 11-20)</div>
-                                    </a>
-                                </li>
-                                <li class="toc-item">
-                                    <a href="metadata-schema.html#cultural-metadata" class="toc-link">
-                                        <span class="toc-number">3.3</span>
-                                        <div class="toc-title">Cultural and Indigenous Metadata</div>
-                                    </a>
-                                </li>
-                                <li class="toc-item">
-                                    <a href="metadata-schema.html#validation-constraints" class="toc-link">
-                                        <span class="toc-number">3.4</span>
-                                        <div class="toc-title">Validation & Constraints</div>
-                                    </a>
-                                </li>
+                              
+                              
                             </ul>
                         </li>
                         
@@ -199,7 +237,7 @@
                                 <li class="toc-item">
                                     <a href="api-reference.html#publication-endpoints" class="toc-link">
                                         <span class="toc-number">4.2</span>
-                                        <div class="toc-title">Publication Management</div>
+                                        <div class="toc-title">Object Management</div>
                                     </a>
                                 </li>
                                 <li class="toc-item">
@@ -237,27 +275,81 @@
                                     </a>
                                 </li>
                                 <li class="toc-item">
-                                    <a href="external-services.html#cstr-integration" class="toc-link">
+                                    <a href="external-services.html#apa-handle-integration" class="toc-link">
                                         <span class="toc-number">5.3</span>
+                                        <div class="toc-title">APA Handle ID</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#datacite-integration" class="toc-link">
+                                        <span class="toc-number">5.4</span>
+                                        <div class="toc-title">Datacite</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#cstr-integration" class="toc-link">
+                                        <span class="toc-number">5.5</span>
                                         <div class="toc-title">CSTR Integration</div>
                                     </a>
                                 </li>
                                 <li class="toc-item">
                                     <a href="external-services.html#ror-integration" class="toc-link">
-                                        <span class="toc-number">5.4</span>
+                                        <span class="toc-number">5.6</span>
                                         <div class="toc-title">Research Organization Registry (ROR)</div>
                                     </a>
                                 </li>
                                 <li class="toc-item">
                                     <a href="external-services.html#orcid-integration" class="toc-link">
-                                        <span class="toc-number">5.5</span>
+                                        <span class="toc-number">5.7</span>
                                         <div class="toc-title">ORCID Services</div>
                                     </a>
                                 </li>
                                 <li class="toc-item">
+                                    <a href="external-services.html#ark-keys-integration" class="toc-link">
+                                        <span class="toc-number">5.8</span>
+                                        <div class="toc-title">ARK Keys</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
                                     <a href="external-services.html#local-contexts-integration" class="toc-link">
-                                        <span class="toc-number">5.6</span>
-                                        <div class="toc-title">Local Contexts Integration</div>
+                                        <span class="toc-number">5.9</span>
+                                        <div class="toc-title">Local Contexts Integration (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#arxiv-integration" class="toc-link">
+                                        <span class="toc-number">5.10</span>
+                                        <div class="toc-title">ArXiv ID (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#handle-id-integration" class="toc-link">
+                                        <span class="toc-number">5.11</span>
+                                        <div class="toc-title">Handle iD (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#hand-id-integration" class="toc-link">
+                                        <span class="toc-number">5.12</span>
+                                        <div class="toc-title">Hand iD (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#dpid-integration" class="toc-link">
+                                        <span class="toc-number">5.13</span>
+                                        <div class="toc-title">dPID (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#isni-integration" class="toc-link">
+                                        <span class="toc-number">5.14</span>
+                                        <div class="toc-title">ISNI (In the process of inclusion)</div>
+                                    </a>
+                                </li>
+                                <li class="toc-item">
+                                    <a href="external-services.html#ringgold-integration" class="toc-link">
+                                        <span class="toc-number">5.15</span>
+                                        <div class="toc-title">Ringgold (In the process of inclusion)</div>
                                     </a>
                                 </li>
                             </ul>
@@ -303,17 +395,17 @@
                 <section id="introduction">
                     <h2>Introduction</h2>
                     
-                    <p class="lead">The DOCiD (Document Identifier) Metadata Schema provides a comprehensive framework for the publication and citation of research data and other research outputs, specifically designed for African academic and research institutions. This schema extends the DataCite Metadata Schema 4.6 with additional support for cultural protocols, Indigenous knowledge systems, and African research contexts.</p>
+                    <p>The DOCiD™ (Digital Object Container Identifier) Metadata Schema provides a comprehensive framework for the publication and citation of research data and other research outputs. It is specifically designed to support cultural heritage centres, museums, patent offices, funders, facilities, and publishing infrastructures. This schema is the DOCiD™ Metadata Schema 1.0 with additional support for cultural protocols, Indigenous knowledge systems, and African research contexts.</p>
 
                     <h3>Purpose and Scope</h3>
-                    <p>DOCiD serves as a sophisticated publication and document identifier management platform that addresses the unique needs of African scholarly communication. The platform integrates multiple persistent identifier systems, supports hierarchical metadata structures, and provides seamless integration with international research infrastructure while respecting local cultural protocols and Indigenous knowledge systems.</p>
+                    <p>DOCiD™ serves as a sophisticated publication and document identifier management platform that addresses some unique needs, such as African scholarly communication. The platform integrates multiple persistent identifier systems, supports hierarchical metadata structures, and provides seamless integration with international research infrastructure while respecting local cultural protocols and Indigenous knowledge systems.</p>
 
                     <h3>Design Principles</h3>
                     <div class="notice notice-info">
                         <h4>Core Design Philosophy</h4>
                         <ul>
                             <li><strong>Cultural Sensitivity:</strong> Incorporates Traditional Knowledge (TK) labels and Biocultural Community (BC) protocols</li>
-                            <li><strong>Interoperability:</strong> Full compliance with DataCite Metadata Schema 4.6 and other international standards</li>
+                            <li><strong>Interoperability and FAIR data compliance:</strong> Alignment with the Handle System and other international standards on Open Science and Open Infrastructure</li>
                             <li><strong>Extensibility:</strong> Flexible schema supporting diverse African research outputs and cultural contexts</li>
                             <li><strong>Scholarly Rigor:</strong> Comprehensive metadata validation and quality assurance</li>
                             <li><strong>Community Governance:</strong> Developed through collaborative African research community input</li>
@@ -321,7 +413,7 @@
                     </div>
 
                     <h3>Schema Characteristics</h3>
-                    <p>The DOCiD Metadata Schema implements 20 core properties based on DataCite standards, enhanced with African research-specific extensions:</p>
+                    <p>The DOCiD™ Metadata Schema implements 8 core properties, enhanced with African research-specific extensions:</p>
                     
                     <div class="table-wrapper">
                         <table>
@@ -336,8 +428,8 @@
                             <tbody>
                                 <tr>
                                     <td><strong>Required Properties</strong></td>
-                                    <td>6</td>
-                                    <td>Identifier, Creator, Title, Publisher, Publication Year, Resource Type</td>
+                                    <td>8</td>
+                                    <td>Identifier, Creator, Title, Publications, Documents, Resource Type, Funder, Project</td>
                                     <td>Cultural creator roles, Indigenous titles</td>
                                 </tr>
                                 <tr>
@@ -349,7 +441,7 @@
                                 <tr>
                                     <td><strong>Identifier Types</strong></td>
                                     <td>10+</td>
-                                    <td>DOI, Handle, CSTR, DocID</td>
+                                    <td>DOI, Handle, CSTR, DOCiD™</td>
                                     <td>African institutional identifiers</td>
                                 </tr>
                                 <tr>
@@ -363,10 +455,10 @@
                     </div>
 
                     <h3>Integration with African Research Infrastructure</h3>
-                    <p>DOCiD is designed to integrate seamlessly with the broader African research ecosystem:</p>
+                    <p>DOCiD™ is designed to integrate seamlessly with the broader African research ecosystem:</p>
                     
                     <ul>
-                        <li><strong>National Research Networks:</strong> Integration with KENET, TENET, RENU, and other African NRENs</li>
+                        <li><strong>National Research Networks:</strong> Integration with Ubuntunet Alliance, KENET, TENET, RENU, and other African NRENs</li>
                         <li><strong>Regional Repositories:</strong> Support for African institutional repositories and digital libraries</li>
                         <li><strong>International Standards:</strong> Compliance with global metadata standards while respecting local contexts</li>
                         <li><strong>Multilingual Support:</strong> Native support for African languages and multilingual metadata</li>
@@ -374,26 +466,24 @@
                     </ul>
 
                     <h3>Governance and Development</h3>
-                    <p>The DOCiD Metadata Schema is developed and maintained through a collaborative governance model involving African research institutions, international standards bodies, and Indigenous knowledge communities. The working group includes representatives from major African universities, research organizations, and cultural institutions.</p>
+                    <p>The DOCiD™ Metadata Schema is developed and maintained through a collaborative governance model involving African research institutions, international standards bodies, and Indigenous knowledge communities. The working group includes representatives from major African universities, research organizations, and cultural institutions.</p>
 
                     <div class="code-example">
                         <div class="code-header">Schema Version Information</div>
                         <div class="code-content">
                             <pre><code>Schema Version: 1.0
-Release Date: 2024
-Based on: DataCite Metadata Schema 4.6
+Release Date: 2025
 License: Creative Commons Attribution 4.0 International (CC BY 4.0)
-Namespace: https://schema.docid.africapidalliance.org/
-Repository: https://github.com/africapidalliance/docid-schema</code></pre>
+Repository: https://github.com/Africa-PID-Alliance/DOCiD</code></pre>
                         </div>
                     </div>
 
                     <h3>Implementation Status</h3>
-                    <p>As of 2024, the DOCiD platform is actively deployed and used by research institutions across Africa, with ongoing development supported by the African PID Alliance and international research infrastructure organizations.</p>
+                    <p>As of 2025, the DOCiD™ platform is actively deployed and used by research institutions across Africa, with ongoing development supported by the African PID Alliance and international research infrastructure organizations.</p>
 
                     <div class="notice notice-warning">
                         <h4>Current Implementation</h4>
-                        <p>This documentation represents the current implementation of the DOCiD Metadata Schema as deployed in production systems. Future versions will continue to evolve based on community feedback and emerging requirements from African research institutions.</p>
+                        <p>This documentation represents the current implementation of the DOCiD™ Metadata Schema as deployed in production systems. Future versions will continue to evolve based on community feedback and emerging requirements from African research institutions.</p>
                     </div>
                 </section>
 
@@ -406,11 +496,11 @@ Repository: https://github.com/africapidalliance/docid-schema</code></pre>
 
             <!-- Footer -->
             <footer class="doc-footer">
-                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
-                <p>Developed by the DOCiD Metadata Working Group • African PID Alliance</p>
+                <p><strong>DOCiD™ Metadata Schema Documentation v1.0</strong></p>
+                <p>Developed by the DOCiD™ Metadata Working Group • African PID Alliance</p>
                 <div class="license">
                     <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
-                    <p>© 2024 African PID Alliance. DOCiD is a collaborative project of African research institutions.</p>
+                    <p>© <span id="copyright-year"></span> African PID Alliance. DOCiD is a collaborative project of African research institutions.</p>
                 </div>
             </footer>
         </main>
@@ -451,6 +541,15 @@ Repository: https://github.com/africapidalliance/docid-schema</code></pre>
                 !toggle.contains(event.target) && 
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
+            }
+        });
+
+        // Set current year in copyright
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYear = new Date().getFullYear();
+            const copyrightYear = document.getElementById('copyright-year');
+            if (copyrightYear) {
+                copyrightYear.textContent = currentYear;
             }
         });
     </script>

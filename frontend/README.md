@@ -1,172 +1,36 @@
-# DOCiD Frontend
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A Next.js-based frontend application for the DOCiD (Document Identifier) platform - a comprehensive publication and document identifier management system.
+## Getting Started
 
-## Overview
-
-DOCiD Frontend provides a modern web interface for managing scholarly publications, persistent identifiers (PIDs), and metadata management with extensive integration to external services including Crossref, CSTR, CORDRA, ROR, ORCID, and Local Contexts.
-
-## Features
-
-- **Publication Management**: Create, edit, and manage scholarly publications
-- **Persistent Identifiers**: Handle DOIs, DocIDs, Handles, and other PIDs
-- **Authentication**: Social login integration (Google, ORCID, GitHub)
-- **External Services**: Seamless integration with research infrastructure
-- **Multilingual Support**: i18n with multiple language options
-- **Comments System**: Hierarchical commenting on publications
-- **Responsive Design**: Mobile-friendly interface
-
-## Tech Stack
-
-- **Framework**: Next.js 15.2.2
-- **UI Library**: Material-UI (MUI)
-- **State Management**: Redux Toolkit
-- **Styling**: CSS Modules, SCSS
-- **Authentication**: JWT-based with social auth
-- **API Integration**: RESTful API client
-
-## Prerequisites
-
-- Node.js 18.x or higher
-- npm or yarn
-- Backend API running (DOCiD Backend)
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd docid-frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your configuration:
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5001/api/v1
-# Add other required environment variables
-```
-
-## Development
-
-Run the development server:
+First, run the development server:
 
 ```bash
 npm run dev
 # or
-./run.sh
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Production Deployment
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-### Building for Production
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-1. Create production build package:
-```bash
-./deploy.sh
-```
+## Learn More
 
-This creates a timestamped deployment package (e.g., `docid-frontend-YYYYMMDD_HHMMSS.zip`).
+To learn more about Next.js, take a look at the following resources:
 
-### Deploying to Server
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Upload the deployment package to your server
-2. Extract the package:
-```bash
-unzip docid-frontend-*.zip
-```
-3. Run the deployment script:
-```bash
-./deploy-server.sh
-```
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-Or manually:
-```bash
-npm ci --omit=dev
-npm start
-```
+## Deploy on Vercel
 
-### PM2 Deployment
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-For production, we recommend using PM2:
-
-```bash
-pm2 start ecosystem.config.js
-```
-
-## Project Structure
-
-```
-├── src/
-│   ├── app/              # Next.js app directory
-│   │   ├── api/          # API routes
-│   │   ├── assign-docid/ # DocID assignment pages
-│   │   ├── login/        # Authentication pages
-│   │   └── ...
-│   ├── components/       # Reusable components
-│   ├── redux/           # Redux store and slices
-│   └── utils/           # Utility functions
-├── public/              # Static assets
-│   ├── locales/        # i18n translation files
-│   └── docs/           # Documentation
-├── deploy.sh           # Build deployment package
-└── deploy-server.sh    # Server deployment script
-```
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-
-## API Integration
-
-The frontend connects to the DOCiD backend API. Default endpoints:
-- Development: `http://localhost:5001/api/v1`
-- Production: `https://docid.africapidalliance.org/api/v1`
-
-## Environment Variables
-
-Key environment variables:
-
-- `NEXT_PUBLIC_API_BASE_URL` - Backend API URL
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `NEXT_PUBLIC_ORCID_CLIENT_ID` - ORCID OAuth client ID
-- `NEXT_PUBLIC_GITHUB_CLIENT_ID` - GitHub OAuth client ID
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions, please create an issue in the GitHub repository.
-
-## Developers
-
-- Steve Gaikia <steveggaita@gmail.com>
-- Erastus Kariuki <ekariz@gmail.com>
-
-## Acknowledgments
-
-- Africa PID Alliance
-- DOCiD Development Team
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

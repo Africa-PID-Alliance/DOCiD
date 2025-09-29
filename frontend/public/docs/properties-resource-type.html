@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD™ Metadata Schema - Property 5: Resource Type</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD™ Schema</h2>
+                <div class="version-info">Version 1.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">1. Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">3. Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link active">5. Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#cultural-protocols" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#validation-rules" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Property 5: Resource Type</h1>
+                    <div class="subtitle">Classification of publication and document types in DOCiD™ system</div>
+                </header>
+
+                <!-- Property Overview -->
+                <section id="property-overview">
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">5. Resource Type</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Occurrences: 1-n</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p><strong>Definition:</strong> DOCiD™ uses a two-tier classification system - Publication Types (Step 2) and Document Types (Step 3) - to accurately categorize digital objects.</p>
+
+                            <h4>Two-Level Classification:</h4>
+                            <ul>
+                                <li><strong>Publication Type:</strong> High-level categorization selected in Step 2</li>
+                                <li><strong>Document Type:</strong> Specific file type classification in Step 3</li>
+                                <li><strong>Resource Type:</strong> System-wide categorization for discovery and filtering</li>
+                            </ul>
+
+                            <h4>Database Implementation:</h4>
+                            <div class="code-example">
+                                <div class="code-header">Resource Type Models</div>
+                                <div class="code-content">
+                                    <pre><code># Publication Types Table (Step 2 Selection)
+class PublicationTypes(db.Model):
+    __tablename__ = 'publication_types'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+
+# Resource Types Table (System Categories)
+class ResourceTypes(db.Model):
+    __tablename__ = 'resource_types'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text)
+    color_code = Column(String(7))  # For UI display
+
+# Publications Model Reference
+class Publications(db.Model):
+    resource_type_id = Column(Integer, ForeignKey('resource_types.id'))
+
+# Publication Documents Model Reference
+class PublicationDocuments(db.Model):
+    publication_type_id = Column(Integer, ForeignKey('publication_types.id'))</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Publication Types -->
+                <section id="publication-types">
+                    <h2>Publication Types (Step 2)</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Available Publication Types</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Dropdown Selection</span>
+                                <span>17 Types</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Users select from these publication types during Step 2:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Publication Type</th>
+                                            <th>Description</th>
+                                            <th>Common Use Cases</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Article</strong></td>
+                                            <td>Peer-reviewed journal article</td>
+                                            <td>Research papers, scientific studies</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Book Chapter</strong></td>
+                                            <td>Chapter in an edited book</td>
+                                            <td>Academic books, collections</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Proceeding</strong></td>
+                                            <td>Conference paper or proceedings</td>
+                                            <td>Conference presentations, symposia</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Monograph</strong></td>
+                                            <td>Standalone scholarly work</td>
+                                            <td>Research reports, dissertations</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Preprint</strong></td>
+                                            <td>Pre-publication manuscript</td>
+                                            <td>ArXiv submissions, working papers</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Edited Book</strong></td>
+                                            <td>Complete edited volume</td>
+                                            <td>Multi-author collections</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Seminar</strong></td>
+                                            <td>Seminar presentation materials</td>
+                                            <td>Workshop materials, training</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Research Chapter</strong></td>
+                                            <td>Research-focused book chapter</td>
+                                            <td>Research methodology, findings</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Review Article</strong></td>
+                                            <td>Literature or systematic review</td>
+                                            <td>Meta-analyses, state-of-art reviews</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Book Review</strong></td>
+                                            <td>Critical review of published work</td>
+                                            <td>Academic book reviews</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Conference Abstract</strong></td>
+                                            <td>Abstract for conference presentation</td>
+                                            <td>Poster abstracts, oral presentations</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Letter To Editor</strong></td>
+                                            <td>Editorial correspondence</td>
+                                            <td>Journal correspondence, responses</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Editorial</strong></td>
+                                            <td>Editorial or opinion piece</td>
+                                            <td>Journal editorials, commentaries</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Other Book Content</strong></td>
+                                            <td>Miscellaneous book materials</td>
+                                            <td>Forewords, appendices, supplements</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Correction Erratum</strong></td>
+                                            <td>Correction or erratum notice</td>
+                                            <td>Published corrections, retractions</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Document Types -->
+                <section id="document-types">
+                    <h2>Document Types (Step 3)</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Document Type Categories</div>
+                            <div class="property-meta">
+                                <span class="property-badge">File Upload</span>
+                                <span>Multiple Formats</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <h4>Multimedia Content:</h4>
+                            <ul>
+                                <li><strong>Video:</strong> .mp4, .mov, .avi, .mkv</li>
+                                <li><strong>Audio:</strong> .mp3, .wav, .ogg, .m4a</li>
+                                <li><strong>Image:</strong> .jpg, .jpeg, .png, .webp</li>
+                                <li><strong>Gif:</strong> .gif</li>
+                            </ul>
+
+                            <h4>Data & Research:</h4>
+                            <ul>
+                                <li><strong>Datasets:</strong> .csv, .xlsx, .json, .xml</li>
+                            </ul>
+
+                            <h4>Publications (all support .pdf, .doc, .docx):</h4>
+                            <ul>
+                                <li>Article, Book Chapter, Chapter, Proceeding</li>
+                                <li>Monograph, Preprint, Edited Book</li>
+                                <li>Seminar, Research Chapter, Review Article</li>
+                            </ul>
+
+                            <div class="code-example">
+                                <div class="code-header">Document Upload Example</div>
+                                <div class="code-content">
+                                    <pre><code># Step 3: Document Upload Process
+{
+    "document_type": "Article",  # Selected from dropdown
+    "files": [
+        {
+            "filename": "research_paper.pdf",
+            "size": "2.5MB",
+            "format": "application/pdf"
+        }
+    ],
+    "title": "Traditional Medicine Knowledge Systems",
+    "description": "Comprehensive study of healing practices",
+    "identifier_type": "APA Handle ID",
+    "generated_identifier": "20.500.14351/b1f26969fdec417b55c6"
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Resource Type Categories -->
+                <section id="resource-categories">
+                    <h2>Resource Type Categories</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">System-Wide Categories</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Filtering & Discovery</span>
+                                <span>UI Display Tags</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Resource types appear as hashtags in the DOCiD™ list view for filtering and discovery:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Resource Type</th>
+                                            <th>Display Tag</th>
+                                            <th>Color Code</th>
+                                            <th>Typical Content</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Indigenous Knowledge</strong></td>
+                                            <td>#Indigenous Knowledge</td>
+                                            <td>#8B4513</td>
+                                            <td>Traditional practices, cultural heritage</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Patent</strong></td>
+                                            <td>#Patent</td>
+                                            <td>#4169E1</td>
+                                            <td>Patent documents, inventions</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Research Data</strong></td>
+                                            <td>#Research Data</td>
+                                            <td>#10B981</td>
+                                            <td>Datasets, statistical analyses</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Publication</strong></td>
+                                            <td>#Publication</td>
+                                            <td>#6366F1</td>
+                                            <td>Articles, papers, books</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Multimedia</strong></td>
+                                            <td>#Multimedia</td>
+                                            <td>#EC4899</td>
+                                            <td>Videos, audio, images</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Software</strong></td>
+                                            <td>#Software</td>
+                                            <td>#8B5CF6</td>
+                                            <td>Code repositories, applications</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Educational</strong></td>
+                                            <td>#Educational</td>
+                                            <td>#F59E0B</td>
+                                            <td>Course materials, tutorials</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- API Examples -->
+                <section id="api-examples">
+                    <h2>API Implementation</h2>
+
+                    <div class="code-example">
+                        <div class="code-header">Get Available Resource Types</div>
+                        <div class="code-content">
+                            <pre><code>GET /api/v1/resource-types
+Authorization: Bearer {jwt_token}
+
+Response:
+{
+    "status": "success",
+    "data": [
+        {
+            "id": 1,
+            "name": "Indigenous Knowledge",
+            "description": "Traditional and cultural knowledge systems",
+            "color_code": "#8B4513",
+            "count": 45
+        },
+        {
+            "id": 2,
+            "name": "Patent",
+            "description": "Patent documents and inventions",
+            "color_code": "#4169E1",
+            "count": 23
+        }
+    ]
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-example">
+                        <div class="code-header">Filter Publications by Resource Type</div>
+                        <div class="code-content">
+                            <pre><code>GET /api/v1/publications?resource_type=Indigenous%20Knowledge
+Authorization: Bearer {jwt_token}
+
+Response:
+{
+    "status": "success",
+    "data": {
+        "publications": [
+            {
+                "id": 1,
+                "document_docid": "20.500.14351/b1f26969fdec417b55c6",
+                "document_title": "Traditional Healing Practices",
+                "resource_type": {
+                    "name": "Indigenous Knowledge",
+                    "color_code": "#8B4513"
+                },
+                "publication_type": "Article",
+                "created_date": "2025-09-29T10:00:00Z"
+            }
+        ],
+        "total": 45,
+        "page": 1,
+        "per_page": 20
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Workflow Integration -->
+                <section id="workflow-integration">
+                    <h2>Workflow Integration</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Resource Type Assignment Flow</div>
+                            <div class="property-meta">
+                                <span class="property-badge">7-Step Process</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <ol>
+                                <li><strong>Step 1 (DOCID):</strong> Initialize publication creation</li>
+                                <li><strong>Step 2 (Publications):</strong> Select Publication Type from dropdown</li>
+                                <li><strong>Step 3 (Documents):</strong> Choose Document Type and upload files</li>
+                                <li><strong>Steps 4-7:</strong> Add metadata (Creators, Organizations, Funders, Projects)</li>
+                                <li><strong>Assignment:</strong> System automatically assigns appropriate Resource Type based on Publication Type</li>
+                                <li><strong>Display:</strong> Resource Type appears as hashtag in list view</li>
+                                <li><strong>Filtering:</strong> Users can filter by Resource Type in DOCiD list</li>
+                            </ol>
+
+                            <div class="code-example">
+                                <div class="code-header">Complete Type Assignment Example</div>
+                                <div class="code-content">
+                                    <pre><code># User Journey
+Step 2: Select "Article" as Publication Type
+Step 3: Upload PDF with Document Type "Article"
+System: Assigns Resource Type "#Publication"
+
+# Database Storage
+publications:
+  - publication_type: "Article" (from Step 2)
+  - resource_type_id: 4 (Publication)
+
+publication_documents:
+  - publication_type_id: 1 (Article)
+  - file_path: "/uploads/2024/article.pdf"
+
+# Display Result
+DOCiD List shows:
+  Title: "Traditional Medicine Knowledge Systems"
+  Tag: #Publication (blue color #6366F1)
+  Type: Article
+  ID: 20.500.14351/b1f26969fdec417b55c6</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="properties-publisher.html" class="nav-prev">4. Publisher</a>
+                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p>Property 5: Resource Type • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

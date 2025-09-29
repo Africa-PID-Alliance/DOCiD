@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema - Property 2: Creator</title>
+    <title>DOCiD™ Metadata Schema - Property 2: Creator</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,32 +11,11 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
             
             <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Properties</div>
-                    <ul class="nav-list">
-                        <li class="nav-item">
-                            <a href="properties-identifier.html" class="nav-link">1. Identifier</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-creator.html" class="nav-link active">2. Creator</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-title.html" class="nav-link">3. Title</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
-                        </li>
-                    </ul>
-                </div>
-                
                 <div class="nav-section">
                     <div class="nav-section-title">Documentation</div>
                     <ul class="nav-list">
@@ -44,10 +23,124 @@
                             <a href="index.html" class="nav-link">Introduction</a>
                         </li>
                         <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creator-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link active">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#controlled-vocabularies" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#cultural-protocols" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#validation-rules" class="nav-link">Validation Rules</a>
                         </li>
                     </ul>
                 </div>
@@ -80,7 +173,7 @@
                         <div class="property-description">
                             <p>The main researchers involved in producing the data, or the authors of the publication, in priority order. The personal name format should be: family, given.</p>
                             
-                            <p><strong>DOCiD Implementation:</strong> The PublicationCreators model provides comprehensive support for multiple creator identifiers, roles, and affiliations. It supports international identifier schemes and flexible role assignments for diverse research collaboration patterns found in African institutions.</p>
+                            <p><strong>DOCiD™ Implementation:</strong> The PublicationCreators model provides comprehensive support for multiple creator identifiers, roles, and affiliations. It supports international identifier schemes and flexible role assignments for diverse research collaboration patterns found in African institutions.</p>
                         </div>
 
                         <!-- Property Sub-properties -->
@@ -268,8 +361,8 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                                 </ul>
                                 
                                 <div class="notice notice-info">
-                                    <h4>DOCiD Implementation Notes</h4>
-                                    <p>DOCiD stores the complete resolvable URL rather than just the identifier value to ensure proper resolution and to support multiple identifier schemes simultaneously. The system validates identifier formats before storage and can resolve identifiers to retrieve additional metadata about creators.</p>
+                                    <h4>DOCiD™ Implementation Notes</h4>
+                                    <p>DOCiD™ stores the complete resolvable URL rather than just the identifier value to ensure proper resolution and to support multiple identifier schemes simultaneously. The system validates identifier formats before storage and can resolve identifiers to retrieve additional metadata about creators.</p>
                                 </div>
                             </div>
 
@@ -289,7 +382,7 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                                     <li><strong>Data Type:</strong> Controlled vocabulary from predefined list</li>
                                     <li><strong>Case Sensitivity:</strong> Lowercase preferred</li>
                                     <li><strong>Validation:</strong> Must correspond to supported identifier schemes</li>
-                                    <li><strong>Auto-Detection:</strong> DOCiD can auto-detect scheme from URL pattern</li>
+                                    <li><strong>Auto-Detection:</strong> DOCiD™ can auto-detect scheme from URL pattern</li>
                                 </ul>
                                 
                                 <h4>Supported Schemes:</h4>
@@ -366,7 +459,7 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                                 
                                 <div class="notice notice-info">
                                     <h4>Automatic Detection</h4>
-                                    <p>DOCiD automatically detects the identifier scheme based on the URL pattern and populates the identifier_type field. This ensures consistency and reduces manual input errors.</p>
+                                    <p>DOCiD™ automatically detects the identifier scheme based on the URL pattern and populates the identifier_type field. This ensures consistency and reduces manual input errors.</p>
                                 </div>
                             </div>
 
@@ -379,7 +472,7 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                                     <span>Type: Related Entity</span>
                                 </div>
                                 
-                                <p><strong>Definition:</strong> The organizational or institutional affiliation of the creator. In DOCiD, affiliations are managed through the PublicationOrganization model with comprehensive organization metadata.</p>
+                                <p><strong>Definition:</strong> The organizational or institutional affiliation of the creator. In DOCiD™, affiliations are managed through the PublicationOrganization model with comprehensive organization metadata.</p>
                                 
                                 <h4>Allowed values, examples, other constraints:</h4>
                                 <ul>
@@ -429,8 +522,8 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                                 </ul>
                                 
                                 <div class="notice notice-info">
-                                    <h4>DOCiD Organization Integration</h4>
-                                    <p>Creator affiliations in DOCiD are managed through a sophisticated organization model that integrates with ROR (Research Organization Registry) for global organization identification. This ensures accurate institutional attribution and supports advanced search and analytics capabilities.</p>
+                                    <h4>DOCiD™ Organization Integration</h4>
+                                    <p>Creator affiliations in DOCiD™ are managed through a sophisticated organization model that integrates with ROR (Research Organization Registry) for global organization identification. This ensures accurate institutional attribution and supports advanced search and analytics capabilities.</p>
                                 </div>
                                 
                                 <h4>API Integration Example:</h4>
@@ -674,7 +767,7 @@ identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 
                 <!-- Creator Roles -->
                 <section>
                     <h2>Creator Roles</h2>
-                    <p>DOCiD supports a comprehensive set of creator roles that reflect diverse African research collaboration patterns and traditional knowledge systems.</p>
+                    <p>DOCiD™ supports a comprehensive set of creator roles that reflect diverse African research collaboration patterns and traditional knowledge systems.</p>
                     
                     <div class="table-wrapper">
                         <table>
@@ -831,7 +924,7 @@ orcid_pattern = r'^https://orcid\.org/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$'
 
             <!-- Footer -->
             <footer class="doc-footer">
-                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p><strong>DOCiD™ Metadata Schema Documentation v1.0</strong></p>
                 <p>Property 2: Creator • African PID Alliance</p>
                 <div class="license">
                     <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>

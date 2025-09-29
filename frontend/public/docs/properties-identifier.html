@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema - Property 1: Identifier</title>
+    <title>DOCiD™ Metadata Schema - Property 1: Identifier</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
             
@@ -29,7 +29,7 @@
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
@@ -66,6 +66,12 @@
                                     <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
                                 </li>
                                 <li class="nav-item">
@@ -73,6 +79,30 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
                                 </li>
                             </ul>
                         </li>
@@ -93,9 +123,6 @@
                         </li>
                         <li class="nav-item">
                             <a href="properties-publisher.html" class="nav-link">4. Publisher</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="properties-publication-year.html" class="nav-link">5. Publication Year</a>
                         </li>
                     </ul>
                 </div>
@@ -125,7 +152,7 @@
             <div class="content-wrapper">
                 <header class="doc-header">
                     <h1>Property 1: Identifier</h1>
-                    <div class="subtitle">A persistent identifier that identifies a resource</div>
+                    <div class="subtitle">Persistent identifiers for DOCiD™ publications - DOI, Handle, DOCiD, and other PIDs</div>
                 </header>
 
                 <!-- Property Overview -->
@@ -139,31 +166,45 @@
                             </div>
                         </div>
                         <div class="property-content">
-                            <p><strong>Definition:</strong> A persistent identifier that identifies a resource.</p>
-                            
-                            <h4>Allowed values, examples, other constraints:</h4>
-                            <p>The format is open, but the preferred format is a single HTTP URI. The identifier must be globally unique and persistent.</p>
-                            
-                            <h4>DOCiD Implementation:</h4>
-                            <p>DOCiD supports multiple identifier schemes through the Publications model with dedicated fields for different identifier types:</p>
+                            <p><strong>Definition:</strong> DOCiD™ generates and manages multiple persistent identifiers (PIDs) for each publication, ensuring global uniqueness and long-term accessibility.</p>
+
+                            <h4>Primary Identifier Generation:</h4>
+                            <p>DOCiD™ automatically generates a unique identifier using the format: <code>20.500.14351/[unique-hash]</code> where 20.500.14351 is the APA Handle prefix.</p>
+
+                            <h4>Supported Identifier Types:</h4>
+                            <ul>
+                                <li><strong>DOCiD™:</strong> Internal identifier format (20.500.14351/xxxxx)</li>
+                                <li><strong>DOI:</strong> Digital Object Identifier via Crossref/DataCite</li>
+                                <li><strong>Handle:</strong> Handle System identifier via APA</li>
+                                <li><strong>CSTR:</strong> China Science Technology Resource System</li>
+                                <li><strong>ARK:</strong> Archival Resource Key</li>
+                                <li><strong>URN:</strong> Uniform Resource Name</li>
+                            </ul>
+
+                            <h4>Database Implementation:</h4>
+                            <p>The Publications model stores primary identifiers with additional identifiers tracked in related tables:</p>
                             
                             <div class="code-example">
                                 <div class="code-header">Publications Model - Identifier Fields</div>
                                 <div class="code-content">
                                     <pre><code>class Publications(db.Model):
     __tablename__ = 'publications'
-    
-    # Primary identifier
+
+    # Primary database identifier
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
-    # DOCiD specific identifier
-    document_docid = Column(String(255), nullable=False)
-    
-    # DOI identifier
-    doi = Column(String(50), nullable=False)
-    
-    # Additional identifiers can be stored in related tables
-    # See PublicationIdentifiers for alternate identifiers</code></pre>
+
+    # DOCiD™ specific identifier (Handle format: 20.500.14351/xxxxx)
+    document_docid = Column(String(255), nullable=False, unique=True)
+
+    # DOI identifier (optional, assigned via Crossref)
+    doi = Column(String(50), nullable=True)
+
+    # CSTR identifier (optional, via CSTR service)
+    cstr_identifier = Column(String(255), nullable=True)
+
+    # Timestamps for identifier assignment
+    docid_assigned_date = Column(DateTime, default=datetime.utcnow)
+    doi_assigned_date = Column(DateTime, nullable=True)</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -185,32 +226,39 @@
                         <div class="property-content">
                             <p><strong>Definition:</strong> The type of identifier.</p>
                             
-                            <h4>Allowed values:</h4>
+                            <h4>Identifier Types in DOCiD™ System:</h4>
                             <ul>
-                                <li><strong>DOI:</strong> Digital Object Identifier</li>
-                                <li><strong>Handle:</strong> Handle System identifier</li>
-                                <li><strong>DocID:</strong> DOCiD internal identifier</li>
-                                <li><strong>CSTR:</strong> China Science and Technology Resource identifier</li>
-                                <li><strong>URN:</strong> Uniform Resource Name</li>
-                                <li><strong>URL:</strong> Uniform Resource Locator</li>
-                                <li><strong>Other:</strong> Other identifier schemes</li>
+                                <li><strong>APA Handle ID</strong> (Primary): Format 20.500.14351/xxxxx - Generated automatically</li>
+                                <li><strong>DOI:</strong> Digital Object Identifier - Assigned via Crossref/DataCite integration</li>
+                                <li><strong>CSTR:</strong> China Science and Technology Resource - For Chinese research outputs</li>
+                                <li><strong>ARK:</strong> Archival Resource Key - For long-term preservation</li>
+                                <li><strong>ORCID:</strong> For creator identification (0000-0000-0000-0000)</li>
+                                <li><strong>ROR:</strong> For organization identification (https://ror.org/xxxxx)</li>
+                                <li><strong>RAiD:</strong> For project identification (10.80368/xxxxx)</li>
                             </ul>
                             
-                            <h4>Examples:</h4>
+                            <h4>Real Examples from DOCiD™ System:</h4>
                             <div class="code-example">
-                                <div class="code-header">Identifier Type Examples</div>
+                                <div class="code-header">Actual Identifier Formats</div>
                                 <div class="code-content">
-                                    <pre><code># DOI
-https://doi.org/10.5555/docid.2024.001
+                                    <pre><code># APA Handle ID (Primary DOCiD)
+20.500.14351/b1f26969fdec417b55c6
+20.500.14351/b23a80ce9b1a6ef21588
 
-# Handle
-https://hdl.handle.net/20.500.12345/12345
+# DOI (via Crossref)
+https://doi.org/10.5555/africa.2024.001
 
-# DocID
-DOCID.AFRICA.2024.001
+# CSTR Identifier
+CSTR:16389.09.A08V-0001
 
-# CSTR
-CSTR:16389.09.A08V-0001</code></pre>
+# ORCID (Creator)
+0000-0002-1981-4157
+
+# ROR (Organization)
+https://ror.org/00dzfmv17
+
+# RAiD (Project)
+https://app.demo.raid.org.au/raids/10.80368/b1adfb3a</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -223,36 +271,33 @@ CSTR:16389.09.A08V-0001</code></pre>
                     
                     <div class="property">
                         <div class="property-header">
-                            <div class="property-title">PublicationIdentifiers Model</div>
+                            <div class="property-title">Identifier Generation Workflow</div>
                             <div class="property-meta">
-                                <span class="property-badge">Alternate Identifiers</span>
-                                <span>Table: publication_identifiers</span>
+                                <span class="property-badge">Automatic Assignment</span>
+                                <span>Step 3: Documents</span>
                             </div>
                         </div>
                         <div class="property-content">
-                            <p>For storing multiple alternate identifiers for a single publication:</p>
-                            
+                            <p>DOCiD™ automatically generates identifiers during the document upload step:</p>
+
                             <div class="code-example">
-                                <div class="code-header">PublicationIdentifiers Model Schema</div>
+                                <div class="code-header">Identifier Generation Process</div>
                                 <div class="code-content">
-                                    <pre><code>class PublicationIdentifiers(db.Model):
-    __tablename__ = 'publication_identifiers'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False)
-    
-    # Identifier Information
-    identifier_value = Column(String(255), nullable=False)
-    identifier_type_id = Column(Integer, ForeignKey('identifier_types.id'))
-    
-    # Relationship and validation
-    relation_type = Column(String(50))  # IsIdenticalTo, IsVersionOf, etc.
-    is_primary = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    
-    # Metadata
-    assigned_date = Column(DateTime, default=datetime.utcnow)
-    validation_status = Column(String(20))  # valid, invalid, pending</code></pre>
+                                    <pre><code># Step 3: Documents - Identifier Generation
+{
+    "document_type": "Article",
+    "title": "Traditional Medicine Knowledge Systems",
+    "description": "Comprehensive study of healing practices",
+    "identifier_type": "APA Handle ID",  # Default selection
+    "generated_identifier": "20.500.14351/b1f26969fdec417b55c6"  # Auto-generated
+}
+
+# The system:
+1. User uploads document(s)
+2. Selects identifier type (default: APA Handle ID)
+3. System generates unique identifier
+4. Identifier is displayed immediately
+5. Stored in document_docid field upon submission</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -262,33 +307,47 @@ CSTR:16389.09.A08V-0001</code></pre>
                 <!-- API Examples -->
                 <section id="api-examples">
                     <h2>API Implementation</h2>
-                    
+
                     <div class="code-example">
-                        <div class="code-header">Publication Creation with Identifiers</div>
+                        <div class="code-header">Identifier Assignment During Publication</div>
                         <div class="code-content">
-                            <pre><code>POST /api/v1/publications/publish
+                            <pre><code>POST /api/v1/publications/assign-docid
 Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
 {
-    "document_title": "Traditional Medicine Knowledge Systems in Southern Africa",
-    "document_description": "Comprehensive study of traditional healing practices...",
-    "document_docid": "DOCID.AFRICA.2024.001",
-    "doi": "10.5555/docid.2024.001",
-    "resource_type_id": 1,
-    "creators": [...],
-    "alternate_identifiers": [
-        {
-            "identifier_value": "https://hdl.handle.net/20.500.12345/12345",
-            "identifier_type": "Handle",
-            "relation_type": "IsIdenticalTo"
-        },
-        {
-            "identifier_value": "CSTR:16389.09.A08V-0001",
-            "identifier_type": "CSTR",
-            "relation_type": "IsVersionOf"
-        }
-    ]
+    "publication_type_id": 1,  # Article
+    "documents": [{
+        "title": "Traditional Medicine Knowledge Systems",
+        "description": "Comprehensive study of healing practices",
+        "identifier_type": "APA Handle ID",
+        "file_path": "/uploads/2024/doc001.pdf"
+    }],
+    "creators": [{
+        "orcid_id": "0000-0002-1981-4157",
+        "role_id": 3  # Researcher
+    }],
+    "organizations": [{
+        "ror_id": "00dzfmv17",
+        "country": "Kenya"
+    }],
+    "funders": [{
+        "ror_id": "0456r8d26",
+        "name": "Gates Foundation"
+    }],
+    "projects": [{
+        "raid_id": "10.80368/b1adfb3a",
+        "title": "AFRICA PID ALLIANCE DOCID"
+    }]
+}
+
+# Response includes generated identifier
+{
+    "status": "success",
+    "data": {
+        "document_docid": "20.500.14351/b1f26969fdec417b55c6",
+        "message": "Publication added Successfully"
+    }
 }</code></pre>
                         </div>
                     </div>
@@ -341,28 +400,28 @@ Response:
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Research Dataset</td>
-                                    <td>10.5555/uct.dataset.2024.001</td>
-                                    <td>DOCID.UCT.2024.001<br>hdl:20.500.11910/12345</td>
-                                    <td>University of Cape Town</td>
+                                    <td>Image</td>
+                                    <td>20.500.14351/b1f26969fdec417b55c6</td>
+                                    <td>APA Handle ID<br>Auto-generated</td>
+                                    <td>Training Centre in Communication</td>
                                 </tr>
                                 <tr>
-                                    <td>Thesis</td>
-                                    <td>10.5555/wits.thesis.2024.005</td>
-                                    <td>DOCID.WITS.2024.005<br>urn:nbn:za:wits-123456</td>
-                                    <td>University of the Witwatersrand</td>
+                                    <td>Article</td>
+                                    <td>20.500.14351/b23a80ce9b1a6ef21588</td>
+                                    <td>DOI: 10.5555/africa.2024.001<br>CSTR: Pending</td>
+                                    <td>Africa PID Alliance</td>
                                 </tr>
                                 <tr>
-                                    <td>Traditional Knowledge</td>
-                                    <td>DOCID.IKAMVA.2024.TK.001</td>
-                                    <td>LC-TK-A001<br>urn:tk:southern-africa:001</td>
-                                    <td>iKamva Traditional Council</td>
+                                    <td>Dataset</td>
+                                    <td>20.500.14351/c45def89a2b1234567</td>
+                                    <td>ARK: ark:/12345/b4567<br>DOI: Pending</td>
+                                    <td>Kenya Medical Research Institute</td>
                                 </tr>
                                 <tr>
-                                    <td>Software</td>
-                                    <td>10.5555/github.africaai.2024</td>
-                                    <td>DOCID.GITHUB.2024.001<br>github:africa-ai/toolkit</td>
-                                    <td>Africa AI Consortium</td>
+                                    <td>Preprint</td>
+                                    <td>20.500.14351/d56ghi01b3c4567890</td>
+                                    <td>arXiv: 2024.12345<br>DOI: Reserved</td>
+                                    <td>African Institute of Mathematical Sciences</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -371,7 +430,7 @@ Response:
 
                 <!-- Navigation -->
                 <div class="page-nav">
-                    <div></div>
+                    <a href="external-services.html" class="nav-prev">External Services</a>
                     <a href="properties-creator.html" class="nav-next">2. Creator</a>
                 </div>
             </div>

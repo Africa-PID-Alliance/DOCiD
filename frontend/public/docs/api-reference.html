@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOCiD Metadata Schema - API Reference</title>
+    <title>DOCiD™ Metadata Schema - API Reference</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>DOCiD Schema</h2>
+                <h2>DOCiD™ Schema</h2>
                 <div class="version-info">Version 1.0</div>
             </div>
             
@@ -29,7 +29,7 @@
                             <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
                             <ul class="nav-sublist">
                                 <li class="nav-item">
-                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-20)</a>
+                                    <a href="metadata-schema.html#core-properties" class="nav-link">Core Properties (1-8)</a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="metadata-schema.html#publication-model" class="nav-link">Publication Model</a>
@@ -66,6 +66,12 @@
                                     <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
                                 </li>
                                 <li class="nav-item">
@@ -73,6 +79,30 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#local-contexts-integration" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#hand-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
                                 </li>
                             </ul>
                         </li>
@@ -83,7 +113,19 @@
                     <div class="nav-section-title">Properties</div>
                     <ul class="nav-list">
                         <li class="nav-item">
-                            <a href="properties-creator.html" class="nav-link">2. Creator</a>
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
                         </li>
                     </ul>
                 </div>
@@ -113,17 +155,17 @@
             <div class="content-wrapper">
                 <header class="doc-header">
                     <h1>API Reference</h1>
-                    <div class="subtitle">Complete REST API documentation for DOCiD publication and document identifier management</div>
+                    <div class="subtitle">Complete REST API documentation for DOCiD™ publication and document identifier management</div>
                 </header>
 
                 <!-- API Overview -->
                 <section id="api-overview">
                     <h2>API Design Principles</h2>
-                    <p class="lead">The DOCiD API is built following RESTful principles with comprehensive support for metadata management, persistent identifiers, and scholarly communication workflows.</p>
+                    <p >The DOCiD™ API is built following RESTful principles with comprehensive support for metadata management, persistent identifiers, and scholarly communication workflows.</p>
                     
                     <div class="grid">
                         <div class="card">
-                            <h3>🔗 RESTful Architecture</h3>
+                            <h3>RESTful Architecture</h3>
                             <ul>
                                 <li>Resource-oriented URLs following REST conventions</li>
                                 <li>HTTP verb semantics (GET, POST, PUT, DELETE)</li>
@@ -134,7 +176,7 @@
                         </div>
                         
                         <div class="card">
-                            <h3>🔐 Authentication & Authorization</h3>
+                            <h3>Authentication & Authorization</h3>
                             <ul>
                                 <li>JWT-based authentication with access/refresh tokens</li>
                                 <li>Bearer token authorization headers</li>
@@ -145,7 +187,7 @@
                         </div>
                         
                         <div class="card">
-                            <h3>⚠️ Error Handling</h3>
+                            <h3>Error Handling</h3>
                             <ul>
                                 <li>Consistent error response format across all endpoints</li>
                                 <li>HTTP status code compliance with detailed error codes</li>
@@ -451,8 +493,8 @@ Content-Type: application/json
                     <span class="endpoint-url">/api/v1/publications/docid/{docid}</span>
                 </div>
                 <div class="endpoint-content">
-                    <h4>Get Publication by DocID</h4>
-                    <p>Retrieve publication using DocID identifier</p>
+                    <h4>Get Publication by DOCiD™</h4>
+                    <p>Retrieve publication using DOCiD™ identifier</p>
                 </div>
             </div>
         </section>
@@ -857,14 +899,14 @@ X-RateLimit-Reset: 1640995200</code></pre>
 
                 <!-- Navigation -->
                 <div class="page-nav">
-                    <a href="architecture.html" class="nav-prev">System Architecture</a>
-                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                    <a href="metadata-schema.html" class="nav-prev">Metadata Properties</a>
+                    <a href="external-services.html" class="nav-next">External Services</a>
                 </div>
             </div>
 
             <!-- Footer -->
             <footer class="doc-footer">
-                <p><strong>DOCiD Metadata Schema Documentation v1.0</strong></p>
+                <p><strong>DOCiD™ Metadata Schema Documentation v1.0</strong></p>
                 <p>API Reference • African PID Alliance</p>
                 <div class="license">
                     <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>

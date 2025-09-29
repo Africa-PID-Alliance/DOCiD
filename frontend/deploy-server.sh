@@ -65,18 +65,10 @@ if [ ! -f ".env.production" ]; then
     exit 1
 fi
 
-# Check if .next folder exists (production build)
-if [ ! -d ".next" ]; then
-    print_error ".next build folder not found!"
-    echo "The deployment package must include a production build."
-    echo "Please ensure the package was created with deploy.sh which includes the .next folder."
-    exit 1
-fi
-
 # Install dependencies
 echo ""
 echo "Installing production dependencies..."
-npm ci --omit=dev
+npm ci --production
 print_success "Dependencies installed"
 
 # Stop existing PM2 process if running
