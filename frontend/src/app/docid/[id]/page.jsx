@@ -607,12 +607,13 @@ const DocIDPage = ({ params }) => {
   };
 
   const handleDownloadFile = (fileUrl) => {
-    const link = document.createElement('a');
-    link.href = `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${fileUrl}`;
-    link.download = fileUrl.split('/').pop(); // Get the filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Check if fileUrl is already a full URL or just a path
+    const fullUrl = fileUrl.startsWith('http')
+      ? fileUrl
+      : `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${fileUrl}`;
+
+    // Open in new tab/window to view the file
+    window.open(fullUrl, '_blank');
   };
 
   const handleLikeClick = () => {
