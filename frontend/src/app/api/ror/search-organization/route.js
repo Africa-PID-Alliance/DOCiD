@@ -3,19 +3,32 @@ import { NextResponse } from 'next/server';
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    const name = searchParams.get('name');
+    const country = searchParams.get('country');
     const page = searchParams.get('page') || '1';
-    
-    if (!query) {
+
+    if (!name) {
       return NextResponse.json(
-        { error: 'Query parameter (q) is required' },
+        { error: 'Organization name parameter (name) is required' },
         { status: 400 }
       );
     }
 
     // Use environment variable for base URL
     const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
-    const response = await fetch(`${baseUrl}/ror/search-organization?q=${encodeURIComponent(query)}&page=${page}`, {
+
+    // Build query parameters with separate name and country
+    const queryParams = new URLSearchParams({
+      name: name,
+      page: page
+    });
+
+    // Only add country if provided
+    if (country) {
+      queryParams.append('country', country);
+    }
+
+    const response = await fetch(`${baseUrl}/ror/search-organization?${queryParams.toString()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

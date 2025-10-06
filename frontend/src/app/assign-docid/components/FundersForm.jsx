@@ -184,9 +184,13 @@ const FundersForm = ({ formData, updateFormData }) => {
       setRorError('');
 
       try {
-        const searchQuery = `${newFunder.name} ${newFunder.country}`;
+        // Trim and validate input values
+        const orgName = newFunder.name.trim();
+        const countryName = newFunder.country.trim();
+
+        // Use separate parameters for name and country to leverage ROR's advanced query
         const response = await fetch(
-          `/api/ror/search-organization?q=${encodeURIComponent(searchQuery)}&page=1`
+          `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`
         );
 
         if (!response.ok) {
@@ -194,15 +198,15 @@ const FundersForm = ({ formData, updateFormData }) => {
         }
 
         const data = await response.json();
-        
+
         if (data && data.length > 0) {
+          // Backend now handles country filtering via advanced query
           const { id, name: orgName, country, status, wikipedia_url } = data[0];
-          const countryName = country;
 
           setNewFunder(prev => ({
             ...prev,
             name: orgName || '',
-            country: countryName || '',
+            country: country || '',
             type: 'Funder',
             otherName: '',
             rorId: id || ''

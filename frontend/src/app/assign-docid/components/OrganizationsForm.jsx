@@ -207,13 +207,17 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
       setRorError('');
 
       try {
-        const searchQuery = `${newOrganization.name} ${newOrganization.country}`;
-        const searchUrl = `/api/ror/search-organization?q=${encodeURIComponent(searchQuery)}&page=1`;
-        
+        // Trim and validate input values
+        const orgName = newOrganization.name.trim();
+        const countryName = newOrganization.country.trim();
+
+        // Use separate parameters for name and country to leverage ROR's advanced query
+        const searchUrl = `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`;
+
         // Log search parameters
         console.log('Search Parameters:', {
-          organizationName: newOrganization.name,
-          country: newOrganization.country,
+          organizationName: orgName,
+          country: countryName,
           fullUrl: searchUrl
         });
 
@@ -224,43 +228,30 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
         }
 
         const data = await response.json();
-        
+
         // Log the full response data
         console.log('ROR Search Response:', {
           totalResults: data.length,
           fullData: data
         });
-        
+
         if (data && data.length > 0) {
-          // Log matching process
-          console.log('Filtering results for country match:', {
-            searchCountry: newOrganization.country.toLowerCase(),
-            availableCountries: data.map(org => org.country)
-          });
+          // Backend now handles country filtering via advanced query
+          const matchingOrg = data[0];
+          console.log('Found matching organization:', matchingOrg);
 
-          // Filter results to ensure exact country match
-          const matchingOrg = data.find(org => 
-            org.country?.toLowerCase() === newOrganization.country.toLowerCase()
-          );
+          const { id, name: orgName, country, status, wikipedia_url } = matchingOrg;
 
-          if (matchingOrg) {
-            console.log('Found matching organization:', matchingOrg);
-            const { id, name: orgName, country, status, wikipedia_url } = matchingOrg;
-            const countryName = country;
+          setNewOrganization(prev => ({
+            ...prev,
+            name: orgName || '',
+            country: country || '',
+            type: '',
+            otherName: '',
+            rorId: id || ''
+          }));
 
-            setNewOrganization(prev => ({
-              ...prev,
-              name: orgName || '',
-              country: countryName || '',
-              type: '',
-              otherName: '',
-              rorId: id || ''
-            }));
-
-            setShowRorForm(true);
-          } else {
-            setRorError('No organization found in the specified country');
-          }
+          setShowRorForm(true);
         } else {
           setRorError('No ROR records found for the provided organization name and country');
         }
@@ -654,6 +645,8 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                       label="Country"
                       value={newOrganization.country}
                       onChange={handleInputChange('country')}
+                      placeholder="e.g., Kenya, South Africa, United States"
+                      helperText="Enter the full country name (e.g., Kenya, South Africa)"
                       required
                     />
                     <Button

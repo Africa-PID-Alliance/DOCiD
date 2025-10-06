@@ -193,16 +193,22 @@ def search_organizations():
 def search_organization():
     """
     Fetches details of research organization based on query parameters.
+    Uses ROR's advanced query syntax to properly filter by name and country.
 
     ---
     tags:
       - ROR
     parameters:
-      - in: query  # Adjust if parameter is in path (like 'ror_id')
-        name: q
+      - in: query
+        name: name
         type: string
-        required: false  # Optional parameter
-        description: Search query for organization names or identifiers.
+        required: true
+        description: Organization name to search for.
+      - in: query
+        name: country
+        type: string
+        required: false
+        description: Country name to filter results (must match ROR's controlled vocabulary).
       - in: query
         name: page
         type: integer
@@ -214,16 +220,13 @@ def search_organization():
           content:
             application/json:
               schema:
-                type: object  # Replace with actual schema based on ROR API response structure
+                type: object
                 properties:
-                  id:  # Assuming 'id' property contains the ROR ID
+                  id:
                     type: string
                     description: The ROR ID of the organization
-                  # ... (other properties)
-        '4XX':
-          description:
-            - Invalid query parameter values
-            - Other potential search-related errors
+        '400':
+          description: Missing required parameters
           content:
             application/json:
               schema:
@@ -231,7 +234,15 @@ def search_organization():
                 properties:
                   error:
                     type: string
-                    description: Error message indicating issue with the search request
+        '404':
+          description: No results found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '5XX':
           description: Internal server error
           content:
@@ -241,38 +252,64 @@ def search_organization():
                 properties:
                   error:
                     type: string
-                    description: Generic error message for server-side issues
     """
 
     query_params = request.args
-    
-    param = query_params.get('q')
-    page = query_params.get('page')
-    # per_page = query_params.get('per_page')
 
-    # Encode the query parameters for safe inclusion in the URL
-    encoded_params = urlencode({
-        'query': param,
-        'page': page,
-    })
-    
+    organization_name = query_params.get('name')
+    country_name = query_params.get('country')
+    page = query_params.get('page', '1')
+
+    if not organization_name:
+        return jsonify({'error': 'Organization name parameter (name) is required'}), 400
+
+    # Normalize country name to title case (ROR uses proper case like "Kenya", "South Africa")
+    if country_name:
+        country_name = country_name.strip().title()
+
+    # Use simple query for fuzzy matching (better for name variations)
+    # Then filter results by country in the backend
+    params = {
+        'query': organization_name,
+        'page': page
+    }
+
+    encoded_params = urlencode(params)
     url = f"https://api.ror.org/organizations?{encoded_params}"
-    
+
+    print(f"ROR API Request URL: {url}")
+
     response = requests.get(url)
-     
+
     if response.status_code == 200:
         try:
             data = response.json()
-            
+
             # Check if results are found
             if 'errors' in data:
                return data
             else:
-            
-              # Return the first result
+
+              # Filter results by country if provided
               if data and 'items' in data and len(data['items']) > 0:
-                
-                  first_result = data['items'][0]
+                  items = data['items']
+
+                  # If country is specified, filter results to match that country
+                  if country_name:
+                      filtered_items = []
+                      for item in items:
+                          locations = item.get('locations', [])
+                          if locations and locations[0].get('geonames_details'):
+                              item_country = locations[0]['geonames_details'].get('country_name')
+                              if item_country and item_country.lower() == country_name.lower():
+                                  filtered_items.append(item)
+
+                      if not filtered_items:
+                          return jsonify({"error": "No results found"}), 404
+
+                      first_result = filtered_items[0]
+                  else:
+                      first_result = items[0]
                   
                   ror_id = first_result.get('id')
                   id = ror_id.split("/")[-1]
