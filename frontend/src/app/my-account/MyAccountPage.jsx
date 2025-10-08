@@ -47,10 +47,12 @@ import {
 import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { allCountries, faculties } from '@/data/locationData';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios'; // Added axios import
 
 const MyAccountPage = () => {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
@@ -259,53 +261,53 @@ const MyAccountPage = () => {
   }, [isAuthenticated, router]);
 
   const categories = [
-    { title: 'Total DOCiDs', count: user?.total_docids || 0, icon: DescriptionIcon },
-    { title: 'Indigenous Knowledge', count: user?.indigenous_knowledge_count || 0, icon: FolderIcon },
-    { title: 'Panfest', count: user?.panfest_count || 0, icon: FolderIcon },
-    { title: 'Cultural Heritage', count: user?.cultural_heritage_count || 0, icon: FolderIcon },
-    { title: 'Project', count: user?.project_count || 0, icon: FolderIcon },
-    { title: 'Funder', count: user?.funder_count || 0, icon: FolderIcon },
-    { title: 'DMP', count: user?.dmp_count || 0, icon: FolderIcon },
-    { title: 'Favorite DOCiDs', count: user?.favorite_docids_count || 0, icon: StarIcon },
+    { title: t('my_account.categories.total_docids'), count: user?.total_docids || 0, icon: DescriptionIcon },
+    { title: t('my_account.categories.indigenous_knowledge'), count: user?.indigenous_knowledge_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.panfest'), count: user?.panfest_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.cultural_heritage'), count: user?.cultural_heritage_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.project'), count: user?.project_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.funder'), count: user?.funder_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.dmp'), count: user?.dmp_count || 0, icon: FolderIcon },
+    { title: t('my_account.categories.favorite_docids'), count: user?.favorite_docids_count || 0, icon: StarIcon },
   ];
 
   // Update basicInfoFields with ORCID data
   const basicInfoFields = [
     { 
-      label: 'Full Name:', 
+      label: t('my_account.fields.full_name'), 
       value: orcidData?.name ? 
         `${orcidData.name['given-names']?.value || ''} ${orcidData.name['family-name']?.value || ''}`.trim() : 
-        user?.name || 'N/A',
+        user?.name || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
     { 
-      label: 'Email:', 
-      value: orcidData?.emails?.email?.[0]?.email?.value || user?.email || 'N/A',
+      label: t('my_account.fields.email'), 
+      value: orcidData?.emails?.email?.[0]?.email?.value || user?.email || t('my_account.common.n_a'),
       loading: loadingOrcid 
     },
     { 
-      label: 'Affiliation:', 
-      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.name?.value || user?.affiliation || 'N/A',
+      label: t('my_account.fields.affiliation'), 
+      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.name?.value || user?.affiliation || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
     { 
-      label: 'Role:', 
-      value: orcidData?.employments?.['employment-summary']?.[0]?.role?.value || user?.role || 'N/A',
+      label: t('my_account.fields.role'), 
+      value: orcidData?.employments?.['employment-summary']?.[0]?.role?.value || user?.role || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
     { 
-      label: 'ORCID ID:', 
-      value: getOrcidId() || 'N/A',
+      label: t('my_account.fields.orcid_id'), 
+      value: getOrcidId() || t('my_account.common.n_a'),
       loading: false
     },
     { 
-      label: 'ROR ID:', 
-      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.['disambiguated-organization']?.['disambiguated-organization-identifier']?.value || user?.ror_id || 'N/A',
+      label: t('my_account.fields.ror_id'), 
+      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.['disambiguated-organization']?.['disambiguated-organization-identifier']?.value || user?.ror_id || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
     { 
-      label: 'Location:', 
-      value: orcidData?.addresses?.['address']?.[0]?.country?.value || user?.location || 'N/A',
+      label: t('my_account.fields.location'), 
+      value: orcidData?.addresses?.['address']?.[0]?.country?.value || user?.location || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
   ];
@@ -313,30 +315,30 @@ const MyAccountPage = () => {
   // Update professionalFields with ORCID data
   const professionalFields = [
     { 
-      label: 'Research Field:', 
-      value: 'No data available'
+      label: t('my_account.fields.research_field'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Years Of Experience:', 
-      value: 'No data available'
+      label: t('my_account.fields.years_experience'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Languages:', 
-      value: 'No data available'
+      label: t('my_account.fields.languages'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   const researchFields = [
     { 
-      label: 'Active Projects:', 
+      label: t('my_account.fields.active_projects'), 
       value: user?.active_projects || ''
     },
     { 
-      label: 'Data Management Plan:', 
+      label: t('my_account.fields.data_management_plan'), 
       value: user?.data_management_plan || ''
     },
     { 
-      label: 'PID For Projects:', 
+      label: t('my_account.fields.pid_for_projects'), 
       value: user?.pid_for_projects || ''
     },
   ];
@@ -344,84 +346,84 @@ const MyAccountPage = () => {
   // Update publicationFields with ORCID data
   const publicationFields = [
     { 
-      label: 'Recent Publications:', 
-      value: 'No data available'
+      label: t('my_account.fields.recent_publications'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Preprints:', 
-      value: 'No data available'
+      label: t('my_account.fields.preprints'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Other Research Outputs:', 
-      value: 'No data available'
+      label: t('my_account.fields.other_research_outputs'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   // Update fundingFields with ORCID data
   const fundingFields = [
     { 
-      label: 'Funder Information:', 
-      value: 'No data available'
+      label: t('my_account.fields.funder_information'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Grants:', 
-      value: 'No data available'
+      label: t('my_account.fields.grants'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   // Update collaborationFields with ORCID data
   const collaborationFields = [
     { 
-      label: 'Co-Authors/Collaborators:', 
-      value: 'No data available'
+      label: t('my_account.fields.coauthors_collaborators'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Institutional Affiliations:', 
-      value: 'No data available'
+      label: t('my_account.fields.institutional_affiliations'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   // Update externalIdentifierFields with ORCID data
   const externalIdentifierFields = [
     { 
-      label: 'ORCID:', 
-      value: 'No data available'
+      label: t('my_account.fields.orcid'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Researcher ID:', 
-      value: 'No data available'
+      label: t('my_account.fields.researcher_id'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Scopus Author ID:', 
-      value: 'No data available'
+      label: t('my_account.fields.scopus_author_id'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Google Scholar Profile:', 
-      value: 'No data available'
+      label: t('my_account.fields.google_scholar_profile'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   // Update licensingFields with ORCID data
   const licensingFields = [
     { 
-      label: 'Preferred Licensing For Research Outputs:', 
-      value: 'No data available'
+      label: t('my_account.fields.preferred_licensing'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Data Sharing Preferences:', 
-      value: 'No data available'
+      label: t('my_account.fields.data_sharing_preferences'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
   // Update contactFields with ORCID data
   const contactFields = [
     { 
-      label: 'Primary Contact:', 
-      value: 'No data available'
+      label: t('my_account.fields.primary_contact'), 
+      value: t('my_account.common.no_data_available')
     },
     { 
-      label: 'Public Profile Link:', 
-      value: 'No data available'
+      label: t('my_account.fields.public_profile_link'), 
+      value: t('my_account.common.no_data_available')
     },
   ];
 
@@ -432,7 +434,7 @@ const MyAccountPage = () => {
   const accordionSections = [
     { 
       id: 'basic', 
-      title: 'Basic Information',
+      title: t('my_account.sections.basic_information'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -448,7 +450,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Basic Information
+              {t('my_account.sections.basic_information')}
             </Typography>
             <Button 
               onClick={handleEditModalOpen}
@@ -497,7 +499,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'professional', 
-      title: 'Professional Background',
+      title: t('my_account.sections.professional_background'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -513,7 +515,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Professional Background
+              {t('my_account.sections.professional_background')}
             </Typography>
             <Button 
               sx={{ 
@@ -569,7 +571,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'research', 
-      title: 'Research Projects',
+      title: t('my_account.sections.research_projects'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -585,7 +587,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Research Projects
+              {t('my_account.sections.research_projects')}
             </Typography>
             <Button 
               sx={{ 
@@ -630,7 +632,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'publications', 
-      title: 'Publications and Outputs',
+      title: t('my_account.sections.publications_outputs'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -646,7 +648,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Publications And Outputs
+              {t('my_account.sections.publications_outputs')}
             </Typography>
             <Button 
               sx={{ 
@@ -691,7 +693,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'funding', 
-      title: 'Funding',
+      title: t('my_account.sections.funding'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -707,7 +709,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Funding
+              {t('my_account.sections.funding')}
             </Typography>
             <Button 
               sx={{ 
@@ -752,7 +754,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'collaboration', 
-      title: 'Collaboration',
+      title: t('my_account.sections.collaboration'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -768,7 +770,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Collaboration
+              {t('my_account.sections.collaboration')}
             </Typography>
             <Button 
               sx={{ 
@@ -813,7 +815,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'external', 
-      title: 'External Identifiers',
+      title: t('my_account.sections.external_identifiers'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -829,7 +831,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              External Identifiers
+              {t('my_account.sections.external_identifiers')}
             </Typography>
             <Button 
               sx={{ 
@@ -874,7 +876,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'licensing', 
-      title: 'Licensing and Data Sharing Preferences',
+      title: t('my_account.sections.licensing_data_sharing'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -890,7 +892,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Licensing And Data Sharing Preferences
+              {t('my_account.sections.licensing_data_sharing')}
             </Typography>
             <Button 
               sx={{ 
@@ -935,7 +937,7 @@ const MyAccountPage = () => {
     },
     { 
       id: 'contact', 
-      title: 'Contact Information',
+      title: t('my_account.sections.contact_information'),
       content: (
         <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ 
@@ -951,7 +953,7 @@ const MyAccountPage = () => {
                 fontWeight: 500
               }}
             >
-              Contact Information
+              {t('my_account.sections.contact_information')}
             </Typography>
             <Button 
               sx={{ 
@@ -1008,7 +1010,7 @@ const MyAccountPage = () => {
           backgroundColor: 'background.default'
         }}
       >
-        <Typography>Loading...</Typography>
+        <Typography>{t('my_account.loading')}</Typography>
       </Box>
     );
   }
@@ -1039,7 +1041,7 @@ const MyAccountPage = () => {
           gap: 3
         }}>
           <Typography variant="h6" component="h2" sx={{ color: 'text.primary', mb: 2 }}>
-            Edit Profile
+            {t('my_account.edit_profile')}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -1062,7 +1064,7 @@ const MyAccountPage = () => {
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <Typography color="text.secondary">No file chosen</Typography>
+                <Typography color="text.secondary">{t('my_account.form.no_file_chosen')}</Typography>
               )}
               <input
                 type="file"
@@ -1084,7 +1086,7 @@ const MyAccountPage = () => {
               <TextField
                 fullWidth
                 name="fullName"
-                label="Full Name"
+label={t('my_account.fields.full_name').replace(':', '')}
                 value={editFormData.fullName}
                 onChange={handleEditFormChange}
                 variant="outlined"
@@ -1097,7 +1099,7 @@ const MyAccountPage = () => {
               <TextField
                 fullWidth
                 name="format"
-                label="Phone"
+label={t('my_account.form.phone')}
                 placeholder="+2547..."
                 value={editFormData.format}
                 onChange={handleEditFormChange}
@@ -1112,12 +1114,12 @@ const MyAccountPage = () => {
           </Box>
 
           <FormControl fullWidth>
-            <InputLabel>Select Faculty</InputLabel>
+            <InputLabel>{t('my_account.form.select_faculty')}</InputLabel>
             <Select
               name="faculty"
               value={editFormData.faculty}
               onChange={handleEditFormChange}
-              label="Select Faculty"
+label={t('my_account.form.select_faculty')}
               sx={{
                 backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
               }}
@@ -1131,12 +1133,12 @@ const MyAccountPage = () => {
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Select Country</InputLabel>
+            <InputLabel>{t('my_account.form.select_country')}</InputLabel>
             <Select
               name="country"
               value={editFormData.country}
               onChange={handleEditFormChange}
-              label="Select Country"
+label={t('my_account.form.select_country')}
               sx={{
                 backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
               }}
@@ -1164,7 +1166,7 @@ const MyAccountPage = () => {
               }
             }}
           >
-            UPDATE PROFILE
+            {t('my_account.update_profile_btn')}
           </Button>
         </Box>
       </Box>
@@ -1201,7 +1203,7 @@ const MyAccountPage = () => {
                 </Typography>
                 <Chip
                   icon={<VerifiedUserIcon />}
-                  label="Verified Account"
+                  label={t('my_account.verified_account')}
                   color="success"
                   variant="outlined"
                   sx={{ mb: 1 }}
@@ -1214,7 +1216,7 @@ const MyAccountPage = () => {
           <Grid item xs={12} md={9}>
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h5" fontWeight={600}>
-                Good Evening, {user?.name}
+                {t('my_account.greeting')}, {user?.name}
               </Typography>
               <Button
                 variant="contained"
@@ -1227,7 +1229,7 @@ const MyAccountPage = () => {
                 }}
                 onClick={() => router.push('/assign-docid')}
               >
-                ASSIGN DOCiD
+                {t('my_account.assign_docid_btn')}
               </Button>
             </Box>
 
@@ -1341,7 +1343,7 @@ const MyAccountPage = () => {
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  My Publications ({userPublications.length})
+                  {t('my_account.table.my_publications')} ({userPublications.length})
                 </Typography>
               </Box>
               <Box sx={{ 
@@ -1362,7 +1364,7 @@ const MyAccountPage = () => {
                           borderBottom: `1px solid ${theme.palette.divider}`
                         }}
                       >
-                        DOCID
+                        {t('my_account.table.docid')}
                       </TableCell>
                       <TableCell 
                         sx={{ 
@@ -1373,7 +1375,7 @@ const MyAccountPage = () => {
                           borderBottom: `1px solid ${theme.palette.divider}`
                         }}
                       >
-                        TITLE
+                        {t('my_account.table.title')}
                       </TableCell>
                       <TableCell 
                         align="right" 
@@ -1385,7 +1387,7 @@ const MyAccountPage = () => {
                           borderBottom: `1px solid ${theme.palette.divider}`
                         }}
                       >
-                        ACTION
+                        {t('my_account.table.action')}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -1411,7 +1413,7 @@ const MyAccountPage = () => {
                             fontStyle: 'italic'
                           }}
                         >
-                          No publications found
+                          {t('my_account.table.no_publications_found')}
                         </TableCell>
                       </TableRow>
                     ) : (

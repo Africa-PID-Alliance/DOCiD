@@ -52,6 +52,7 @@ import docidsData from '@/data/docids.json';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { getDocIdUrl } from '@/utils/docidUtils';
+import { useTranslation } from 'react-i18next';
 
 const ListDocIds = () => {
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -62,13 +63,14 @@ const ListDocIds = () => {
   const [resourceTypeCounts, setResourceTypeCounts] = useState({});
   const [pagination, setPagination] = useState({
     page: 1,
-    page_size: 10,
+    page_size: 15,
     total: 0,
     total_pages: 0
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const searchParams = useSearchParams();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -396,7 +398,7 @@ const ListDocIds = () => {
                     }
                   }}
                 >
-                  Digital Object Container Identifiers
+                  {t('docid.title')}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -406,7 +408,7 @@ const ListDocIds = () => {
                     lineHeight: 1.6
                   }}
                 >
-                  Browse and search through registered DOCiDs. Find, explore, and collaborate on digital objects across different domains.
+                {t('docid.description')}
                 </Typography>
               </Box>
               <Button
@@ -430,7 +432,7 @@ const ListDocIds = () => {
                   }
                 }}
               >
-                Assign DocID
+                {t('docid.button')}
               </Button>
             </Box>
 
@@ -439,7 +441,7 @@ const ListDocIds = () => {
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
-                  placeholder="Search by title..."
+                  placeholder={t('docid.search_placeholder')}
                   value={searchQuery}
                   onChange={handleSearchChange}
                   disabled={isLoading}
@@ -499,7 +501,7 @@ const ListDocIds = () => {
                             gap: 1
                           }}>
                             <FilterListIcon />
-                            {resourceTypesList.length === 0 ? 'Loading types...' : 'Filter by Res.Types'}
+                            {resourceTypesList.length === 0 ? t('docid.loading_types') : t('docid.filter_by_res_types')}
                           </Box>
                         );
                       }
@@ -673,9 +675,7 @@ const ListDocIds = () => {
                             <CardMedia
                               component="img"
                               image={doc.publication_poster_url ?
-                                (doc.publication_poster_url.startsWith('http') ?
-                                  doc.publication_poster_url :
-                                  `${process.env.NEXT_PUBLIC_NODE_URL}/${doc.publication_poster_url}`) :
+                                `${doc.publication_poster_url}` :
                                 `/assets/images/Logo2.png`}
                               alt={doc.title || 'DOCiD Logo'}
                               className="card-media"
@@ -868,7 +868,7 @@ const ListDocIds = () => {
                     }}
                   >
                     <VisibilityOutlined />
-                    Top Publications
+                    {t('docid.top_publications')}
                   </Typography>
                 </Box>
                 <List sx={{ py: 2 }}>

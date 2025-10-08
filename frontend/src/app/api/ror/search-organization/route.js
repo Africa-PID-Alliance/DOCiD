@@ -6,7 +6,7 @@ export async function GET(request) {
     const name = searchParams.get('name');
     const country = searchParams.get('country');
     const page = searchParams.get('page') || '1';
-
+    
     if (!name) {
       return NextResponse.json(
         { error: 'Organization name parameter (name) is required' },

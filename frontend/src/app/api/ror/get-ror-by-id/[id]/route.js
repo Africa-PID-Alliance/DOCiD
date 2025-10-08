@@ -40,14 +40,7 @@ export async function GET(request, { params }) {
 
     const data = await response.json();
     
-    console.log('=== ROR DATA RECEIVED ===');
-    console.log('Full Response:', JSON.stringify(data, null, 2));
-    console.log('Organization Name (ror_display):', data.names?.find(name => name.types?.includes('ror_display'))?.value);
-    console.log('Organization Name (label):', data.names?.find(name => name.types?.includes('label'))?.value);
-    console.log('Country:', data.locations?.[0]?.geonames_details?.country_name);
-    console.log('Types:', data.types);
-    console.log('Aliases:', data.names?.filter(name => name.types?.includes('alias')).map(alias => alias.value));
-    
+     
     return NextResponse.json(data, {
       status: 200,
       headers: {

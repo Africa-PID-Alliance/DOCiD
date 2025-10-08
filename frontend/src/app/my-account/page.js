@@ -1,5 +1,6 @@
 import MyAccountPage from './MyAccountPage';
 
+// Note: Metadata cannot use dynamic translations, so we keep the default English
 export const metadata = {
   title: 'My Account',
   description: 'Manage your DOCiD™ account settings, profile information, and preferences. Update your personal details and security settings.',

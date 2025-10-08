@@ -1,36 +1,43 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Load initial state from localStorage if available
-const loadInitialState = () => {
-  if (typeof window !== 'undefined') {
-    const storedAuth = localStorage.getItem('auth');
-    if (storedAuth) {
-      return JSON.parse(storedAuth);
-    }
-  }
-  return {
-    user: {
-      accessToken: "",
-      id: null,
-      name: "",
-      picture: "",
-      username: "",
-      type: "",
-      affiliation: "",
-      email: ""
-    },
-    isAuthenticated: false,
-    loading: false,
-    error: null
-  };
+// Safe initial state for SSR
+const initialState = {
+  user: {
+    accessToken: "",
+    id: null,
+    name: "",
+    picture: "",
+    username: "",
+    type: "",
+    affiliation: "",
+    email: ""
+  },
+  isAuthenticated: false,
+  loading: false,
+  error: null,
+  language: 'en'
 };
-
-const initialState = loadInitialState();
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    rehydrateAuth: (state) => {
+      // Rehydrate auth state from localStorage after app loads
+      if (typeof window !== 'undefined') {
+        const storedAuth = localStorage.getItem('auth');
+        if (storedAuth) {
+          try {
+            const parsedAuth = JSON.parse(storedAuth);
+            return { ...state, ...parsedAuth };
+          } catch (error) {
+            console.warn('Failed to parse stored auth state:', error);
+            localStorage.removeItem('auth');
+          }
+        }
+      }
+      return state;
+    },
     loginStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -78,9 +85,17 @@ const authSlice = createSlice({
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth');
       }
+    },
+    setLanguage: (state, action) => {
+      state.language = action.payload;
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth', JSON.stringify(state));
+      }
     }
   }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = authSlice.actions;
+export const { rehydrateAuth, loginStart, loginSuccess, loginFailure, logout, setLanguage } = authSlice.actions;
 export default authSlice.reducer; 

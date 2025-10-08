@@ -33,10 +33,12 @@ import {
   Add as AddIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const PublicationsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Initialize state from props if available
   const [selectedType, setSelectedType] = useState(formData?.publicationType || '');
   const [uploadedFiles, setUploadedFiles] = useState(formData?.files || []);
@@ -220,7 +222,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
       } catch (error) {
         console.error('Error generating APA Handle iD:', error);
         setFindingError(true);
-        setFindingErrorText('Failed to generate APA Handle iD!');
+        setFindingErrorText(t('assign_docid.publications_form.errors.failed_apa_handle'));
       } finally {
         setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
       }
@@ -239,7 +241,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
       } catch (error) {
         console.error('Error fetching Datacite:', error);
         setFindingError(true);
-        setFindingErrorText('Failed to generate Datacite identifier!');
+        setFindingErrorText(t('assign_docid.publications_form.errors.failed_datacite'));
       } finally {
         setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
       }
@@ -267,7 +269,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
 
       if (!response.data.data || response.data.data.length === 0) {
         setFindingError(true);
-        setFindingErrorText('No results found for the given title.');
+        setFindingErrorText(t('assign_docid.publications_form.errors.no_results_crossref'));
         return;
       }
 
@@ -277,12 +279,12 @@ const PublicationsForm = ({ formData, updateFormData }) => {
         setGeneratedIdentifier(identifierValue);
       } else {
         setFindingError(true);
-        setFindingErrorText('No DOI found in the CrossRef response.');
+        setFindingErrorText(t('assign_docid.publications_form.errors.no_doi_crossref'));
       }
     } catch (error) {
       console.error('Error searching CrossRef:', error);
       setFindingError(true);
-      setFindingErrorText('Failed to search CrossRef. Please try again.');
+      setFindingErrorText(t('assign_docid.publications_form.errors.failed_crossref'));
     } finally {
       setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
     }
@@ -338,7 +340,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
           fontSize: '1.25rem'
         }}
       >
-        Add Publication
+        {t('assign_docid.publications_form.title')}
       </Typography>
 
       <Typography 
@@ -350,17 +352,17 @@ const PublicationsForm = ({ formData, updateFormData }) => {
           fontSize: '1rem'
         }}
       >
-        Please add publication(s) below
+        {t('assign_docid.publications_form.subtitle')}
       </Typography>
       <Grid container spacing={3}>
         {/* Publication Type Select */}
         <Grid item xs={12}>
           <FormControl fullWidth>
-            <InputLabel sx={{ color: theme.palette.text.primary }}>Publication Type</InputLabel>
+            <InputLabel sx={{ color: theme.palette.text.primary }}>{t('assign_docid.publications_form.publication_type')}</InputLabel>
             <Select
               value={selectedType}
               onChange={handleTypeChange}
-              label="Publication Type"
+              label={t('assign_docid.publications_form.publication_type')}
               disabled={isLoadingTypes}
               sx={{
                 '& .MuiOutlinedInput-notchedOutline': {
@@ -377,7 +379,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
               {isLoadingTypes ? (
                 <MenuItem disabled>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Loading publication types...
+                  {t('assign_docid.publications_form.loading_types')}
                 </MenuItem>
               ) : (
                 publicationTypes.map((type) => (
@@ -427,11 +429,11 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                     }
                   }}
                 >
-                  Upload Files
+                  {t('assign_docid.publications_form.upload_files')}
                 </Button>
               </label>
               <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                Supported formats: PDF, DOC, DOCX, PPT, PPTX
+                {t('assign_docid.publications_form.supported_formats')}
               </Typography>
             </Paper>
           </Grid>
@@ -475,7 +477,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                       }
                     }}
                   >
-                    Preview
+                    {t('assign_docid.publications_form.preview')}
                   </Button>
                   <Button
                     startIcon={<DeleteIcon />}
@@ -484,7 +486,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                     color="error"
                     size="small"
                   >
-                    Remove
+                    {t('assign_docid.publications_form.remove')}
                   </Button>
                 </Box>
               </Box>
@@ -494,7 +496,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Title"
+                    label={t('assign_docid.publications_form.title_field')}
                     value={file.metadata.title}
                     onChange={(e) => handleMetadataChange(index, 'title', e.target.value)}
                     sx={{
@@ -515,7 +517,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Description"
+                    label={t('assign_docid.publications_form.description_field')}
                     multiline
                     rows={3}
                     value={file.metadata.description}
@@ -537,11 +539,11 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                 </Grid>
                 <Grid item xs={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Identifier Type</InputLabel>
+                    <InputLabel>{t('assign_docid.publications_form.identifier_type')}</InputLabel>
                     <Select
                       value={file.metadata.identifierType}
                       onChange={(e) => handleIdentifierChange(index, e.target.value)}
-                      label="Identifier Type"
+                      label={t('assign_docid.publications_form.identifier_type')}
                     >
                       {identifiers.map((type) => (
                         <MenuItem 
@@ -563,7 +565,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                   {loadingIdentifiers[index] && (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
                       <CircularProgress size={20} sx={{ mr: 1 }} />
-                      <Typography variant="body2">Generating identifier...</Typography>
+                      <Typography variant="body2">{t('assign_docid.publications_form.generating_identifier')}</Typography>
                     </Box>
                   )}
                   {findingError && (
@@ -578,7 +580,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                       <Box>
                         <TextField
                           fullWidth
-                          label="CrossRef Title Search"
+                          label={t('assign_docid.publications_form.crossref_title_search')}
                           value={crossrefTitle}
                           onChange={(e) => setCrossrefTitle(e.target.value)}
                           sx={{ mb: 1 }}
@@ -590,14 +592,14 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                             fullWidth
                             disabled={!crossrefTitle.trim() || loadingIdentifiers[index]}
                           >
-                            Search CrossRef
+                            {t('assign_docid.publications_form.search_crossref')}
                           </Button>
                         ) : (
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <TextField
                               fullWidth
                               value={file.metadata.generated_identifier}
-                              label="Generated CrossRef DOI"
+                              label={t('assign_docid.publications_form.generated_crossref_doi')}
                               InputProps={{ readOnly: true }}
                             />
                             <Button
@@ -613,7 +615,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                     ) : (
                       <TextField
                         fullWidth
-                        label="Generated Identifier"
+                        label={t('assign_docid.publications_form.generated_identifier')}
                         value={file.metadata.generated_identifier || ''}
                         InputProps={{ readOnly: true }}
                       />
@@ -641,7 +643,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                 }
               }}
             >
-              Add Another Publication
+              {t('assign_docid.publications_form.add_another_publication')}
             </Button>
           </Grid>
         )}

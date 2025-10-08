@@ -71,12 +71,6 @@ echo "Installing production dependencies..."
 npm ci --production
 print_success "Dependencies installed"
 
-# Build the Next.js application
-echo ""
-echo "Building Next.js application..."
-npm run build
-print_success "Application built successfully"
-
 # Stop existing PM2 process if running
 if pm2 list | grep -q "$APP_NAME"; then
     print_info "Stopping existing $APP_NAME process..."

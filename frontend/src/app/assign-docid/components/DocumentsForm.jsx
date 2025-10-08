@@ -39,6 +39,7 @@ import {
   Cancel as CancelIcon,
   Add as AddIcon
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const documentTypes = [
@@ -67,6 +68,7 @@ const documentTypes = [
 
 const DocumentsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Initialize state from props if available
   const [selectedType, setSelectedType] = useState(formData?.documentType || '');
   const [uploadedFiles, setUploadedFiles] = useState(formData?.files || []);
@@ -183,7 +185,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   const validateFile = (file, typeId) => {
     const maxSize = 100 * 1024 * 1024; // 100MB max size
     if (file.size > maxSize) {
-      return 'File size exceeds 100MB limit';
+      return t('assign_docid.documents_form.file_size_error');
     }
 
     // Get the document type name from the ID
@@ -202,7 +204,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     };
 
     if (!typeValidationMap[documentType]) {
-      return `Invalid file type for ${documentType}`;
+      return t('assign_docid.documents_form.invalid_type_error', { type: documentType });
     }
 
     return null;
@@ -318,7 +320,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
       } catch (error) {
         console.error('Error generating APA Handle iD:', error);
         setFindingError(true);
-        setFindingErrorText('Failed to generate APA Handle iD!');
+        setFindingErrorText(t('assign_docid.documents_form.errors.failed_apa_handle'));
       } finally {
         setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
       }
@@ -337,7 +339,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
       } catch (error) {
         console.error('Error fetching Data Cite:', error);
         setFindingError(true);
-        setFindingErrorText('Failed to generate Data Cite identifier!');
+        setFindingErrorText(t('assign_docid.documents_form.errors.failed_datacite'));
       } finally {
         setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
       }
@@ -373,7 +375,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
 
       if (!response.data.data || response.data.data.length === 0) {
         setFindingError(true);
-        setFindingErrorText('No results found for the given title.');
+        setFindingErrorText(t('assign_docid.documents_form.errors.no_results_crossref'));
         return;
       }
 
@@ -383,12 +385,12 @@ const DocumentsForm = ({ formData, updateFormData }) => {
         setGeneratedIdentifier(identifierValue);
       } else {
         setFindingError(true);
-        setFindingErrorText('No DOI found in the CrossRef response.');
+        setFindingErrorText(t('assign_docid.documents_form.errors.no_doi_crossref'));
       }
     } catch (error) {
       console.error('Error searching CrossRef:', error);
       setFindingError(true);
-      setFindingErrorText('Failed to search CrossRef. Please try again.');
+      setFindingErrorText(t('assign_docid.documents_form.errors.failed_crossref'));
     } finally {
       setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
     }
@@ -418,7 +420,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
 
       if (!response.data.data || !response.data.data.alternative_identifiers) {
         setFindingError(true);
-        setFindingErrorText('No results found for the given CSTR identifier.');
+        setFindingErrorText(t('assign_docid.documents_form.errors.no_results_cstr'));
         return;
       }
 
@@ -430,12 +432,12 @@ const DocumentsForm = ({ formData, updateFormData }) => {
         setGeneratedIdentifier(identifierValue);
       } else {
         setFindingError(true);
-        setFindingErrorText('No identifier found in the CSTR response.');
+        setFindingErrorText(t('assign_docid.documents_form.errors.no_identifier_cstr'));
       }
     } catch (error) {
       console.error('Error searching CSTR:', error);
       setFindingError(true);
-      setFindingErrorText('Failed to search CSTR. Please try again.');
+      setFindingErrorText(t('assign_docid.documents_form.errors.failed_cstr'));
     } finally {
       setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
     }
@@ -483,7 +485,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
           fontSize: '1.25rem'
         }}
       >
-        Add Documents
+        {t('assign_docid.documents_form.title')}
       </Typography>
 
       <Typography 
@@ -495,17 +497,17 @@ const DocumentsForm = ({ formData, updateFormData }) => {
           fontSize: '1rem'
         }}
       >
-        Please add document(s) below
+        {t('assign_docid.documents_form.subtitle')}
       </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <FormControl fullWidth>
-            <InputLabel>Document Type</InputLabel>
+            <InputLabel>{t('assign_docid.documents_form.document_type')}</InputLabel>
             <Select
               value={selectedType}
               onChange={handleTypeChange}
-              label="Document Type"
+              label={t('assign_docid.documents_form.document_type')}
               sx={{
                 '& .MuiSelect-select': {
                   display: 'flex',
@@ -533,7 +535,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   <Box>
                     <Typography>{type}</Typography>
                     <Typography variant="caption" color="textSecondary">
-                      Supported: {extensions}
+                      {t('assign_docid.documents_form.supported')} {extensions}
                     </Typography>
                   </Box>
                 </MenuItem>
@@ -584,11 +586,11 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                     }
                   }}
                 >
-                  Upload {selectedType} Files
+                  {t('assign_docid.documents_form.upload_files', { type: selectedType })}
                 </Button>
               </label>
               <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                Maximum file size: 100MB
+                {t('assign_docid.documents_form.max_file_size')}
               </Typography>
             </Paper>
           </Grid>
@@ -614,7 +616,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                     variant="outlined"
                     size="small"
                   >
-                    Preview
+                    {t('assign_docid.documents_form.preview')}
                   </Button>
                   <Button
                     startIcon={<DeleteIcon />}
@@ -623,7 +625,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                     color="error"
                     size="small"
                   >
-                    Remove
+                    {t('assign_docid.documents_form.remove')}
                   </Button>
                 </Box>
               </Box>
@@ -632,7 +634,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Title"
+                    label={t('assign_docid.documents_form.title_field')}
                     value={file.metadata.title}
                     onChange={(e) => handleMetadataChange(index, 'title', e.target.value)}
                   />
@@ -640,7 +642,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Description"
+                    label={t('assign_docid.documents_form.description_field')}
                     multiline
                     rows={3}
                     value={file.metadata.description}
@@ -649,11 +651,11 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                 </Grid>
                 <Grid item xs={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Identifier Type</InputLabel>
+                    <InputLabel>{t('assign_docid.documents_form.identifier_type')}</InputLabel>
                     <Select
                       value={file.metadata.identifierType}
                       onChange={(e) => handleIdentifierChange(index, e.target.value)}
-                      label="Identifier Type"
+                      label={t('assign_docid.documents_form.identifier_type')}
                     >
                       {identifiers.map((type) => (
                         <MenuItem 
@@ -675,7 +677,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   {loadingIdentifiers[index] && (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
                       <CircularProgress size={20} sx={{ mr: 1 }} />
-                      <Typography variant="body2">Generating identifier...</Typography>
+                      <Typography variant="body2">{t('assign_docid.documents_form.generating_identifier')}</Typography>
                     </Box>
                   )}
                   {findingError && (
@@ -690,7 +692,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                       <Box>
                         <TextField
                           fullWidth
-                          label="CrossRef Title Search"
+                          label={t('assign_docid.documents_form.crossref_title_search')}
                           value={crossrefTitle}
                           onChange={(e) => setCrossrefTitle(e.target.value)}
                           sx={{ mb: 1 }}
@@ -702,14 +704,14 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                             fullWidth
                             disabled={!crossrefTitle.trim() || loadingIdentifiers[index]}
                           >
-                            Search CrossRef
+                            {t('assign_docid.documents_form.search_crossref')}
                           </Button>
                         ) : (
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <TextField
                               fullWidth
                               value={file.metadata.generated_identifier}
-                              label="Generated CrossRef DOI"
+                              label={t('assign_docid.documents_form.generated_crossref_doi')}
                               InputProps={{ readOnly: true }}
                             />
                             <Button
@@ -727,7 +729,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                         <Box>
                           <TextField
                             fullWidth
-                            label="CSTR Identifier"
+                            label={t('assign_docid.documents_form.cstr_identifier')}
                             value={cstrIdentifier}
                             onChange={(e) => setCstrIdentifier(e.target.value)}
                             sx={{ mb: 1 }}
@@ -739,14 +741,14 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                               fullWidth
                               disabled={!cstrIdentifier.trim() || loadingIdentifiers[index]}
                             >
-                              Search CSTR
+                              {t('assign_docid.documents_form.search_cstr')}
                             </Button>
                           ) : (
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <TextField
                                 fullWidth
                                 value={file.metadata.generated_identifier}
-                                label="Generated CSTR Identifier"
+                                label={t('assign_docid.documents_form.generated_cstr_identifier')}
                                 InputProps={{ readOnly: true }}
                               />
                               <Button
@@ -762,7 +764,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                       ) : (
                         <TextField
                           fullWidth
-                          label="Generated Identifier"
+                          label={t('assign_docid.documents_form.generated_identifier')}
                           value={file.metadata.generated_identifier || ''}
                           InputProps={{ readOnly: true }}
                         />
@@ -789,7 +791,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                 }
               }}
             >
-              Add Another Document
+              {t('assign_docid.documents_form.add_another_document')}
             </Button>
           </Grid>
         )}

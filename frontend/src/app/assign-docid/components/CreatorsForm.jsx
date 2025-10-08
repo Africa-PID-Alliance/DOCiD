@@ -28,6 +28,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const TabPanel = ({ children, value, index, ...other }) => (
@@ -44,48 +45,52 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </div>
 );
 
-const GetOrcidButton = () => (
-  <Box sx={{ mt: 4, textAlign: 'center' }}>
-    <Divider sx={{ mb: 3 }} />
-    <Button
-      variant="outlined"
-      onClick={() => window.open('https://orcid.org/register', '_blank')}
-      fullWidth
-      sx={{
-        borderWidth: 2,
-        transition: 'all 0.3s ease-in-out',
-        '&:hover': {
-          borderWidth: 2,
-          transform: 'translateY(-2px)',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-          bgcolor: 'rgba(21, 101, 192, 0.04)'
-        },
-        display: 'flex',
-        gap: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 1.5
-      }}
-    >
-      <Box
-        component="img"
-        src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png"
+const GetOrcidButton = () => {
+  const { t } = useTranslation();
+  return (
+    <Box sx={{ mt: 4, textAlign: 'center' }}>
+      <Divider sx={{ mb: 3 }} />
+      <Button
+        variant="outlined"
+        onClick={() => window.open('https://orcid.org/register', '_blank')}
+        fullWidth
         sx={{
-          width: 20,
-          height: 20,
-          transition: 'transform 0.3s ease-in-out',
-          '.MuiButton-root:hover &': {
-            transform: 'scale(1.1)'
-          }
+          borderWidth: 2,
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            borderWidth: 2,
+            transform: 'translateY(-2px)',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+            bgcolor: 'rgba(21, 101, 192, 0.04)'
+          },
+          display: 'flex',
+          gap: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 1.5
         }}
-      />
-      Get ORCID ID
-    </Button>
-  </Box>
-);
+      >
+        <Box
+          component="img"
+          src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png"
+          sx={{
+            width: 20,
+            height: 20,
+            transition: 'transform 0.3s ease-in-out',
+            '.MuiButton-root:hover &': {
+              transform: 'scale(1.1)'
+            }
+          }}
+        />
+        {t('assign_docid.creators_form.modal.get_orcid')}
+      </Button>
+    </Box>
+  );
+};
 
 const CreatorsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [creators, setCreators] = useState(formData?.creators || []);
@@ -187,7 +192,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
 
   const handleAddCreator = () => {
     if (!newCreator.role) {
-      setRoleError('Please select a role for the creator');
+      setRoleError(t('assign_docid.creators_form.modal.errors.role_required'));
       return;
     }
     setRoleError('');
@@ -213,7 +218,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
     // Different validation and search logic based on active tab
     if (activeTab === 0) { // ORCID ID tab
       if (!newCreator.orcidId) {
-        setOrcidError('ORCID ID is required');
+        setOrcidError(t('assign_docid.creators_form.modal.errors.orcid_required'));
         return;
       }
     
@@ -241,21 +246,21 @@ const CreatorsForm = ({ formData, updateFormData }) => {
       
       setShowOrcidForm(true);
         } else {
-          setOrcidError('No ORCID record found for the provided ID');
+          setOrcidError(t('assign_docid.creators_form.modal.errors.no_orcid_found'));
         }
     } catch (error) {
       console.error('Error fetching ORCID data:', error);
-        setOrcidError('Failed to retrieve ORCID information. Please try again.');
+        setOrcidError(t('assign_docid.creators_form.modal.errors.failed_fetch_orcid'));
       } finally {
         setIsLoadingOrcid(false);
       }
     } else { // ORCID Details tab (index 1)
       if (!newCreator.givenName) {
-        setOrcidError('First Name is required');
+        setOrcidError(t('assign_docid.creators_form.modal.errors.first_name_required'));
         return;
       }
       if (!newCreator.familyName) {
-        setOrcidError('Family Name is required');
+        setOrcidError(t('assign_docid.creators_form.modal.errors.family_name_required'));
         return;
       }
       
@@ -301,11 +306,11 @@ const CreatorsForm = ({ formData, updateFormData }) => {
 
           setShowOrcidForm(true);
         } else {
-          setOrcidError('No ORCID records found for the provided details');
+          setOrcidError(t('assign_docid.creators_form.modal.errors.no_orcid_records'));
         }
       } catch (error) {
         console.error('Error searching ORCID data:', error);
-        setOrcidError('Failed to retrieve ORCID information. Please try again.');
+        setOrcidError(t('assign_docid.creators_form.modal.errors.failed_fetch_orcid'));
     } finally {
       setIsLoadingOrcid(false);
       }
@@ -343,7 +348,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Full Name"
+            label={t('assign_docid.creators_form.full_name')}
             value={`${newCreator.givenName} ${newCreator.familyName}`}
             InputProps={{
               readOnly: true,
@@ -353,7 +358,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Family Name"
+            label={t('assign_docid.creators_form.modal.family_name')}
             value={newCreator.familyName}
             onChange={handleInputChange('familyName')}
           />
@@ -361,7 +366,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Given Name"
+            label={t('assign_docid.creators_form.modal.given_name')}
             value={newCreator.givenName}
             onChange={handleInputChange('givenName')}
           />
@@ -378,10 +383,10 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         </Grid>
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth>
-            <InputLabel>Identifier Type</InputLabel>
+            <InputLabel>{t('assign_docid.creators_form.identifier_type')}</InputLabel>
             <Select
               value="orcid"
-              label="Identifier Type"
+              label={t('assign_docid.creators_form.identifier_type')}
               disabled
             >
               {identifierTypes.map((type) => (
@@ -402,17 +407,17 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         </Grid>
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth error={!!roleError}>
-            <InputLabel>Role *</InputLabel>
+            <InputLabel>{t('assign_docid.creators_form.role_required')}</InputLabel>
             <Select
               value={newCreator.role}
               onChange={handleInputChange('role')}
-              label="Role *"
+              label={t('assign_docid.creators_form.role_required')}
               disabled={isLoadingRoles}
             >
               {isLoadingRoles ? (
                 <MenuItem disabled>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Loading roles...
+                  {t('assign_docid.creators_form.modal.loading_roles')}
                 </MenuItem>
               ) : (
                 creatorRoles.map((role) => (
@@ -437,7 +442,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
           fullWidth
           disabled={!newCreator.role}
         >
-          Add Creator
+          {t('assign_docid.creators_form.modal.add_creator_title')}
         </Button>
       </Box>
     </Box>
@@ -459,7 +464,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
             fontSize: '1.25rem'
           }}
         >
-          Creators
+          {t('assign_docid.creators_form.title')}
         </Typography>
         <Button
           variant="contained"
@@ -473,7 +478,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
             }
           }}
         >
-          Add
+          {t('assign_docid.creators_form.add')}
         </Button>
       </Box>
 
@@ -502,7 +507,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 justifyContent: 'space-between'
               }}>
                 <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
-                  Creator {index + 1}
+                  {t('assign_docid.creators_form.creator_number', { number: index + 1 })}
                 </Typography>
                 <IconButton 
                   onClick={() => handleRemoveCreator(index)}
@@ -521,7 +526,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Given Name"
+                    label={t('assign_docid.creators_form.modal.given_name')}
                     value={creator.givenName}
                     InputProps={{
                       readOnly: true,
@@ -541,7 +546,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Family Name"
+                    label={t('assign_docid.creators_form.modal.family_name')}
                     value={creator.familyName}
                     InputProps={{
                       readOnly: true,
@@ -583,7 +588,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12} sm={creator.orcidId ? 6 : 12}>
                   <TextField
                     fullWidth
-                    label="Affiliation"
+                    label={t('assign_docid.creators_form.modal.affiliation')}
                     value={creator.affiliation || 'N/A'}
                     InputProps={{
                       readOnly: true,
@@ -603,7 +608,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <TextField
-                      label="Role"
+                      label={t('assign_docid.creators_form.modal.role')}
                       value={creator.role_name}
                       InputProps={{
                         readOnly: true,
@@ -631,7 +636,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
           py: 4,
           color: theme.palette.text.secondary 
         }}>
-          No creators added yet
+          {t('assign_docid.creators_form.no_creators')}
         </Typography>
       )}
 
@@ -662,7 +667,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
             alignItems: 'center'
           }}>
             <Typography variant="h6" component="h2">
-              Add Creator
+              {t('assign_docid.creators_form.modal.add_creator_title')}
             </Typography>
             <IconButton 
               onClick={handleModalClose}
@@ -685,8 +690,8 @@ const CreatorsForm = ({ formData, updateFormData }) => {
               }}
               variant="fullWidth"
             >
-              <Tab label="ORCID ID" />
-              <Tab label="ORCID Details" />
+              <Tab label={t('assign_docid.creators_form.orcid_id_tab')} />
+              <Tab label={t('assign_docid.creators_form.orcid_details_tab')} />
             </Tabs>
 
             {/* ORCID ID Tab */}
@@ -697,7 +702,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
                         sx={{ flex: 1 }}
-                        label="Enter ORCID ID"
+                        label={t('assign_docid.creators_form.enter_orcid_id')}
                         value={newCreator.orcidId}
                         onChange={handleInputChange('orcidId')}
                         placeholder="0000-0000-0000-0000"
@@ -711,7 +716,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                         disabled={isLoadingOrcid || !newCreator.orcidId}
                         sx={{ minWidth: '150px' }}
                       >
-                        {isLoadingOrcid ? 'Searching...' : 'Search ORCID'}
+                        {isLoadingOrcid ? t('assign_docid.creators_form.modal.searching') : t('assign_docid.creators_form.modal.search_orcid')}
                       </Button>
                     </Box>
                   </Grid>
@@ -731,7 +736,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Given Name"
+                      label={t('assign_docid.creators_form.modal.given_name')}
                       value={newCreator.givenName}
                       onChange={handleInputChange('givenName')}
                       required
@@ -740,7 +745,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Family Name"
+                      label={t('assign_docid.creators_form.modal.family_name')}
                       value={newCreator.familyName}
                       onChange={handleInputChange('familyName')}
                       required
@@ -749,7 +754,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Affiliation"
+                      label={t('assign_docid.creators_form.modal.affiliation')}
                       value={newCreator.affiliation}
                       onChange={handleInputChange('affiliation')}
                     />
@@ -757,7 +762,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Other Name"
+                      label={t('assign_docid.creators_form.other_name')}
                       value={newCreator.otherName}
                       onChange={handleInputChange('otherName')}
                     />
@@ -770,7 +775,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                       disabled={isLoadingOrcid || (!newCreator.givenName && !newCreator.familyName)}
                       fullWidth
                     >
-                      {isLoadingOrcid ? 'Searching...' : 'Search ORCID'}
+                      {isLoadingOrcid ? t('assign_docid.creators_form.modal.searching') : t('assign_docid.creators_form.modal.search_orcid')}
                     </Button>
                     {orcidError && (
                       <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
@@ -797,7 +802,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Full Name"
+                        label={t('assign_docid.creators_form.full_name')}
                         value={`${newCreator.givenName} ${newCreator.familyName}`}
                         InputProps={{
                           readOnly: true,
@@ -807,7 +812,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Family Name"
+                        label={t('assign_docid.creators_form.modal.family_name')}
                         value={newCreator.familyName}
                         InputProps={{
                           readOnly: true,
@@ -817,7 +822,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Given Name"
+                        label={t('assign_docid.creators_form.modal.given_name')}
                         value={newCreator.givenName}
                         InputProps={{
                           readOnly: true,
@@ -836,10 +841,10 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
-                        <InputLabel>Identifier Type</InputLabel>
+                        <InputLabel>{t('assign_docid.creators_form.identifier_type')}</InputLabel>
                         <Select
                           value="orcid"
-                          label="Identifier Type"
+                          label={t('assign_docid.creators_form.identifier_type')}
                           disabled
                         >
                           {identifierTypes.map((type) => (
@@ -853,24 +858,24 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Affiliation"
+                        label={t('assign_docid.creators_form.modal.affiliation')}
                         value={newCreator.affiliation}
                         onChange={handleInputChange('affiliation')}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth error={!!roleError}>
-                        <InputLabel>Role *</InputLabel>
+                        <InputLabel>{t('assign_docid.creators_form.role_required')}</InputLabel>
                         <Select
                           value={newCreator.role}
                           onChange={handleInputChange('role')}
-                          label="Role *"
+                          label={t('assign_docid.creators_form.role_required')}
                           disabled={isLoadingRoles}
                         >
                           {isLoadingRoles ? (
                             <MenuItem disabled>
                               <CircularProgress size={20} sx={{ mr: 1 }} />
-                              Loading roles...
+                              {t('assign_docid.creators_form.modal.loading_roles')}
                             </MenuItem>
                           ) : (
                             creatorRoles.map((role) => (
@@ -895,7 +900,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                       fullWidth
                       disabled={!newCreator.role}
                     >
-                      Add Creator
+                      {t('assign_docid.creators_form.modal.add_creator_title')}
                     </Button>
                   </Box>
                 </Box>

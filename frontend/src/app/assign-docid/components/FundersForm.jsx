@@ -31,6 +31,7 @@ import {
   AccountBalance as FunderIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -42,6 +43,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
 
 const FundersForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [funders, setFunders] = useState(formData?.funders || []);
@@ -123,7 +125,7 @@ const FundersForm = ({ formData, updateFormData }) => {
     // Different validation and search logic based on active tab
     if (activeTab === 0) { // ROR ID tab
       if (!newFunder.rorId) {
-        setRorError('ROR ID is required');
+        setRorError(t('assign_docid.funders_form.errors.ror_id_required'));
         return;
       }
       
@@ -166,17 +168,17 @@ const FundersForm = ({ formData, updateFormData }) => {
           setShowRorForm(true);
           setRorError('');
         } else {
-          setRorError('No ROR record found for the provided ID');
+          setRorError(t('assign_docid.funders_form.errors.no_ror_found'));
         }
       } catch (error) {
         console.error('Error fetching ROR data:', error);
-        setRorError(`Failed to fetch organization data: ${error.message}`);
+        setRorError(`${t('assign_docid.funders_form.errors.failed_fetch_ror')}: ${error.message}`);
       } finally {
         setIsLoadingRor(false);
       }
     } else { // ROR Details tab (index 1)
       if (!newFunder.name || !newFunder.country) {
-        setRorError('Both Organization Name and Country are required');
+        setRorError(t('assign_docid.funders_form.errors.both_name_country_required'));
         return;
       }
       
@@ -184,13 +186,9 @@ const FundersForm = ({ formData, updateFormData }) => {
       setRorError('');
 
       try {
-        // Trim and validate input values
-        const orgName = newFunder.name.trim();
-        const countryName = newFunder.country.trim();
-
-        // Use separate parameters for name and country to leverage ROR's advanced query
+        const searchQuery = `${newFunder.name} ${newFunder.country}`;
         const response = await fetch(
-          `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`
+          `/api/ror/search-organization?q=${encodeURIComponent(searchQuery)}&page=1`
         );
 
         if (!response.ok) {
@@ -198,15 +196,15 @@ const FundersForm = ({ formData, updateFormData }) => {
         }
 
         const data = await response.json();
-
+        
         if (data && data.length > 0) {
-          // Backend now handles country filtering via advanced query
           const { id, name: orgName, country, status, wikipedia_url } = data[0];
+          const countryName = country;
 
           setNewFunder(prev => ({
             ...prev,
             name: orgName || '',
-            country: country || '',
+            country: countryName || '',
             type: 'Funder',
             otherName: '',
             rorId: id || ''
@@ -214,11 +212,11 @@ const FundersForm = ({ formData, updateFormData }) => {
 
           setShowRorForm(true);
         } else {
-          setRorError('No ROR records found for the provided organization name and country');
+          setRorError(t('assign_docid.funders_form.errors.no_ror_records'));
         }
       } catch (error) {
         console.error('Error searching ROR data:', error);
-        setRorError('Failed to retrieve ROR information. Please try again.');
+        setRorError(t('assign_docid.funders_form.errors.failed_retrieve_ror'));
       } finally {
         setIsLoadingRor(false);
       }
@@ -255,7 +253,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Organization Name"
+            label={t('assign_docid.funders_form.organization_name')}
             value={newFunder.name}
             onChange={handleInputChange('name')}
             InputProps={{
@@ -266,7 +264,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="ROR ID"
+            label={t('assign_docid.funders_form.ror_id_tab')}
             value={newFunder.rorId}
             InputProps={{
               readOnly: true,
@@ -276,7 +274,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Country"
+            label={t('assign_docid.funders_form.country')}
             value={newFunder.country}
             onChange={handleInputChange('country')}
           />
@@ -284,7 +282,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Organization Type"
+            label={t('assign_docid.funders_form.organization_type')}
             value="Funder"
             InputProps={{
               readOnly: true,
@@ -294,7 +292,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Other Organization Name"
+            label={t('assign_docid.funders_form.other_organization_name')}
             value={newFunder.otherName}
             onChange={handleInputChange('otherName')}
           />
@@ -306,7 +304,7 @@ const FundersForm = ({ formData, updateFormData }) => {
           onClick={handleAddFunder}
           fullWidth
         >
-          Add Funder
+          {t('assign_docid.funders_form.add_funder')}
         </Button>
       </Box>
     </Box>
@@ -327,7 +325,7 @@ const FundersForm = ({ formData, updateFormData }) => {
         }
       }}
     >
-      Get ROR ID
+      {t('assign_docid.funders_form.get_ror_id')}
     </Button>
   );
 
@@ -347,7 +345,7 @@ const FundersForm = ({ formData, updateFormData }) => {
             fontSize: '1.25rem'
           }}
         >
-          Funders
+          {t('assign_docid.funders_form.title')}
         </Typography>
         <Button
           variant="contained"
@@ -361,7 +359,7 @@ const FundersForm = ({ formData, updateFormData }) => {
             }
           }}
         >
-          Add
+          {t('assign_docid.funders_form.add')}
         </Button>
       </Box>
 
@@ -389,7 +387,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                 justifyContent: 'space-between'
               }}>
                 <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
-                  Funder {index + 1}
+                  {t('assign_docid.funders_form.funder_number', { number: index + 1 })}
                       </Typography>
                 <IconButton 
                   onClick={() => handleRemoveFunder(index)}
@@ -408,7 +406,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Organization Name"
+                    label={t('assign_docid.funders_form.organization_name')}
                     value={funder.name}
                     InputProps={{
                       readOnly: true,
@@ -429,7 +427,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="ROR ID"
+                      label={t('assign_docid.funders_form.ror_id_tab')}
                       value={funder.rorId}
                       InputProps={{
                         readOnly: true,
@@ -450,7 +448,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12} sm={funder.rorId ? 6 : 12}>
                   <TextField
                     fullWidth
-                    label="Organization Type"
+                    label={t('assign_docid.funders_form.organization_type')}
                     value={funder.type || 'N/A'}
                     InputProps={{
                       readOnly: true,
@@ -470,7 +468,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Country"
+                    label={t('assign_docid.funders_form.country')}
                     value={funder.country || 'N/A'}
                     InputProps={{
                       readOnly: true,
@@ -491,7 +489,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Other Name"
+                      label={t('assign_docid.funders_form.other_name')}
                       value={funder.otherName}
                       InputProps={{
                         readOnly: true,
@@ -519,7 +517,7 @@ const FundersForm = ({ formData, updateFormData }) => {
           py: 4,
           color: theme.palette.text.secondary 
         }}>
-          No funders added yet
+          {t('assign_docid.funders_form.no_funders')}
         </Typography>
       )}
 
@@ -548,7 +546,7 @@ const FundersForm = ({ formData, updateFormData }) => {
             alignItems: 'center'
           }}>
             <Typography variant="h6" component="h2">
-              Add Funder
+              {t('assign_docid.funders_form.add_funder')}
             </Typography>
             <IconButton 
               onClick={handleModalClose}
@@ -571,8 +569,8 @@ const FundersForm = ({ formData, updateFormData }) => {
               }}
               variant="fullWidth"
             >
-              <Tab label="ROR ID" />
-              <Tab label="ROR Details" />
+              <Tab label={t('assign_docid.funders_form.ror_id_tab')} />
+              <Tab label={t('assign_docid.funders_form.ror_details_tab')} />
             </Tabs>
 
             <TabPanel value={activeTab} index={0}>
@@ -582,7 +580,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <TextField
                         sx={{ flex: 1 }}
-                        label="Enter ROR ID"
+                        label={t('assign_docid.funders_form.enter_ror_id')}
                         value={newFunder.rorId}
                         onChange={handleInputChange('rorId')}
                         placeholder="https://ror.org/..."
@@ -596,7 +594,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                         disabled={isLoadingRor || !newFunder.rorId}
                         sx={{ minWidth: '150px' }}
                       >
-                        {isLoadingRor ? 'Searching...' : 'Search ROR'}
+                        {isLoadingRor ? t('assign_docid.funders_form.searching') : t('assign_docid.funders_form.search_ror')}
                       </Button>
                     </Box>
                   </Grid>
@@ -616,7 +614,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <TextField
                         fullWidth
-                        label="Organization Name"
+                        label={t('assign_docid.funders_form.organization_name')}
                         value={newFunder.name}
                         onChange={handleInputChange('name')}
                         error={Boolean(rorError)}
@@ -625,7 +623,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                       />
                       <TextField
                         fullWidth
-                        label="Country"
+                        label={t('assign_docid.funders_form.country')}
                         value={newFunder.country}
                         onChange={handleInputChange('country')}
                         required
@@ -637,7 +635,7 @@ const FundersForm = ({ formData, updateFormData }) => {
                         disabled={isLoadingRor || !newFunder.name || !newFunder.country}
                         sx={{ minWidth: '150px' }}
                       >
-                        {isLoadingRor ? 'Searching...' : 'Search ROR'}
+                        {isLoadingRor ? t('assign_docid.funders_form.searching') : t('assign_docid.funders_form.search_ror')}
                       </Button>
                     </Box>
                   </Grid>

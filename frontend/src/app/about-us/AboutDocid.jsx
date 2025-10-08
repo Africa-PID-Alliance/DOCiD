@@ -5,11 +5,13 @@ import Image from 'next/image';
 import React, { useState } from 'react'
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTranslation } from 'react-i18next';
 
 
 const AboutDocid = () => {
   const [openModal, setOpenModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null);
+  const { t } = useTranslation();
 
   const theme = useTheme();
 
@@ -86,7 +88,7 @@ const AboutDocid = () => {
                 lineHeight: 1.2
               }}
             >
-              Introducing the Digital Object Container Identifier
+              {t('about.title')}
             </Typography>
             <Box
               sx={{
@@ -156,10 +158,10 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Our Mission
+                {t('about.mission_title')}
               </Typography>
               <Typography variant="body1" sx={commonTypographyStyles}>
-                Africa PID Alliances' mission and projects in disseminating multidisciplinary African research outputs are key in promoting infrastructure technology readiness and open research. By sharing the process of integrating persistent identifiers in academia, industry, and cultural heritage, the Africa PID Alliance initiative is inspired to promote a FAIR African technological and sustainable open research infrastructure.
+                {t('about.mission_text')}
               </Typography>
             </MotionPaper>
           </Grid>
@@ -187,10 +189,10 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Using Open Infrastructure
+                {t('about.infrastructure_title')}
               </Typography>
               <Typography variant="body1" sx={commonTypographyStyles}>
-                The Africa PID Alliance is working to fulfil the continent's need for academic data infrastructures. Africa's diverse economic development is reflected in the continent's fast-growing requirement for strong scholarly data infrastructures. Many universities are unable to provide Digital Object Identifiers (DOIs) for all scholarly outputs, even though some can afford them for their research. Grey literature still contains a large amount of research conducted in Africa. The Africa PID Alliance recognises this gap and seeks to focus on protecting and advancing indigenous knowledge, cultural heritage, and patent digital object containers.
+                {t('about.infrastructure_text')}
               </Typography>
             </MotionPaper>
           </Grid>
@@ -218,7 +220,7 @@ const AboutDocid = () => {
                   textAlign: 'center'
                 }}
               >
-                Who Should Use
+                {t('about.who_should_use_title')}
               </Typography>
 
               <Box
@@ -269,7 +271,7 @@ const AboutDocid = () => {
                     px: { xs: 2, sm: 4 }
                   }}
                 >
-                  DOCID™ connects knowledge across sectors, ensuring that research, innovation, and heritage remain traceable and impactful.
+                  {t('about.who_should_use_text')}
                 </Typography>
 
                 <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} sx={{ justifyContent: 'center', width: '100%', mx: 'auto' }}>
@@ -340,7 +342,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Universities
+                          {t('about.universities')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -356,7 +358,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-                          DOCID™ empowers researchers, grants offices, libraries, and technology transfer teams to manage research outputs seamlessly, ensuring long-term visibility, compliance, and impact.
+                          {t('about.universities_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -429,7 +431,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Museums
+                          {t('about.museums')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -445,7 +447,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-                          DOCID™ helps collections librarians, knowledge managers, and data specialists document and link museum collections with research, preserving cultural and scientific heritage for future generations.
+                          {t('about.museums_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -518,7 +520,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Patent Registration Offices
+{t('about.patent_offices')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -534,7 +536,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-                          DOCID™ supports patent filing officers and IP managers in tracking patents from application to commercialization, ensuring accessibility and compliance at every stage.
+{t('about.patent_offices_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -607,7 +609,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Research Projects
+{t('about.research_projects')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -623,7 +625,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-                          DOCID™ enables principal investigators, knowledge managers, and funding agencies to connect research outputs, maintain integrity, and ensure long-term accessibility.
+{t('about.research_projects_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -696,7 +698,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Other PID Providers
+{t('about.other_pid_providers')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -712,7 +714,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-                          DOCID™ complements existing PID systems by enhancing discoverability, interoperability, and traceability. We are working alongside global PID systems to create a more connected and structured research ecosystem.
+{t('about.other_pid_providers_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -744,7 +746,7 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Use Case Scenarios
+{t('about.use_cases_title')}
               </Typography>
 
               <Grid container spacing={4}>
@@ -800,13 +802,13 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Click to expand
+{t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
                     </Box>
                     <Typography variant="h6" sx={{ mb: 1, color: theme.palette.primary.main }}>
-                      Universities
+                      {t('about.universities')}
                     </Typography>
 
                   </Box>
@@ -863,13 +865,13 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Click to expand
+{t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
                     </Box>
                     <Typography variant="h6" sx={{ mb: 1, color: theme.palette.primary.main }}>
-                      Museums
+                      {t('about.museums')}
                     </Typography>
 
                   </Box>
@@ -928,13 +930,13 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Click to expand
+{t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
                     </Box>
                     <Typography variant="h6" sx={{ mb: 1, color: theme.palette.primary.main }}>
-                      Patent Registration Offices
+                      {t('about.patent_offices')}
                     </Typography>
 
                   </Box>
@@ -991,13 +993,13 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Click to expand
+{t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
                     </Box>
                     <Typography variant="h6" sx={{ mb: 1, color: theme.palette.primary.main }}>
-                      Research Projects
+                      {t('about.research_projects')}
                     </Typography>
 
                   </Box>
@@ -1034,14 +1036,14 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Our Approach
+{t('about.approach_title')}
               </Typography>
               <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
-                Presenting Hybrid Digital Object Identification from the Africa PID Alliance: A hybrid digital object identification system is being pioneered by the Africa PID Alliance. This method connects DOIs produced by the DOI Foundation (prefix 10) with locally generated handles (prefix 20). A digital object identifier container will combine DOIs with locally generated handle IDs for patents, offering a thorough overview of the research process, the inventions that result in patents, and associated publications, papers, and media.
+                {t('about.approach_text_1')}
               </Typography>
               <Divider sx={{ my: 3, opacity: 0.6 }} />
               <Typography variant="body1" sx={commonTypographyStyles}>
-                By combining scientific data and biocultural characteristics into a single digital object container, this novel multilinear data model also applies to indigenous knowledge. It successfully connects different kinds of digital items. Ceremonies, for example, incorporate various forms of cultural heritage, including dance, singing, textile art, and associated research, all of which require digital identification and preservation.
+                {t('about.approach_text_2')}
               </Typography>
             </MotionPaper>
           </Grid>
@@ -1073,10 +1075,10 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Collaboration
+{t('about.collaboration_title')}
               </Typography>
               <Typography variant="body1" sx={commonTypographyStyles}>
-                Working together with current registration agencies is crucial to improving the discovery and integration of the Africa PID Alliance's DOCiD (TM). The infrastructure team of the Africa PID Alliance, which includes its data centre at the Kenya Education Network, data scientists, and co-leaders from the Africa PID Alliance and founding partners, are collaborating closely to determine the most effective ways to accomplish this objective.
+                {t('about.collaboration_text')}
               </Typography>
             </MotionPaper>
           </Grid>
@@ -1108,7 +1110,7 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-                Showcase
+{t('about.showcase_title')}
               </Typography>
               <Box
                 sx={{
@@ -1155,7 +1157,7 @@ const AboutDocid = () => {
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    Click to expand
+                  {t('about.click_to_expand')}
                   </Typography>
                   <ZoomOutMapIcon />
                 </Box>

@@ -32,6 +32,7 @@ import {
   Warning as WarningIcon
 } from '@mui/icons-material';
 import CustomStepIcon from './components/CustomStepIcon';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useTheme } from '@mui/material/styles';
 
@@ -44,17 +45,8 @@ import OrganizationsForm from './components/OrganizationsForm';
 import FundersForm from './components/FundersForm';
 import ProjectForm from './components/ProjectForm';
 
-const steps = [
-  'DOCiD™*',
-  'Publications',
-  'Documents',
-  'Creators*',
-  'Organizations',
-  'Funders',
-  'Projects'
-];
-
 const AssignDocID = () => {
+  const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -94,13 +86,24 @@ const AssignDocID = () => {
 
   const theme = useTheme();
 
+  // Define steps using translations
+  const steps = [
+    t('assign_docid.steps.docid'),
+    t('assign_docid.steps.publications'),
+    t('assign_docid.steps.documents'),
+    t('assign_docid.steps.creators'),
+    t('assign_docid.steps.organizations'),
+    t('assign_docid.steps.funders'),
+    t('assign_docid.steps.projects')
+  ];
+
   // Add console.log to debug
   console.log('Current formData:', formData);
 
   const handleNext = () => {
     // Check specifically for the generatedId property
     if (activeStep === 0 && !formData.docId?.generatedId) {
-      alert('Please generate a DOCiD before proceeding');
+      alert(t('assign_docid.notifications.generate_first'));
       return;
     }
     setActiveStep((prevStep) => prevStep + 1);
@@ -501,7 +504,7 @@ const AssignDocID = () => {
         if (response.status === 200 || response.status === 201) {
           setNotification({
             open: true,
-            message: "DOCiD successfully assigned!",
+            message: t('assign_docid.notifications.success_assigned'),
             severity: 'success'
           });
           // Set flag in sessionStorage before redirecting
@@ -511,7 +514,7 @@ const AssignDocID = () => {
           // Redirect to list-docids with success parameter
           window.location.href = '/list-docids?success=true';
         } else {
-          throw new Error('Failed to assign DOCiD');
+          throw new Error(t('assign_docid.notifications.failed_to_assign'));
         }
       } catch (error) {
         console.error("Error details:", {
@@ -577,7 +580,7 @@ const AssignDocID = () => {
               disabled={draftStatus === 'saving'}
               sx={{ minWidth: 'auto', px: 2 }}
             >
-              Save Draft
+              {t('assign_docid.buttons.save_draft')}
             </Button>
             
             {/* Auto-save status */}
@@ -591,14 +594,14 @@ const AssignDocID = () => {
             {draftStatus === 'saved' && lastSaved && (
               <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
                 <Typography variant="caption">
-                  ✅ Saved {lastSaved.toLocaleTimeString()}
+                  ✅ {t('assign_docid.buttons.save_draft')} {lastSaved.toLocaleTimeString()}
                 </Typography>
               </Box>
             )}
             
             {draftStatus === 'error' && (
               <Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
-                <Typography variant="caption">❌ Save failed</Typography>
+                <Typography variant="caption">❌ {t('assign_docid.buttons.save_draft')} failed</Typography>
               </Box>
             )}
           </Box>
@@ -668,7 +671,7 @@ const AssignDocID = () => {
             fontWeight: 500
           }}
         >
-          Back
+          {t('assign_docid.buttons.back')}
         </Button>
         <Button
           variant="contained"
@@ -683,7 +686,7 @@ const AssignDocID = () => {
             }
           }}
         >
-          {activeStep === steps.length - 1 ? 'Assign ID' : 'Next'}
+          {activeStep === steps.length - 1 ? t('assign_docid.buttons.submit') : t('assign_docid.buttons.next')}
         </Button>
       </Box>
 
@@ -701,11 +704,11 @@ const AssignDocID = () => {
       >
         <DialogTitle id="confirm-dialog-title" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <WarningIcon sx={{ color: '#ff9800', fontSize: 28 }} />
-          Are you sure?
+          {t('assign_docid.confirm_modal.title')}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1">
-            Do you want to submit this publication?
+            {t('assign_docid.confirm_modal.message')}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 2 }}>
@@ -721,7 +724,7 @@ const AssignDocID = () => {
               }
             }}
           >
-            No
+            {t('assign_docid.buttons.cancel')}
           </Button>
           <Button
             onClick={handleConfirmSubmit}
@@ -733,7 +736,7 @@ const AssignDocID = () => {
               }
             }}
           >
-            Yes
+            {t('assign_docid.confirm_modal.confirm')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -766,7 +769,7 @@ const AssignDocID = () => {
           severity="success"
           sx={{ width: '100%' }}
         >
-          📄 Draft saved automatically
+          {t('assign_docid.notifications.draft_saved')}
         </Alert>
       </Snackbar>
 
@@ -798,7 +801,7 @@ const AssignDocID = () => {
                   }
                 }}
               >
-                View All DOCiDs
+                {t('assign_docid.buttons.view_all_docids')}
               </Button>
             </Box>
           ) : (

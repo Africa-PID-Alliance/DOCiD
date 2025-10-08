@@ -46,6 +46,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const fontFamilies = [
@@ -58,6 +59,7 @@ const fontFamilies = [
 
 const MenuBar = ({ editor }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   if (!editor) {
     return null;
   }
@@ -106,12 +108,12 @@ const MenuBar = ({ editor }) => {
             }}
             sx={{ height: '32px' }}
           >
-            <MenuItem value="paragraph">Paragraph</MenuItem>
-            <MenuItem value="h1">Heading 1</MenuItem>
-            <MenuItem value="h2">Heading 2</MenuItem>
-            <MenuItem value="h3">Heading 3</MenuItem>
-            <MenuItem value="h4">Heading 4</MenuItem>
-            <MenuItem value="h5">Heading 5</MenuItem>
+            <MenuItem value="paragraph">{t('assign_docid.docid_form.editor.paragraph')}</MenuItem>
+            <MenuItem value="h1">{t('assign_docid.docid_form.editor.heading_1')}</MenuItem>
+            <MenuItem value="h2">{t('assign_docid.docid_form.editor.heading_2')}</MenuItem>
+            <MenuItem value="h3">{t('assign_docid.docid_form.editor.heading_3')}</MenuItem>
+            <MenuItem value="h4">{t('assign_docid.docid_form.editor.heading_4')}</MenuItem>
+            <MenuItem value="h5">{t('assign_docid.docid_form.editor.heading_5')}</MenuItem>
           </Select>
         </FormControl>
 
@@ -168,7 +170,7 @@ const MenuBar = ({ editor }) => {
           <IconButton
             size="small"
             disabled
-            title="Text color - Coming soon"
+title={t('assign_docid.docid_form.editor.text_color')}
             sx={{ color: theme.palette.text.disabled }}
           >
             <FormatColorText />
@@ -176,7 +178,7 @@ const MenuBar = ({ editor }) => {
           <IconButton
             size="small"
             disabled
-            title="Highlight color - Coming soon"
+title={t('assign_docid.docid_form.editor.highlight_color')}
             sx={{ color: theme.palette.text.disabled }}
           >
             <BorderColor />
@@ -301,6 +303,7 @@ const MenuBar = ({ editor }) => {
 
 const DocIDForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isGenerated, setIsGenerated] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -404,11 +407,11 @@ const DocIDForm = ({ formData, updateFormData }) => {
     const normalizedDescriptionContent = formData.description === "<p><br></p>" ? "" : formData.description;
 
     if (!formData.title) {
-      alert('Please enter a title!');
+      alert(t('assign_docid.docid_form.alerts.enter_title'));
       return;
     }
     if (!normalizedDescriptionContent) {
-      alert('Please enter a description!');
+      alert(t('assign_docid.docid_form.alerts.enter_description'));
       return;
     }
 
@@ -425,7 +428,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
           "Content-Type": "application/json"
         }
       });
-
+console.log(response.data);
       const docId = response.data.data.id;
       const updatedData = {
         ...formData,
@@ -436,7 +439,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
       setIsGenerated(true);
     } catch (error) {
       console.error('Error generating DOCiD:', error);
-      alert('Failed to generate DOCiD');
+      alert(t('assign_docid.docid_form.alerts.failed_generate'));
     } finally {
       setIsGenerating(false);
     }
@@ -453,7 +456,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
           fontSize: '1.25rem'
         }}
       >
-        Generate DOCiD™
+        {t('assign_docid.docid_form.title')}
       </Typography>
       <Typography
         variant="body2"
@@ -464,7 +467,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
           fontSize: '1rem'
         }}
       >
-        Please generate DOCiD™ for this record below
+        {t('assign_docid.docid_form.subtitle')}
       </Typography>
       <Grid container spacing={3}>
         {/* Resource Type - First */}
@@ -477,7 +480,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
                 color: theme.palette.text.primary
               }}
             >
-              Resource Type *
+              {t('assign_docid.docid_form.resource_type')}
             </InputLabel>
             <Select
               name="resourceType"
@@ -501,7 +504,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
               {isLoadingTypes ? (
                 <MenuItem disabled>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Loading resource types...
+                  {t('assign_docid.docid_form.loading_types')}
                 </MenuItem>
               ) : (
                 resourceTypes.map((type) => (
@@ -518,7 +521,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Title"
+label={t('assign_docid.docid_form.title_field')}
             name="title"
             required
             value={formData.title}
@@ -556,7 +559,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
               mb: 1
             }}
           >
-            Description *
+            {t('assign_docid.docid_form.description')}
           </Typography>
           <Paper
             variant="outlined"
@@ -616,10 +619,10 @@ const DocIDForm = ({ formData, updateFormData }) => {
             >
               {isGenerating ? (
                 <>
-                  Generating... <CircularProgress size={20} thickness={2} sx={{ ml: 1, color: 'inherit' }} />
+                  {t('assign_docid.docid_form.generating')} <CircularProgress size={20} thickness={2} sx={{ ml: 1, color: 'inherit' }} />
                 </>
               ) : (
-                'Generate DOCiD™'
+                t('assign_docid.docid_form.generate_button')
               )}
             </Button>
           </Box>
@@ -632,7 +635,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
         <Grid item xs={12}>
             <TextField
               fullWidth
-                label="Generated DOCiD™"
+label={t('assign_docid.docid_form.generated_docid')}
               value={formData.generatedId}
               InputProps={{
                 readOnly: true,
@@ -668,7 +671,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
                   fontWeight: 500
                 }}
               >
-                Upload Thumbnail (Optional)
+                {t('assign_docid.docid_form.upload_thumbnail')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Button
@@ -684,7 +687,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
                     }
                   }}
                 >
-                  Choose Image
+                  {t('assign_docid.docid_form.choose_image')}
                   <input
                     type="file"
                     hidden

@@ -27,9 +27,11 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const ProjectForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [raidId, setRaidId] = useState('');
   const [currentProject, setCurrentProject] = useState(null);
@@ -75,7 +77,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
     setError('');
 
     if (!raidId.trim()) {
-      setError('Raid ID is required!');
+      setError(t('assign_docid.projects_form.errors.raid_id_required'));
       setIsSearching(false);
       return;
     }
@@ -97,7 +99,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
         if (data && data.error) {
           throw new Error(data.error);
         }
-        throw new Error('Failed to fetch project');
+        throw new Error(t('assign_docid.projects_form.errors.failed_to_fetch'));
       }
       
       setCurrentProject({
@@ -108,7 +110,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
     } catch (error) {
       console.error('Error fetching project:', error);
       // Show the specific error message from the API or a generic one
-      setError(error.message || 'Failed to retrieve data');
+      setError(error.message || t('assign_docid.projects_form.errors.failed_retrieve_data'));
     } finally {
       setIsSearching(false);
     }
@@ -159,7 +161,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
             fontSize: '1.25rem'
           }}
         >
-          Projects
+          {t('assign_docid.projects_form.title')}
         </Typography>
         <Button
           variant="contained"
@@ -173,7 +175,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
             }
           }}
         >
-          Add
+          {t('assign_docid.projects_form.add')}
         </Button>
       </Box>
 
@@ -201,7 +203,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                 justifyContent: 'space-between'
               }}>
                 <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
-                  Project {index + 1}
+                  {t('assign_docid.projects_form.project_number', { number: index + 1 })}
                 </Typography>
                 <IconButton 
                   onClick={() => handleRemoveProject(index)}
@@ -220,7 +222,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Project Title"
+                    label={t('assign_docid.projects_form.project_title')}
                     value={project.title}
                     InputProps={{
                       readOnly: true,
@@ -240,7 +242,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Project Description"
+                    label={t('assign_docid.projects_form.project_description')}
                     value={project.description || 'N/A'}
                     multiline
                     rows={4}
@@ -269,7 +271,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
           py: 4,
           color: theme.palette.text.secondary 
         }}>
-          No projects added yet
+          {t('assign_docid.projects_form.no_projects')}
         </Typography>
       )}
 
@@ -300,7 +302,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
             alignItems: 'center'
           }}>
             <Typography variant="h6" component="h2">
-              Add Project
+              {t('assign_docid.projects_form.add_project')}
             </Typography>
             <IconButton 
               onClick={handleModalClose}
@@ -340,7 +342,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     sx={{ flex: 1 }}
-                    label="RAID URL"
+                    label={t('assign_docid.projects_form.raid_url')}
                     value={raidId}
                     onChange={handleRaidIdChange}
                     placeholder="e.g., https://app.demo.raid.org.au/raids/10.80368/b1adfb3a"
@@ -361,7 +363,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                       }
                     }}
                   >
-                    {isSearching ? 'Searching...' : 'Find Project'}
+                    {isSearching ? t('assign_docid.projects_form.searching') : t('assign_docid.projects_form.find_project')}
                   </Button>
                 </Box>
               </Grid>
@@ -375,7 +377,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                       bgcolor: theme.palette.mode === 'dark' ? 'rgba(40, 167, 69, 0.1)' : undefined
                     }}
                   >
-                    Project found!
+                    {t('assign_docid.projects_form.project_found')}
                   </Alert>
                   <Paper 
                     sx={{ 
@@ -386,7 +388,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                   >
                     <TextField
                       fullWidth
-                      label="Title"
+                      label={t('assign_docid.projects_form.title')}
                       value={currentProject.title}
                       InputProps={{ 
                         readOnly: true,
@@ -398,7 +400,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                     />
                     <TextField
                       fullWidth
-                      label="Description"
+                      label={t('assign_docid.projects_form.description')}
                       value={currentProject.description}
                       InputProps={{ 
                         readOnly: true,
@@ -422,7 +424,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                         }
                       }}
                     >
-                      Add Project
+                      {t('assign_docid.projects_form.add_project')}
                     </Button>
                   </Box>
                 </Grid>
@@ -448,7 +450,7 @@ const ProjectForm = ({ formData, updateFormData }) => {
                     }
                   }}
                 >
-                  GET RAID ID
+                  {t('assign_docid.projects_form.get_raid_id')}
                 </Button>
               </Grid>
             </Grid>

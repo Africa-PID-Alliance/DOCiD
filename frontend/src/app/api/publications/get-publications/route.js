@@ -6,7 +6,7 @@ export async function GET(request) {
     
     // Build the query string from the search parameters
     const queryString = searchParams.toString();
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.REACT_APP_API_URL || 'https://docid.africapidalliance.org/api/v1';
+    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
     const apiUrl = `${baseUrl}/publications/get-publications${queryString ? `?${queryString}` : ''}`;
     
     const response = await fetch(apiUrl, {

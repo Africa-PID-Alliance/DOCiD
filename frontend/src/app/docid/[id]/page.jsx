@@ -50,6 +50,7 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { formatDocIdForDisplay, formatDocIdForUrl } from '@/utils/docidUtils';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 
 const DocIDPage = ({ params }) => {
   const [comment, setComment] = useState('');
@@ -81,6 +82,7 @@ const DocIDPage = ({ params }) => {
   const docId = unwrappedParams.id;
   
   const theme = useTheme();
+  const { t } = useTranslation();
 
   // Fetch comments for this DOCiD
   const fetchComments = async () => {
@@ -139,7 +141,7 @@ const DocIDPage = ({ params }) => {
           throw new Error('DOCiD not found');
         }
 
-        console.log('Publication ID:', publication.id);
+       
         setPublicationId(publication.id);
 
         // Then fetch the full publication details
@@ -222,7 +224,7 @@ const DocIDPage = ({ params }) => {
   if (!docData) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography>DOCiD not found</Typography>
+        <Typography>{t('docid_page.docid_not_found')}</Typography>
       </Box>
     );
   }
@@ -230,32 +232,38 @@ const DocIDPage = ({ params }) => {
   // Section counts using actual data
   const sectionData = [
     { 
-      label: 'Publication(s)', 
+      type: 'publications',
+      label: t('docid_page.sections.publications'), 
       count: docData.publications_files?.length || 0,
       data: docData.publications_files || []
     },
     { 
-      label: 'Document(s)', 
+      type: 'documents',
+      label: t('docid_page.sections.documents'), 
       count: docData.publication_documents?.length || 0,
       data: docData.publication_documents || []
     },
     { 
-      label: 'Creator(s)', 
+      type: 'creators',
+      label: t('docid_page.sections.creators'), 
       count: docData.publication_creators?.length || 0,
       data: docData.publication_creators || []
     },
     { 
-      label: 'Organizations', 
+      type: 'organizations',
+      label: t('docid_page.sections.organizations'), 
       count: docData.publication_organizations?.length || 0,
       data: docData.publication_organizations || []
     },
     { 
-      label: 'Funders', 
+      type: 'funders',
+      label: t('docid_page.sections.funders'), 
       count: docData.publication_funders?.length || 0,
       data: docData.publication_funders || []
     },
     { 
-      label: 'Project(s)', 
+      type: 'projects',
+      label: t('docid_page.sections.projects'), 
       count: docData.publication_projects?.length || 0,
       data: docData.publication_projects || []
     }
@@ -340,7 +348,7 @@ const DocIDPage = ({ params }) => {
         // Refresh comments
         await fetchComments();
         // Show success message
-        setCommentSuccess('Comment posted successfully!');
+        setCommentSuccess(t('docid_page.comments.success.comment_posted'));
         // Clear success message after 3 seconds
         setTimeout(() => setCommentSuccess(''), 3000);
       }
@@ -349,24 +357,24 @@ const DocIDPage = ({ params }) => {
       console.error('Error response:', error.response);
       
       // Show user-friendly error messages based on the error type
-      let errorMessage = 'Unable to post comment. Please try again.';
+      let errorMessage = t('docid_page.comments.errors.generic');
       
       if (error.response?.status === 503) {
-        errorMessage = 'Comments service is temporarily unavailable. Please try again later.';
+        errorMessage = t('docid_page.comments.errors.service_unavailable');
       } else if (error.response?.status === 401) {
-        errorMessage = 'You must be logged in to post comments.';
+        errorMessage = t('docid_page.comments.errors.login_required');
       } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to post comments.';
+        errorMessage = t('docid_page.comments.errors.no_permission');
       } else if (error.response?.status === 400) {
-        errorMessage = 'Invalid comment. Please check your input.';
+        errorMessage = t('docid_page.comments.errors.invalid_comment');
       } else if (error.response?.status === 429) {
-        errorMessage = 'Too many requests. Please wait before posting again.';
+        errorMessage = t('docid_page.comments.errors.too_many_requests');
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-        errorMessage = 'Network connection issue. Please check your internet connection.';
+        errorMessage = t('docid_page.comments.errors.network_error');
       } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        errorMessage = 'Request timed out. Please try again.';
+        errorMessage = t('docid_page.comments.errors.timeout');
       }
       
       // Show error message to user
@@ -419,7 +427,7 @@ const DocIDPage = ({ params }) => {
         // Refresh comments
         await fetchComments();
         // Show success message
-        setCommentSuccess('Reply posted successfully!');
+        setCommentSuccess(t('docid_page.comments.success.reply_posted'));
         // Clear success message after 3 seconds
         setTimeout(() => setCommentSuccess(''), 3000);
       }
@@ -428,24 +436,24 @@ const DocIDPage = ({ params }) => {
       console.error('Reply error response:', error.response);
       
       // Show user-friendly error messages based on the error type
-      let errorMessage = 'Unable to post reply. Please try again.';
+      let errorMessage = t('docid_page.comments.errors.reply_generic');
       
       if (error.response?.status === 503) {
-        errorMessage = 'Comments service is temporarily unavailable. Please try again later.';
+        errorMessage = t('docid_page.comments.errors.service_unavailable');
       } else if (error.response?.status === 401) {
-        errorMessage = 'You must be logged in to post replies.';
+        errorMessage = t('docid_page.comments.errors.login_required');
       } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to post replies.';
+        errorMessage = t('docid_page.comments.errors.no_permission');
       } else if (error.response?.status === 400) {
-        errorMessage = 'Invalid reply. Please check your input.';
+        errorMessage = t('docid_page.comments.errors.invalid_comment');
       } else if (error.response?.status === 429) {
-        errorMessage = 'Too many requests. Please wait before posting again.';
+        errorMessage = t('docid_page.comments.errors.too_many_requests');
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-        errorMessage = 'Network connection issue. Please check your internet connection.';
+        errorMessage = t('docid_page.comments.errors.network_error');
       } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        errorMessage = 'Request timed out. Please try again.';
+        errorMessage = t('docid_page.comments.errors.timeout');
       }
       
       // Show error message to user
@@ -493,7 +501,7 @@ const DocIDPage = ({ params }) => {
 
   // Format date for published date (more user-friendly)
   const formatDate = (dateString) => {
-    if (!dateString) return 'Date not available';
+    if (!dateString) return t('docid_page.date_not_available');
     
     // Handle different date formats
     let date;
@@ -516,7 +524,7 @@ const DocIDPage = ({ params }) => {
     // Check if the date is valid
     if (isNaN(date.getTime())) {
       console.error('Invalid date:', dateString);
-      return 'Invalid date';
+      return t('docid_page.invalid_date');
     }
     
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -607,13 +615,58 @@ const DocIDPage = ({ params }) => {
   };
 
   const handleDownloadFile = (fileUrl) => {
-    // Check if fileUrl is already a full URL or just a path
-    const fullUrl = fileUrl.startsWith('http')
-      ? fileUrl
-      : `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${fileUrl}`;
+    if (!fileUrl) {
+      console.error('No file URL provided');
+      alert(t('docid_page.file_errors.no_url'));
+      return;
+    }
 
-    // Open in new tab/window to view the file
-    window.open(fullUrl, '_blank');
+    let fullUrl;
+    
+    // Check if fileUrl is already a complete URL
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      fullUrl = fileUrl;
+    } else {
+      // Construct the full URL with base URL
+      const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
+      if (!baseUrl) {
+        console.error('No base URL configured for file downloads');
+        alert(t('docid_page.file_errors.no_config'));
+        return;
+      }
+      
+      // Ensure proper URL construction
+      const cleanFileUrl = fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl;
+      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      fullUrl = `${cleanBaseUrl}/${cleanFileUrl}`;
+    }
+
+    console.log('Opening file:', fullUrl);
+    
+    // Try to open in new tab first (better for viewing)
+    try {
+      const newWindow = window.open(fullUrl, '_blank');
+      if (!newWindow) {
+        // If popup blocked, fallback to direct navigation
+        window.location.href = fullUrl;
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      
+      // Fallback: try to download the file
+      try {
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (downloadError) {
+        console.error('Error downloading file:', downloadError);
+        alert(t('docid_page.file_errors.unable_to_open'));
+      }
+    }
   };
 
   const handleLikeClick = () => {
@@ -670,9 +723,7 @@ const DocIDPage = ({ params }) => {
               >
                 <img
                   src={docData.publication_poster_url
-                    ? (docData.publication_poster_url.startsWith('http')
-                      ? docData.publication_poster_url
-                      : `${process.env.NEXT_PUBLIC_NODE_URL}/${docData.publication_poster_url}`)
+                    ? `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${docData.publication_poster_url}`
                     : '/assets/images/Logo2.png'}
                   alt="DOCiD"
                   style={{
@@ -690,7 +741,7 @@ const DocIDPage = ({ params }) => {
                 <Button startIcon={<ThumbUpOutlined sx={{ fontSize: 80 }} />} size="large" onClick={handleLikeClick}>0</Button>
                 <Button startIcon={<CommentIcon sx={{ fontSize: 80 }} />} size="large" onClick={handleCommentsModalOpen}>{getTotalCommentCount()}</Button>
                 <Button startIcon={<VisibilityOutlined sx={{ fontSize: 80 }} />} size="large">0</Button>
-                <Button startIcon={<SendIcon sx={{ fontSize: 80 }} />} size="large" onClick={handleShareClick}>Share</Button>
+                <Button startIcon={<SendIcon sx={{ fontSize: 80 }} />} size="large" onClick={handleShareClick}>{t('docid_page.share')}</Button>
               </Box>
               <Popover
                 open={open}
@@ -783,14 +834,14 @@ const DocIDPage = ({ params }) => {
                     }} 
                   />
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    This feature is not yet available but is in progress for the next version release.
+                    {t('docid_page.feature_modal.message')}
                   </Typography>
                   <Button 
                     variant="contained" 
                     onClick={handleFeatureModalClose}
                     sx={{ minWidth: 100 }}
                   >
-                    OK
+                    {t('docid_page.feature_modal.ok')}
                   </Button>
                 </Box>
               </Dialog>
@@ -821,7 +872,7 @@ const DocIDPage = ({ params }) => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CommentIcon />
                     <Typography variant="h6" fontWeight={600}>
-                      Comments ({getTotalCommentCount()})
+                      {t('docid_page.comments.count', { count: getTotalCommentCount() })}
                     </Typography>
                   </Box>
                   <IconButton
@@ -841,10 +892,10 @@ const DocIDPage = ({ params }) => {
                     <Box sx={{ textAlign: 'center', py: 6, bgcolor: 'background.paper' }}>
                       <CommentIcon sx={{ fontSize: 64, color: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.300', mb: 2 }} />
                       <Typography variant="h6" color="text.secondary" mb={1}>
-                        No comments yet
+                        {t('docid_page.comments.no_comments')}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Be the first to share your thoughts!
+                        {t('docid_page.comments.be_first')}
                       </Typography>
                     </Box>
                   ) : (
@@ -870,7 +921,7 @@ const DocIDPage = ({ params }) => {
                         )}
                         
                         <TextField
-                          placeholder="💭 Share your thoughts..."
+                          placeholder={t('docid_page.comments.placeholder')}
                           fullWidth
                           size="medium"
                           multiline
@@ -920,7 +971,7 @@ const DocIDPage = ({ params }) => {
                             onClick={handleCommentSubmit}
                             disabled={commentLoading || !comment.trim()}
                           >
-                            {commentLoading ? 'Posting...' : 'Post Comment'}
+                            {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
                           </Button>
                         </Box>
                       </Box>
@@ -1197,7 +1248,7 @@ const DocIDPage = ({ params }) => {
                 <Box key={section.label} display="flex" alignItems="center" justifyContent="space-between" mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
                   <Box>
                     <Typography fontWeight={600}>{section.label}</Typography>
-                    <Typography variant="caption">Number of {section.label}: {section.count}</Typography>
+                    <Typography variant="caption">{t('docid_page.sections.number_of', { label: section.label, count: section.count })}</Typography>
                   </Box>
                   <Button 
                     variant="contained" 
@@ -1206,7 +1257,7 @@ const DocIDPage = ({ params }) => {
                     onClick={() => handleViewSection(section)}
                     disabled={section.count === 0}
                   >
-                    VIEW
+                    {t('docid_page.sections.view')}
                   </Button>
               </Box>
               ))}
@@ -1241,7 +1292,7 @@ const DocIDPage = ({ params }) => {
                   </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ p: 0 }}>
-                  {(selectedSection?.label === 'Publication(s)' || selectedSection?.label === 'Document(s)') && (
+                  {(selectedSection?.type === 'publications' || selectedSection?.type === 'documents') && (
                     <List sx={{ width: '100%', p: 0 }}>
                       {selectedSection.data.map((item, index) => (
                         <Box key={index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
@@ -1249,7 +1300,7 @@ const DocIDPage = ({ params }) => {
                             <Typography color="primary">{index + 1}.</Typography>
                             <Box sx={{ flex: 1 }}>
                               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                                Title
+                                {t('docid_page.modal.title_field')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1269,11 +1320,11 @@ const DocIDPage = ({ params }) => {
                                 color="primary"
                                 sx={{ mb: 2 }}
                               >
-                                VIEW FILE
+                                {t('docid_page.modal.view_file')}
                               </Button>
 
                               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                                Description
+                                {t('docid_page.modal.description_field')}
               </Typography>
                               <TextField
                                 fullWidth
@@ -1291,7 +1342,7 @@ const DocIDPage = ({ params }) => {
                               <Grid container spacing={2} sx={{ mb: 2 }}>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                                    Identifier
+                                    {t('docid_page.modal.identifier_field')}
                                   </Typography>
                                   <TextField
                                     fullWidth
@@ -1305,7 +1356,7 @@ const DocIDPage = ({ params }) => {
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                   <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                                    Generated Identifier
+                                    {t('docid_page.modal.generated_identifier_field')}
               </Typography>
                                   <TextField
                                     fullWidth
@@ -1324,19 +1375,19 @@ const DocIDPage = ({ params }) => {
                 ))}
               </List>
                   )}
-                  {selectedSection?.label === 'Creator(s)' && (
+                  {selectedSection?.type === 'creators' && (
                     <List sx={{ width: '100%', p: 0 }}>
                       {selectedSection.data.map((item, index) => (
                         //console.log(item)
                         <Box key={index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
                           <Typography variant="h6" sx={{ mb: 3 }}>
-                            No. {index + 1}
+                            {t('docid_page.modal.number', { number: index + 1 })}
                           </Typography>
 
                           <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Full Name
+                                {t('docid_page.modal.creator_fields.full_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1349,7 +1400,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Family Name
+                                {t('docid_page.modal.creator_fields.family_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1362,7 +1413,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Given Name
+                                {t('docid_page.modal.creator_fields.given_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1375,7 +1426,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Identifier
+                                {t('docid_page.modal.identifier_field')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1388,7 +1439,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Affiliation
+                                {t('docid_page.modal.creator_fields.affiliation')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1401,7 +1452,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Role
+                                {t('docid_page.modal.creator_fields.role')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1416,18 +1467,18 @@ const DocIDPage = ({ params }) => {
                 ))}
               </List>
                   )}
-                  {selectedSection?.label === 'Organizations' && (
+                  {selectedSection?.type === 'organizations' && (
                     <List sx={{ width: '100%', p: 0 }}>
                       {selectedSection.data.map((item, index) => (
                         <Box key={index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
                           <Typography variant="h6" sx={{ mb: 3 }}>
-                            No. {index + 1}
+                            {t('docid_page.modal.number', { number: index + 1 })}
                           </Typography>
 
                           <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Organization Name
+                                {t('docid_page.modal.organization_fields.organization_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1440,7 +1491,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Organization Type
+                                {t('docid_page.modal.organization_fields.organization_type')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1453,7 +1504,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Other Name
+                                {t('docid_page.modal.organization_fields.other_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1466,7 +1517,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Country
+                                {t('docid_page.modal.organization_fields.country')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1481,18 +1532,18 @@ const DocIDPage = ({ params }) => {
                       ))}
                     </List>
                   )}
-                  {selectedSection?.label === 'Funders' && (
+                  {selectedSection?.type === 'funders' && (
                     <List sx={{ width: '100%', p: 0 }}>
                       {selectedSection.data.map((item, index) => (
                         <Box key={index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
                           <Typography variant="h6" sx={{ mb: 3 }}>
-                            No. {index + 1}
+                            {t('docid_page.modal.number', { number: index + 1 })}
                           </Typography>
 
                           <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Organization Name
+                                {t('docid_page.modal.funder_fields.organization_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1505,7 +1556,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Organization Type
+                                {t('docid_page.modal.funder_fields.organization_type')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1518,7 +1569,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Other Name
+                                {t('docid_page.modal.funder_fields.other_name')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1531,7 +1582,7 @@ const DocIDPage = ({ params }) => {
 
                             <Grid item xs={12} sm={6}>
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                Country
+                                {t('docid_page.modal.funder_fields.country')}
                               </Typography>
                               <TextField
                                 fullWidth
@@ -1546,11 +1597,81 @@ const DocIDPage = ({ params }) => {
                       ))}
                     </List>
                   )}
-                  {selectedSection?.label !== 'Publication(s)' && 
-                   selectedSection?.label !== 'Document(s)' && 
-                   selectedSection?.label !== 'Creator(s)' &&
-                   selectedSection?.label !== 'Organizations' &&
-                   selectedSection?.label !== 'Funders' && (
+                  {selectedSection?.type === 'projects' && (
+                    <List sx={{ width: '100%', p: 0 }}>
+                      {selectedSection.data.map((item, index) => (
+                        <Box key={index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                          <Typography variant="h6" sx={{ mb: 3 }}>
+                            {t('docid_page.modal.number', { number: index + 1 })}
+                          </Typography>
+
+                          <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                {t('docid_page.modal.title_field')}
+                              </Typography>
+                              <TextField
+                                fullWidth
+                                value={item.title || ''}
+                                InputProps={{ readOnly: true }}
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 2 }}
+                              />
+                            </Grid>
+
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                {t('docid_page.modal.description_field')}
+                              </Typography>
+                              <TextField
+                                fullWidth
+                                multiline
+                                rows={3}
+                                value={item.description?.replace(/<[^>]+>/g, '') || ''}
+                                InputProps={{ readOnly: true }}
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 2 }}
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                {t('docid_page.modal.identifier_field')}
+                              </Typography>
+                              <TextField
+                                fullWidth
+                                value={item.identifier || item.raid_url || ''}
+                                InputProps={{ readOnly: true }}
+                                variant="outlined"
+                                size="small"
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                {t('docid_page.modal.generated_identifier_field')}
+                              </Typography>
+                              <TextField
+                                fullWidth
+                                value={item.generated_identifier || ''}
+                                InputProps={{ readOnly: true }}
+                                variant="outlined"
+                                size="small"
+                              />
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      ))}
+                    </List>
+                  )}
+                  {selectedSection?.type !== 'publications' && 
+                   selectedSection?.type !== 'documents' && 
+                   selectedSection?.type !== 'creators' &&
+                   selectedSection?.type !== 'organizations' &&
+                   selectedSection?.type !== 'funders' &&
+                   selectedSection?.type !== 'projects' && (
                     <List>
                       {selectedSection?.data.map((item, index) => (
                         <ListItem key={index} divider>
@@ -1570,7 +1691,7 @@ const DocIDPage = ({ params }) => {
                                     component="span" 
                                     sx={{ display: 'block', color: 'text.secondary' }}
                                   >
-                                    Country: {item.country}
+                                    {t('docid_page.modal.organization_fields.country')}: {item.country}
                                   </Box>
                                 )}
                                 {item.role && (
@@ -1578,7 +1699,7 @@ const DocIDPage = ({ params }) => {
                                     component="span" 
                                     sx={{ display: 'block', color: 'text.secondary' }}
                                   >
-                                    Role: {item.role}
+                                    {t('docid_page.modal.creator_fields.role')}: {item.role}
                                   </Box>
                                 )}
                               </Box>
@@ -1596,13 +1717,13 @@ const DocIDPage = ({ params }) => {
           <Grid item xs={12} md={4}>
             {/* Comments Section */}
             <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
-              <Typography fontWeight={600} mb={1} color="text.primary">Comment(s) ({getTotalCommentCount()})</Typography>
+              <Typography fontWeight={600} mb={1} color="text.primary">{t('docid_page.comments.count', { count: getTotalCommentCount() })}</Typography>
               {commentsLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100px' }}>
                   <CircularProgress size={20} />
                 </Box>
               ) : comments.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" mb={2}>No comments!</Typography>
+                <Typography variant="body2" color="text.secondary" mb={2}>{t('docid_page.comments.no_comments_sidebar')}</Typography>
               ) : (
                 <Box>
                   <List sx={{ width: '100%', p: 0 }}>
@@ -1691,7 +1812,7 @@ const DocIDPage = ({ params }) => {
                                     }
                                   }}
                                 >
-                                  Reply
+                                  {t('docid_page.comments.reply')}
                                 </Button>
                                 
                                 {/* Replies Toggle Button */}
@@ -1714,8 +1835,8 @@ const DocIDPage = ({ params }) => {
                                     }}
                                   >
                                     {expandedReplies.has(comment.id) 
-                                      ? `🔽 Hide ${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`
-                                      : `💬 View ${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`
+                                      ? t('docid_page.comments.hide_replies', { count: comment.replies.length, type: comment.replies.length === 1 ? t('docid_page.comments.reply_singular') : t('docid_page.comments.reply_plural') })
+                                      : t('docid_page.comments.view_replies', { count: comment.replies.length, type: comment.replies.length === 1 ? t('docid_page.comments.reply_singular') : t('docid_page.comments.reply_plural') })
                                     }
                                   </Button>
                                 )}
@@ -1738,14 +1859,14 @@ const DocIDPage = ({ params }) => {
                               borderColor: 'primary.main'
                             }}
                           >
-                            <TextField
-                              placeholder={`Reply to ${comment.user_name}...`}
-                              fullWidth
-                              size="small"
-                              multiline
-                              minRows={2}
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
+                                <TextField
+                                  placeholder={t('docid_page.comments.reply_to', { name: comment.user_name })}
+                                  fullWidth
+                                  size="small"
+                                  multiline
+                                  minRows={2}
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
                               sx={{ 
                                 mb: 1.5,
                                 '& .MuiOutlinedInput-root': {
@@ -1762,20 +1883,20 @@ const DocIDPage = ({ params }) => {
                               }}
                             />
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                              <Button
-                                size="small"
-                                onClick={handleCancelReply}
-                                sx={{
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem',
-                                  color: 'text.secondary',
-                                  '&:hover': {
-                                    bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200'
-                                  }
-                                }}
-                              >
-                                Cancel
-                              </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={handleCancelReply}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '0.75rem',
+                                      color: 'text.secondary',
+                                      '&:hover': {
+                                        bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200'
+                                      }
+                                    }}
+                                  >
+                                    {t('docid_page.comments.cancel')}
+                                  </Button>
                               <Button
                                 variant="contained"
                                 size="small"
@@ -1792,9 +1913,9 @@ const DocIDPage = ({ params }) => {
                                     bgcolor: 'primary.dark'
                                   }
                                 }}
-                              >
-                                {commentLoading ? <CircularProgress size={14} color="inherit" /> : 'Reply'}
-                              </Button>
+                                  >
+                                    {commentLoading ? <CircularProgress size={14} color="inherit" /> : t('docid_page.comments.reply')}
+                                  </Button>
                             </Box>
                           </Box>
                         )}
@@ -1899,8 +2020,8 @@ const DocIDPage = ({ params }) => {
                         }}
                       >
                         {showAllComments 
-                          ? '📖 Show Less Comments' 
-                          : `💬 Show All Comments (${comments.length})`
+                          ? t('docid_page.comments.show_less')
+                          : t('docid_page.comments.show_all', { count: comments.length })
                         }
                       </Button>
                     </Box>
@@ -1927,7 +2048,7 @@ const DocIDPage = ({ params }) => {
                   )}
                   
                   <TextField
-                    placeholder="💭 Share your thoughts..."
+                    placeholder={t('docid_page.comments.placeholder')}
                     fullWidth
                     size="medium"
                     multiline
@@ -1976,9 +2097,9 @@ const DocIDPage = ({ params }) => {
                       }}
                       onClick={handleCommentSubmit}
                       disabled={commentLoading || !comment.trim()}
-                    >
-                      {commentLoading ? 'Posting...' : 'Post Comment'}
-                    </Button>
+                      >
+                        {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
+                      </Button>
                   </Box>
                 </Box>
             </Paper>
@@ -1994,7 +2115,7 @@ const DocIDPage = ({ params }) => {
                 color: theme.palette.mode === 'dark' ? 'white' : 'white'
               }
             }}>
-              Related Docids
+              {t('docid_page.sections.related_docids')}
             </Button>
           </Grid>
         </Grid>
