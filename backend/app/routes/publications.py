@@ -2362,9 +2362,132 @@ def get_publication_for_edit(publication_id):
         
         logger.info(f"Publication data for edit retrieved successfully: ID={publication_id}, User={user_id}")
         return jsonify(publication_dict), 200
-        
+
     except Exception as e:
         logger.error(f"Error retrieving publication for edit {publication_id}: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@publications_bp.route('/<int:publication_id>', methods=['DELETE'])
+@jwt_required()
+def delete_publication(publication_id):
+    """
+    Delete a publication by ID (requires authentication)
+    ---
+    tags:
+      - Publications
+    security:
+      - Bearer: []
+    parameters:
+      - name: publication_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the publication to delete
+    responses:
+      200:
+        description: Publication deleted successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Publication deleted successfully
+      401:
+        description: Unauthorized - Authentication required
+      403:
+        description: Forbidden - Cannot delete published documents or user not authorized
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Cannot delete published documents. Please contact support.
+      404:
+        description: Publication not found
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Publication not found
+      500:
+        description: Internal server error
+    """
+    try:
+        from flask_jwt_extended import get_jwt_identity
+
+        # Get the current user from JWT token
+        current_user_id = get_jwt_identity()
+        logger.info(f"User {current_user_id} attempting to delete publication with ID: {publication_id}")
+
+        # Find the publication
+        publication = Publications.query.get(publication_id)
+
+        if not publication:
+            logger.warning(f"Publication not found: ID={publication_id}")
+            return jsonify({'error': 'Publication not found'}), 404
+
+        # Check if the current user owns this publication
+        if publication.user_id != current_user_id:
+            logger.warning(f"User {current_user_id} attempted to delete publication {publication_id} owned by user {publication.user_id}")
+            return jsonify({
+                'error': 'You do not have permission to delete this publication'
+            }), 403
+
+        # Check if publication is published (has a DOCiD assigned)
+        if publication.document_docid:
+            logger.warning(f"Attempt to delete published publication: ID={publication_id}, DOCiD={publication.document_docid}")
+            return jsonify({
+                'error': 'Cannot delete published documents at this time. Please contact support if you need to remove this publication.'
+            }), 403
+
+        # Store info for logging before deletion
+        publication_title = publication.document_title
+        user_id = publication.user_id
+
+        # Delete related records first (cascading delete)
+        try:
+            # Delete publication creators
+            PublicationCreators.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete publication organizations
+            PublicationOrganization.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete publication funders
+            PublicationFunders.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete publication projects
+            PublicationProjects.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete publication files
+            PublicationFiles.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete publication documents
+            PublicationDocuments.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete audit trail entries
+            PublicationAuditTrail.query.filter_by(publication_id=publication_id).delete()
+
+            # Finally delete the publication itself
+            db.session.delete(publication)
+            db.session.commit()
+
+            logger.info(f"Publication deleted successfully: ID={publication_id}, Title='{publication_title}', User={user_id}")
+
+            return jsonify({
+                'message': 'Publication deleted successfully',
+                'publication_id': publication_id
+            }), 200
+
+        except Exception as delete_error:
+            db.session.rollback()
+            logger.error(f"Error during cascade deletion for publication {publication_id}: {str(delete_error)}")
+            raise delete_error
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting publication {publication_id}: {str(e)}")
+        return jsonify({'error': 'Failed to delete publication'}), 500
 
  

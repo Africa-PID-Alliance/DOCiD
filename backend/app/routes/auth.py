@@ -3,7 +3,7 @@ import functools
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Blueprint, g, redirect, request, session, url_for, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
 from app.models import UserAccount, PasswordResets, RegistrationTokens   
@@ -1296,8 +1296,9 @@ def login():
 
         # Verify password
         if user and check_password_hash(user.password, user_password):
-            # Generate access token
+            # Generate access and refresh tokens
             access_token = create_access_token(identity=user.user_id)
+            refresh_token = create_refresh_token(identity=user.user_id)
 
             # Set session details
             session["user_id"] = user.user_id
@@ -1308,11 +1309,12 @@ def login():
             # Log successful login
             logger.info(f"Login successful for user: {user_email}")
 
-            # Return successful login with user data and token
+            # Return successful login with user data and tokens
             return jsonify({
                 'status': True,
                 'message': 'Login successful',
                 'token': access_token,
+                'refresh_token': refresh_token,
                 'user_id': user.user_id,
                 'user_name': user.user_name,
                 'full_name': user.full_name,
@@ -1484,10 +1486,12 @@ def social_auth():
         if existing_user:
             logger.info(f"User already exists: social_id={social_id}, user_id={existing_user.user_id}")
             access_token = create_access_token(identity=existing_user.user_id)
+            refresh_token = create_refresh_token(identity=existing_user.user_id)
             return jsonify({
                 'status': True,
                 'message': 'User logged in successfully',
                 'token': access_token,
+                'refresh_token': refresh_token,
                 'user_data': existing_user.serialize()
             }), 200
 
@@ -1510,10 +1514,12 @@ def social_auth():
         logger.info(f"New user registered successfully: social_id={social_id}, user_id={new_user.user_id}")
 
         access_token = create_access_token(identity=new_user.user_id)
+        refresh_token = create_refresh_token(identity=new_user.user_id)
         return jsonify({
             'status': True,
             'message': 'User registered and logged in successfully',
             'token': access_token,
+            'refresh_token': refresh_token,
             'user_data': new_user.serialize()
         }), 201
 
@@ -1873,3 +1879,62 @@ def logout():
 
     except Exception as e:
         return jsonify({'message': f"An error occurred during logout: {str(e)}"}), 500
+
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Refresh access token using a valid refresh token.
+    ---
+    tags:
+      - Authentication
+    security:
+      - bearerAuth: []
+    responses:
+      200:
+        description: New access token generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_token:
+                  type: string
+                  description: New JWT access token
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      401:
+        description: Invalid or expired refresh token
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Invalid or expired refresh token"
+      500:
+        description: Server error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "An error occurred while refreshing token"
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        logger.info(f"Refreshing token for user_id: {current_user_id}")
+
+        # Generate new access token
+        new_access_token = create_access_token(identity=current_user_id)
+
+        return jsonify({
+            'access_token': new_access_token
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error refreshing token: {str(e)}", exc_info=True)
+        return jsonify({'message': f"An error occurred while refreshing token: {str(e)}"}), 500

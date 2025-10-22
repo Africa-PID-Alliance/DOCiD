@@ -131,6 +131,7 @@ const LoginPage = () => {
 
       const userData = {
         accessToken: data.token,
+        refreshToken: data.refresh_token,
         user_id: data.user_id,
         full_name: data.full_name,
         avator: data.avator,
@@ -139,7 +140,7 @@ const LoginPage = () => {
         affiliation: data.affiliation,
         email: data.email,
         social_id: userDataSocial.social_id || null,
-        
+
       };
 
       // Store user data in localStorage

@@ -530,8 +530,15 @@ const MyAccountPage = () => {
       // Try to delete using the publication ID
       const docid = publicationToDelete.document_docid || publicationToDelete.docid;
 
+      // Get JWT token from user state or localStorage
+      const accessToken = user?.accessToken;
+
       // Note: This assumes there's a delete endpoint - if not, we show a warning
-      const response = await axios.delete(`/api/publications/${publicationToDelete.id}`);
+      const response = await axios.delete(`/api/publications/${publicationToDelete.id}`, {
+        headers: accessToken ? {
+          'Authorization': `Bearer ${accessToken}`
+        } : {}
+      });
 
       if (response.status === 200) {
         // Remove from local state
@@ -547,13 +554,18 @@ const MyAccountPage = () => {
     } catch (error) {
       console.error('Error deleting publication:', error);
 
+      // Get error message from response if available
+      const errorMessage = error.response?.data?.error || error.message;
+
       // Show appropriate error message
-      if (error.response?.status === 404) {
-        alert('This endpoint is not available yet. Please contact support to delete this publication.');
+      if (error.response?.status === 401) {
+        alert('Authentication required. Please log in again.');
       } else if (error.response?.status === 403) {
-        alert('You do not have permission to delete this publication.');
+        alert(errorMessage || 'You do not have permission to delete this publication.');
+      } else if (error.response?.status === 404) {
+        alert(errorMessage || 'Publication not found.');
       } else {
-        alert('Cannot delete published documents at this time. Please contact support if you need to remove this publication.');
+        alert(errorMessage || 'Failed to delete publication. Please try again.');
       }
     } finally {
       setDeleteConfirmOpen(false);

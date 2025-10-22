@@ -4,6 +4,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   user: {
     accessToken: "",
+    refreshToken: "",
     id: null,
     name: "",
     picture: "",
@@ -47,6 +48,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = {
         accessToken: action.payload.accessToken || "",
+        refreshToken: action.payload.refreshToken || "",
         id: action.payload.user_id,
         name: action.payload.full_name,
         picture: action.payload.avator,
@@ -56,7 +58,7 @@ const authSlice = createSlice({
         email: action.payload.email
       };
       state.error = null;
-      
+
       // Persist to localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth', JSON.stringify(state));
@@ -69,6 +71,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = {
         accessToken: "",
+        refreshToken: "",
         id: null,
         name: "",
         picture: "",
@@ -80,10 +83,18 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
-      
+
       // Clear localStorage
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth');
+      }
+    },
+    updateAccessToken: (state, action) => {
+      state.user.accessToken = action.payload.accessToken;
+
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth', JSON.stringify(state));
       }
     },
     setLanguage: (state, action) => {
@@ -97,5 +108,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { rehydrateAuth, loginStart, loginSuccess, loginFailure, logout, setLanguage } = authSlice.actions;
+export const { rehydrateAuth, loginStart, loginSuccess, loginFailure, logout, updateAccessToken, setLanguage } = authSlice.actions;
 export default authSlice.reducer; 

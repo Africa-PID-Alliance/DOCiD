@@ -32,4 +32,9 @@ class Config:
     RAID_CLIENT_SECRET = os.getenv('RAID_CLIENT_SECRET')
     RAID_USERNAME = os.getenv('RAID_USERNAME')
     RAID_PASSWORD = os.getenv('RAID_PASSWORD')
+
+    # JWT Configuration
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # 24 hours in seconds (default)
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2592000))  # 30 days in seconds (default)
  

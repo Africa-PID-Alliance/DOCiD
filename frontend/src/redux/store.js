@@ -3,6 +3,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import authReducer from './slices/authSlice';
 import { default as dataReducer } from './dataSlice';
+import { injectStore } from '../utils/axiosInterceptor';
 
 const persistConfig = {
   key: 'root',
@@ -29,5 +30,8 @@ export const store = configureStore({
       },
     }),
 });
+
+// Inject store into axios interceptor
+injectStore(store);
 
 export const persistor = persistStore(store); 

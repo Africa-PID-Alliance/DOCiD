@@ -45,6 +45,12 @@ def create_app():
     # Load configurations from config.py
     app.config.from_object(Config)
 
+    # JWT Configuration from environment
+    from datetime import timedelta
+    app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(seconds=Config.JWT_REFRESH_TOKEN_EXPIRES)
+
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)

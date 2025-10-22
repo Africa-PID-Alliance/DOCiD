@@ -58,6 +58,7 @@ const ListDocIds = () => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRehydrated, setIsRehydrated] = useState(false);
   const [publications, setPublications] = useState([]);
   const [resourceTypesList, setResourceTypesList] = useState([]);
   const [resourceTypeCounts, setResourceTypeCounts] = useState({});
@@ -78,11 +79,27 @@ const ListDocIds = () => {
   const searchTimeout = useRef(null);
   const [allPublications, setAllPublications] = useState([]);
 
+  // Wait for Redux Persist to rehydrate before checking authentication
   useEffect(() => {
-    if (!isAuthenticated) {
+    const checkRehydration = () => {
+      // Check if persist has completed by checking if auth state exists
+      const persistedAuth = localStorage.getItem('persist:root');
+      if (persistedAuth) {
+        setIsRehydrated(true);
+      } else {
+        // If no persisted data, mark as rehydrated (user is not logged in)
+        setTimeout(() => setIsRehydrated(true), 100);
+      }
+    };
+    checkRehydration();
+  }, []);
+
+  useEffect(() => {
+    // Only check authentication after rehydration is complete
+    if (isRehydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isRehydrated, router]);
 
   useEffect(() => {
     // Check if we have a success parameter in the URL and if we came from assign-docid page
@@ -335,7 +352,12 @@ const ListDocIds = () => {
     }
   };
 
-  // If not authenticated, don't render the page content
+  // Show loading while waiting for rehydration
+  if (!isRehydrated) {
+    return null;
+  }
+
+  // If not authenticated after rehydration, don't render the page content
   if (!isAuthenticated) {
     return null;
   }
