@@ -241,6 +241,70 @@ const AssignDocID = () => {
     await saveDraft();
   };
 
+  // Discard draft function
+  const handleDiscardDraft = async () => {
+    if (!user?.email) return;
+
+    const confirmDiscard = window.confirm(
+      'Are you sure you want to discard your saved draft? This action cannot be undone.'
+    );
+
+    if (!confirmDiscard) return;
+
+    try {
+      await axios.delete(`/api/publications/draft/${user.email}`);
+
+      // Reset form data to initial state
+      setFormData({
+        docId: {
+          title: '',
+          resourceType: '',
+          description: '',
+          generatedId: ''
+        },
+        publications: {
+          publicationType: '',
+          files: []
+        },
+        documents: {
+          documentType: '',
+          files: []
+        },
+        creators: { creators: [] },
+        organizations: { organizations: [] },
+        funders: { funders: [] },
+        project: {
+          projects: []
+        }
+      });
+
+      // Reset draft-related state
+      setDraftLoaded(false);
+      setLastSaved(null);
+      setDraftStatus('idle');
+      isFormDirty.current = false;
+
+      // Reset to first step
+      setActiveStep(0);
+
+      // Show success notification
+      setNotification({
+        open: true,
+        message: 'Draft discarded successfully',
+        severity: 'success'
+      });
+
+      console.log('Draft discarded successfully');
+    } catch (error) {
+      console.error('Failed to discard draft:', error);
+      setNotification({
+        open: true,
+        message: 'Failed to discard draft',
+        severity: 'error'
+      });
+    }
+  };
+
   const getStepContent = (step) => {
     switch (step) {
       case 0:
@@ -572,10 +636,24 @@ const AssignDocID = () => {
           
           {/* Right side - Save status */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Discard draft button */}
+            {(draftLoaded || lastSaved) && (
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                onClick={handleDiscardDraft}
+                disabled={draftStatus === 'saving'}
+                sx={{ minWidth: 'auto', px: 2 }}
+              >
+                Discard Draft
+              </Button>
+            )}
+
             {/* Manual save button (optional) */}
-            <Button 
-              variant="outlined" 
-              size="small" 
+            <Button
+              variant="outlined"
+              size="small"
               onClick={handleManualSave}
               disabled={draftStatus === 'saving'}
               sx={{ minWidth: 'auto', px: 2 }}

@@ -115,3 +115,6 @@ GIT_WORKFLOW.md
 
 # Claude AI configuration
 backend/CLAUDE.md
+
+# Database query utility (contains sensitive queries/credentials)
+backend/db_query.py
