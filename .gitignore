@@ -118,3 +118,4 @@ backend/CLAUDE.md
 
 # Database query utility (contains sensitive queries/credentials)
 backend/db_query.py
+backend/test_user_profile_api.py
