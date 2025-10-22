@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -62,11 +62,25 @@ const MyAccountPage = () => {
   const [orcidError, setOrcidError] = useState(null);
   const [userPublications, setUserPublications] = useState([]);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
+  const [userStatistics, setUserStatistics] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [publicationToDelete, setPublicationToDelete] = useState(null);
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
+    email: user?.email || '',
     format: '',
     faculty: '',
+    role: '',
     country: '',
+    city: '',
+    location: '',
+    orcid_id: '',
+    ror_id: '',
+    linkedin_profile_link: '',
+    facebook_profile_link: '',
+    x_profile_link: '',
+    instagram_profile_link: '',
+    github_profile_link: '',
     profileImage: null
   });
 
@@ -135,28 +149,85 @@ const MyAccountPage = () => {
     }));
   };
 
-  const handleUpdateProfile = () => {
-    // Handle profile update logic here
-    console.log('Updated profile data:', editFormData);
-    handleEditModalClose();
+  const handleUpdateProfile = async (e) => {
+    // Prevent default form submission if event is passed
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    if (!user?.id) return;
+
+    try {
+      const updatePayload = {
+        full_name: editFormData.fullName,
+        email: editFormData.email,
+        affiliation: editFormData.faculty,
+        role: editFormData.role,
+        country: editFormData.country,
+        city: editFormData.city,
+        location: editFormData.location,
+        orcid_id: editFormData.orcid_id,
+        ror_id: editFormData.ror_id,
+        linkedin_profile_link: editFormData.linkedin_profile_link,
+        facebook_profile_link: editFormData.facebook_profile_link,
+        x_profile_link: editFormData.x_profile_link,
+        instagram_profile_link: editFormData.instagram_profile_link,
+        github_profile_link: editFormData.github_profile_link,
+      };
+
+      const response = await axios.put(
+        `/api/user-profile/${user.id}`,
+        updatePayload
+      );
+
+      if (response.data.message === 'User profile updated successfully') {
+        console.log('Profile updated successfully:', response.data);
+        // Refetch user data
+        fetchUserStatistics();
+        handleEditModalClose();
+        // Show success message
+        alert('Profile updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    }
   };
 
-  // Function to fetch user's publications
+  // Function to fetch user's publications using new API endpoint
   const fetchUserPublications = async () => {
     if (!user?.id) return;
-    
+
     try {
       setPublicationsLoading(true);
-      const response = await axios.get('/api/publications/get-publications');
-      
-      // Filter publications by current user's ID
-      const userPubs = response.data.data.filter(pub => pub.user_id === user.id);
-      setUserPublications(userPubs);
-      
-      console.log('User publications:', userPubs);
+
+      // Use the new user-profile publications endpoint
+      const response = await axios.get(`/api/user-profile/${user.id}/publications`, {
+        params: {
+          page: 1,
+          page_size: 10,
+          sort: 'published',
+          order: 'desc'
+        }
+      });
+
+      // The new API returns publications directly
+      setUserPublications(response.data.publications || []);
+
+      console.log('User publications:', response.data);
     } catch (error) {
       console.error('Error fetching user publications:', error);
-      setUserPublications([]);
+
+      // Fallback to old API if new one fails
+      try {
+        const fallbackResponse = await axios.get('/api/publications/get-publications');
+        const userPubs = fallbackResponse.data.data.filter(pub => pub.user_id === user.id);
+        setUserPublications(userPubs);
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        setUserPublications([]);
+      }
     } finally {
       setPublicationsLoading(false);
     }
@@ -246,22 +317,37 @@ const MyAccountPage = () => {
     }
   }, []);
 
-  // Fetch user publications when user is available
+  // Function to fetch user statistics
+  const fetchUserStatistics = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await axios.get(`/api/user-profile/${user.id}/statistics`);
+      setUserStatistics(response.data);
+      console.log('User statistics:', response.data);
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
+    }
+  };
+
+  // Fetch user publications and statistics when user is available
   useEffect(() => {
     if (user?.id) {
       fetchUserPublications();
+      fetchUserStatistics();
     }
   }, [user?.id]);
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (only once on mount)
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const categories = [
-    { title: t('my_account.categories.total_docids'), count: user?.total_docids || 0, icon: DescriptionIcon },
+    { title: t('my_account.categories.total_docids'), count: userStatistics?.total_publications || user?.total_docids || 0, icon: DescriptionIcon },
     { title: t('my_account.categories.indigenous_knowledge'), count: user?.indigenous_knowledge_count || 0, icon: FolderIcon },
     { title: t('my_account.categories.panfest'), count: user?.panfest_count || 0, icon: FolderIcon },
     { title: t('my_account.categories.cultural_heritage'), count: user?.cultural_heritage_count || 0, icon: FolderIcon },
@@ -429,6 +515,55 @@ const MyAccountPage = () => {
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
+  };
+
+  // Handle delete publication
+  const handleDeleteClick = (publication) => {
+    setPublicationToDelete(publication);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!publicationToDelete) return;
+
+    try {
+      // Try to delete using the publication ID
+      const docid = publicationToDelete.document_docid || publicationToDelete.docid;
+
+      // Note: This assumes there's a delete endpoint - if not, we show a warning
+      const response = await axios.delete(`/api/publications/${publicationToDelete.id}`);
+
+      if (response.status === 200) {
+        // Remove from local state
+        setUserPublications(prev =>
+          prev.filter(pub => pub.id !== publicationToDelete.id)
+        );
+
+        // Refetch statistics
+        fetchUserStatistics();
+
+        alert('Publication deleted successfully!');
+      }
+    } catch (error) {
+      console.error('Error deleting publication:', error);
+
+      // Show appropriate error message
+      if (error.response?.status === 404) {
+        alert('This endpoint is not available yet. Please contact support to delete this publication.');
+      } else if (error.response?.status === 403) {
+        alert('You do not have permission to delete this publication.');
+      } else {
+        alert('Cannot delete published documents at this time. Please contact support if you need to remove this publication.');
+      }
+    } finally {
+      setDeleteConfirmOpen(false);
+      setPublicationToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setPublicationToDelete(null);
   };
 
   const accordionSections = [
@@ -998,45 +1133,37 @@ const MyAccountPage = () => {
     },
   ];
 
-  // Show loading state while checking authentication
-  if (!isAuthenticated) {
-    return (
-      <Box 
-        sx={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: 'background.default'
-        }}
-      >
-        <Typography>{t('my_account.loading')}</Typography>
-      </Box>
-    );
-  }
-
-  const EditProfileModal = () => (
+  // Memoize modal BEFORE any conditional returns (Rules of Hooks)
+  const EditProfileModal = useMemo(() => (
     <Modal
       open={openEditModal}
       onClose={handleEditModalClose}
       aria-labelledby="edit-profile-modal"
       aria-describedby="edit-profile-form"
     >
-      <Box sx={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: { xs: '90%', sm: '80%', md: '60%', lg: '50%' },
-        maxWidth: '600px',
-        bgcolor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: 24,
-        p: 4,
-        outline: 'none',
-      }}>
-        <Box sx={{ 
-          display: 'flex', 
+      <Box
+        component="form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }}
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: { xs: '90%', sm: '80%', md: '60%', lg: '50%' },
+          maxWidth: '600px',
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: 24,
+          p: 4,
+          outline: 'none',
+        }}
+      >
+        <Box sx={{
+          display: 'flex',
           flexDirection: 'column',
           gap: 3
         }}>
@@ -1086,81 +1213,334 @@ const MyAccountPage = () => {
               <TextField
                 fullWidth
                 name="fullName"
-label={t('my_account.fields.full_name').replace(':', '')}
+                label={t('my_account.fields.full_name').replace(':', '')}
                 value={editFormData.fullName}
                 onChange={handleEditFormChange}
                 variant="outlined"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
                   }
                 }}
               />
               <TextField
                 fullWidth
-                name="format"
-label={t('my_account.form.phone')}
-                placeholder="+2547..."
-                value={editFormData.format}
+                name="email"
+                label="Email"
+                type="email"
+                value={editFormData.email}
                 onChange={handleEditFormChange}
                 variant="outlined"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
                   }
                 }}
               />
             </Box>
           </Box>
 
-          <FormControl fullWidth>
-            <InputLabel>{t('my_account.form.select_faculty')}</InputLabel>
-            <Select
-              name="faculty"
-              value={editFormData.faculty}
-              onChange={handleEditFormChange}
-label={t('my_account.form.select_faculty')}
-              sx={{
-                backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
-              }}
-            >
-              {faculties.map((faculty) => (
-                <MenuItem key={faculty} value={faculty}>
-                  {faculty}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="role"
+                label="Role/Position"
+                value={editFormData.role}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>{t('my_account.form.select_faculty')}</InputLabel>
+                <Select
+                  name="faculty"
+                  value={editFormData.faculty}
+                  onChange={handleEditFormChange}
+                  label={t('my_account.form.select_faculty')}
+                  sx={{
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                  }}
+                >
+                  {faculties.map((faculty) => (
+                    <MenuItem key={faculty} value={faculty}>
+                      {faculty}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
-          <FormControl fullWidth>
-            <InputLabel>{t('my_account.form.select_country')}</InputLabel>
-            <Select
-              name="country"
-              value={editFormData.country}
-              onChange={handleEditFormChange}
-label={t('my_account.form.select_country')}
-              sx={{
-                backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
-              }}
-            >
-              {allCountries.map((country) => (
-                <MenuItem key={country} value={country}>
-                  {country}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>{t('my_account.form.select_country')}</InputLabel>
+                <Select
+                  name="country"
+                  value={editFormData.country}
+                  onChange={handleEditFormChange}
+                  label={t('my_account.form.select_country')}
+                  sx={{
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                  }}
+                >
+                  {allCountries.map((country) => (
+                    <MenuItem key={country} value={country}>
+                      {country}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="city"
+                label="City"
+                value={editFormData.city}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
+
+          <TextField
+            fullWidth
+            name="location"
+            label="Location (Custom)"
+            value={editFormData.location}
+            onChange={handleEditFormChange}
+            variant="outlined"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                '& input': {
+                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+              }
+            }}
+          />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="orcid_id"
+                label="ORCID iD"
+                placeholder="0000-0000-0000-0000"
+                value={editFormData.orcid_id}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="ror_id"
+                label="ROR ID"
+                value={editFormData.ror_id}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+            Social Media Links
+          </Typography>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="linkedin_profile_link"
+                label="LinkedIn"
+                placeholder="https://linkedin.com/in/username"
+                value={editFormData.linkedin_profile_link}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="github_profile_link"
+                label="GitHub"
+                placeholder="https://github.com/username"
+                value={editFormData.github_profile_link}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="x_profile_link"
+                label="X (Twitter)"
+                placeholder="https://x.com/username"
+                value={editFormData.x_profile_link}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="facebook_profile_link"
+                label="Facebook"
+                placeholder="https://facebook.com/username"
+                value={editFormData.facebook_profile_link}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                name="instagram_profile_link"
+                label="Instagram"
+                placeholder="https://instagram.com/username"
+                value={editFormData.instagram_profile_link}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+                    '& input': {
+                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
 
           <Button
             fullWidth
             variant="contained"
-            onClick={handleUpdateProfile}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleUpdateProfile(e);
+            }}
             sx={{
               mt: 2,
               backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
               color: theme.palette.common.white,
               '&:hover': {
-                backgroundColor: theme.palette.mode === 'dark' 
+                backgroundColor: theme.palette.mode === 'dark'
                   ? alpha('#141a3b', 0.8)
                   : alpha('#1565c0', 0.8),
               }
@@ -1171,7 +1551,24 @@ label={t('my_account.form.select_country')}
         </Box>
       </Box>
     </Modal>
-  );
+  ), [openEditModal, editFormData, theme, t, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
+
+  // Show loading state while checking authentication
+  if (!isAuthenticated) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'background.default'
+        }}
+      >
+        <Typography>{t('my_account.loading')}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', pt: 4, pb: 4, backgroundColor: 'background.content' }}>
@@ -1235,9 +1632,9 @@ label={t('my_account.form.select_country')}
 
             <Grid container spacing={2}>
               {[
-                { title: 'Total DOCiDs', count: 0, icon: DescriptionIcon },
-                { title: 'Indigenous Knowledge', count: 0, icon: FolderIcon },
-                { title: 'Panfest', count: 0, icon: FolderIcon },
+                { title: 'Total DOCiDs', count: userStatistics?.total_publications || 0, icon: DescriptionIcon },
+                { title: 'This Year', count: userStatistics?.publications_this_year || 0, icon: FolderIcon },
+                { title: 'This Month', count: userStatistics?.publications_this_month || 0, icon: FolderIcon },
                 { title: 'Cultural Heritage', count: 0, icon: FolderIcon },
                 { title: 'Project', count: 0, icon: FolderIcon },
                 { title: 'Funder', count: 0, icon: FolderIcon },
@@ -1440,11 +1837,11 @@ label={t('my_account.form.select_country')}
                       >
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {publication.docid}
-                            <IconButton 
-                              size="small" 
-                                onClick={() => navigator.clipboard.writeText(publication.docid)}
-                              sx={{ 
+                              {publication.document_docid || publication.docid}
+                            <IconButton
+                              size="small"
+                                onClick={() => navigator.clipboard.writeText(publication.document_docid || publication.docid)}
+                              sx={{
                                 color: '#1565c0',
                                 '&:hover': {
                                   backgroundColor: alpha('#1565c0', 0.1)
@@ -1456,8 +1853,8 @@ label={t('my_account.form.select_country')}
                           </Box>
                         </TableCell>
                           <TableCell>
-                            <Typography 
-                              sx={{ 
+                            <Typography
+                              sx={{
                                 display: '-webkit-box',
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical',
@@ -1465,14 +1862,14 @@ label={t('my_account.form.select_country')}
                                 lineHeight: 1.4
                               }}
                             >
-                              {publication.title}
+                              {publication.document_title || publication.title}
                             </Typography>
                           </TableCell>
                         <TableCell align="right">
-                          <IconButton 
-                            size="small" 
-                              onClick={() => router.push(`/docid/${encodeURIComponent(publication.docid)}`)}
-                            sx={{ 
+                          <IconButton
+                            size="small"
+                              onClick={() => router.push(`/docid/${encodeURIComponent(publication.document_docid || publication.docid)}`)}
+                            sx={{
                               color: '#1565c0',
                               '&:hover': {
                                 backgroundColor: alpha('#1565c0', 0.1)
@@ -1481,10 +1878,10 @@ label={t('my_account.form.select_country')}
                           >
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => {/* Handle delete */}}
-                            sx={{ 
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick(publication)}
+                            sx={{
                               color: theme.palette.error.main,
                               '&:hover': {
                                 backgroundColor: alpha(theme.palette.error.main, 0.1)
@@ -1527,7 +1924,60 @@ label={t('my_account.form.select_country')}
             </Paper>
           </Grid>
         </Grid>
-        <EditProfileModal />
+        {EditProfileModal}
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          open={deleteConfirmOpen}
+          onClose={handleDeleteCancel}
+          aria-labelledby="delete-confirmation-modal"
+        >
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: '400px' },
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            outline: 'none',
+          }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Delete Publication?
+            </Typography>
+            <Typography sx={{ mb: 3, color: 'text.secondary' }}>
+              Are you sure you want to delete "<strong>{publicationToDelete?.document_title || publicationToDelete?.title}</strong>"?
+              {' '}This action cannot be undone.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                onClick={handleDeleteCancel}
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary,
+                  borderColor: theme.palette.divider
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteConfirm}
+                variant="contained"
+                color="error"
+                sx={{
+                  backgroundColor: theme.palette.error.main,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.error.main, 0.8),
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
       </Container>
     </Box>
   );
