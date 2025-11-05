@@ -14,7 +14,8 @@ module.exports = {
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        BACKEND_API_URL: 'http://localhost:6000/api'
       },
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',

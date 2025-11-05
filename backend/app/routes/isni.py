@@ -200,10 +200,10 @@ def search_organizations():
             data = response.json()
 
             # Check if results are found
-            if data.get('search_total_count', 0) == 0:
+            if data.get('total', 0) == 0:
                 return jsonify({
                     "message": "No organizations found for your query",
-                    "search_total_count": 0,
+                    "total": 0,
                     "institutions": []
                 }), 200
 

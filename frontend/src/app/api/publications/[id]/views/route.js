@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
-const ANALYTICS_API_URL = API_BASE_URL.replace('/api/v1', '/api');
+const ANALYTICS_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5001/api';
 
 export async function POST(request, { params }) {
   const { id } = (await params);
