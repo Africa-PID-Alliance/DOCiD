@@ -876,3 +876,147 @@ class PublicationAuditTrail(db.Model):
             'ip_address': self.ip_address,
             'user_agent': self.user_agent
         }
+
+
+class PublicationViews(db.Model):
+    """
+    Track DOCiD page views for analytics
+    """
+    __tablename__ = 'publication_views'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'), nullable=True, index=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    publication = db.relationship('Publications', backref=db.backref('views', lazy='dynamic'))
+    user = db.relationship('UserAccount', backref=db.backref('viewed_publications', lazy='dynamic'))
+
+    def __repr__(self):
+        return f"<PublicationViews(id={self.id}, publication_id={self.publication_id}, viewed_at='{self.viewed_at}')>"
+
+    def to_dict(self):
+        """Serialize view record for JSON responses"""
+        return {
+            'id': self.id,
+            'publication_id': self.publication_id,
+            'user_id': self.user_id,
+            'viewed_at': self.viewed_at.isoformat() if self.viewed_at else None
+        }
+
+    @classmethod
+    def get_view_count(cls, publication_id):
+        """
+        Get total view count for a publication
+
+        Args:
+            publication_id (int): ID of the publication
+
+        Returns:
+            int: Total number of views
+        """
+        return cls.query.filter_by(publication_id=publication_id).count()
+
+    @classmethod
+    def track_view(cls, publication_id, user_id=None, ip_address=None, user_agent=None):
+        """
+        Track a new view
+
+        Args:
+            publication_id (int): ID of the publication
+            user_id (int, optional): ID of the user viewing (null for anonymous)
+            ip_address (str, optional): IP address of the viewer
+            user_agent (str, optional): Browser/client information
+
+        Returns:
+            PublicationViews: Created view record
+        """
+        view = cls(
+            publication_id=publication_id,
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.session.add(view)
+        db.session.commit()
+        return view
+
+
+class FileDownloads(db.Model):
+    """
+    Track file downloads for analytics
+    """
+    __tablename__ = 'file_downloads'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    publication_file_id = db.Column(db.Integer, db.ForeignKey('publications_files.id'), nullable=True, index=True)
+    publication_document_id = db.Column(db.Integer, db.ForeignKey('publication_documents.id'), nullable=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'), nullable=True, index=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    downloaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    publication_file = db.relationship('PublicationFiles', backref=db.backref('downloads', lazy='dynamic'))
+    publication_document = db.relationship('PublicationDocuments', backref=db.backref('downloads', lazy='dynamic'))
+    user = db.relationship('UserAccount', backref=db.backref('downloaded_files', lazy='dynamic'))
+
+    def __repr__(self):
+        return f"<FileDownloads(id={self.id}, file_id={self.publication_file_id}, document_id={self.publication_document_id})>"
+
+    def to_dict(self):
+        """Serialize download record for JSON responses"""
+        return {
+            'id': self.id,
+            'publication_file_id': self.publication_file_id,
+            'publication_document_id': self.publication_document_id,
+            'user_id': self.user_id,
+            'downloaded_at': self.downloaded_at.isoformat() if self.downloaded_at else None
+        }
+
+    @classmethod
+    def get_download_count(cls, publication_id):
+        """
+        Get total download count for all files in a publication
+
+        Args:
+            publication_id (int): ID of the publication
+
+        Returns:
+            int: Total number of downloads
+        """
+        file_downloads_count = db.session.query(cls).join(
+            PublicationFiles, cls.publication_file_id == PublicationFiles.id
+        ).filter(PublicationFiles.publication_id == publication_id).count()
+
+        document_downloads_count = db.session.query(cls).join(
+            PublicationDocuments, cls.publication_document_id == PublicationDocuments.id
+        ).filter(PublicationDocuments.publication_id == publication_id).count()
+
+        return file_downloads_count + document_downloads_count
+
+    @classmethod
+    def track_download(cls, file_id=None, document_id=None, user_id=None, ip_address=None):
+        """
+        Track a new download
+
+        Args:
+            file_id (int, optional): ID of the publication file
+            document_id (int, optional): ID of the publication document
+            user_id (int, optional): ID of the user downloading (null for anonymous)
+            ip_address (str, optional): IP address of the downloader
+
+        Returns:
+            FileDownloads: Created download record
+        """
+        download = cls(
+            publication_file_id=file_id,
+            publication_document_id=document_id,
+            user_id=user_id,
+            ip_address=ip_address
+        )
+        db.session.add(download)
+        db.session.commit()
+        return download

@@ -73,7 +73,9 @@ const DocIDPage = ({ params }) => {
   const [publicationId, setPublicationId] = useState(null);
   const [commentError, setCommentError] = useState('');
   const [commentSuccess, setCommentSuccess] = useState('');
-  
+  const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
+  const [filesStats, setFilesStats] = useState({ files: [], documents: [] });
+
   // Redux state
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   
@@ -190,6 +192,39 @@ const DocIDPage = ({ params }) => {
       fetchComments();
     }
   }, [publicationId]);
+
+  // Track view and fetch stats when publication ID is available
+  useEffect(() => {
+    const trackViewAndFetchStats = async () => {
+      if (!publicationId) return;
+
+      try {
+        // Track view
+        await axios.post(`/api/publications/${publicationId}/views`, {
+          user_id: user?.user_id || null,
+        });
+
+        // Fetch stats
+        const statsResponse = await axios.get(`/api/publications/${publicationId}/stats`);
+        if (statsResponse.data.status === 'success') {
+          setStats(statsResponse.data.stats);
+        }
+
+        // Fetch individual files/documents stats
+        const filesStatsResponse = await axios.get(`/api/publications/${publicationId}/files-stats`);
+        if (filesStatsResponse.data.status === 'success') {
+          setFilesStats({
+            files: filesStatsResponse.data.files || [],
+            documents: filesStatsResponse.data.documents || []
+          });
+        }
+      } catch (error) {
+        console.error('Error with analytics:', error);
+      }
+    };
+
+    trackViewAndFetchStats();
+  }, [publicationId, user]);
 
   // Fetch creator roles
   useEffect(() => {
@@ -614,15 +649,72 @@ const DocIDPage = ({ params }) => {
     setSelectedSection(null);
   };
 
-  const handleDownloadFile = (fileUrl) => {
+  // Helper function to get download count for a specific file or document
+  const getDownloadCount = (itemId, isDocument) => {
+    if (isDocument) {
+      const doc = filesStats.documents.find(d => d.id === itemId);
+      return doc ? doc.downloads : 0;
+    } else {
+      const file = filesStats.files.find(f => f.id === itemId);
+      return file ? file.downloads : 0;
+    }
+  };
+
+  const handleDownloadFile = async (fileUrlOrItem, itemType = null) => {
+    // Handle both old call style (just URL) and new style (item object)
+    let fileUrl, fileId, isDocument;
+
+    if (typeof fileUrlOrItem === 'string') {
+      // Old style: just URL passed
+      fileUrl = fileUrlOrItem;
+      fileId = null;
+      isDocument = false;
+    } else {
+      // New style: item object passed
+      fileUrl = fileUrlOrItem.file_url;
+      fileId = fileUrlOrItem.id;
+      isDocument = itemType === 'document';
+    }
+
     if (!fileUrl) {
       console.error('No file URL provided');
       alert(t('docid_page.file_errors.no_url'));
       return;
     }
 
+    // Track download if we have an ID
+    if (fileId) {
+      try {
+        const endpoint = isDocument
+          ? `/api/publications/documents/${fileId}/downloads`
+          : `/api/publications/files/${fileId}/downloads`;
+
+        await axios.post(endpoint, {
+          user_id: user?.user_id || null,
+        });
+
+        // Refresh stats after tracking download
+        const statsResponse = await axios.get(`/api/publications/${publicationId}/stats`);
+        if (statsResponse.data.status === 'success') {
+          setStats(statsResponse.data.stats);
+        }
+
+        // Refresh individual files/documents stats
+        const filesStatsResponse = await axios.get(`/api/publications/${publicationId}/files-stats`);
+        if (filesStatsResponse.data.status === 'success') {
+          setFilesStats({
+            files: filesStatsResponse.data.files || [],
+            documents: filesStatsResponse.data.documents || []
+          });
+        }
+      } catch (error) {
+        console.error('Error tracking download:', error);
+        // Continue with download even if tracking fails
+      }
+    }
+
     let fullUrl;
-    
+
     // Check if fileUrl is already a complete URL
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       fullUrl = fileUrl;
@@ -634,7 +726,7 @@ const DocIDPage = ({ params }) => {
         alert(t('docid_page.file_errors.no_config'));
         return;
       }
-      
+
       // Ensure proper URL construction
       const cleanFileUrl = fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl;
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
@@ -642,7 +734,7 @@ const DocIDPage = ({ params }) => {
     }
 
     console.log('Opening file:', fullUrl);
-    
+
     // Try to open in new tab first (better for viewing)
     try {
       const newWindow = window.open(fullUrl, '_blank');
@@ -652,7 +744,7 @@ const DocIDPage = ({ params }) => {
       }
     } catch (error) {
       console.error('Error opening file:', error);
-      
+
       // Fallback: try to download the file
       try {
         const link = document.createElement('a');
@@ -740,7 +832,7 @@ const DocIDPage = ({ params }) => {
               <Box display="flex" justifyContent="space-between" alignItems="center" gap={4} mb={2}>
                 <Button startIcon={<ThumbUpOutlined sx={{ fontSize: 80 }} />} size="large" onClick={handleLikeClick}>0</Button>
                 <Button startIcon={<CommentIcon sx={{ fontSize: 80 }} />} size="large" onClick={handleCommentsModalOpen}>{getTotalCommentCount()}</Button>
-                <Button startIcon={<VisibilityOutlined sx={{ fontSize: 80 }} />} size="large">0</Button>
+                <Button startIcon={<VisibilityOutlined sx={{ fontSize: 80 }} />} size="large">{stats.views}</Button>
                 <Button startIcon={<SendIcon sx={{ fontSize: 80 }} />} size="large" onClick={handleShareClick}>{t('docid_page.share')}</Button>
               </Box>
               <Popover
@@ -1313,15 +1405,29 @@ const DocIDPage = ({ params }) => {
                                 sx={{ mb: 2 }}
                               />
 
-                              <Button
-                                variant="contained"
-                                fullWidth
-                                onClick={() => handleDownloadFile(item.file_url)}
-                                color="primary"
-                                sx={{ mb: 2 }}
-                              >
-                                {t('docid_page.modal.view_file')}
-                              </Button>
+                              <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                                <Button
+                                  variant="contained"
+                                  fullWidth
+                                  onClick={() => handleDownloadFile(item, selectedSection?.type === 'documents' ? 'document' : 'file')}
+                                  color="primary"
+                                >
+                                  {t('docid_page.modal.view_file')}
+                                </Button>
+                                <Box sx={{
+                                  minWidth: '100px',
+                                  textAlign: 'center',
+                                  bgcolor: 'primary.light',
+                                  color: 'primary.contrastText',
+                                  py: 1,
+                                  px: 2,
+                                  borderRadius: 1
+                                }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {getDownloadCount(item.id, selectedSection?.type === 'documents')} downloads
+                                  </Typography>
+                                </Box>
+                              </Box>
 
                               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                                 {t('docid_page.modal.description_field')}
