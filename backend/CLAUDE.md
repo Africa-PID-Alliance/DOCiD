@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📚 DOCUMENTATION FIRST - READ BEFORE CODING
+
+**CRITICAL:** Before working on any feature, READ these documentation files to avoid wasting time searching:
+
+1. **[API_REFERENCE.md](../API_REFERENCE.md)** - Complete map of all Flask API endpoints
+2. **[DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md)** - All database models, relationships, and patterns
+3. **[FRONTEND_ARCHITECTURE.md](../FRONTEND_ARCHITECTURE.md)** - Next.js structure, pages, and patterns
+4. **[DEVELOPMENT_PATTERNS.md](../DEVELOPMENT_PATTERNS.md)** - Step-by-step guides for common tasks
+
+**These docs eliminate the need to "find what is where" on every new feature. Use them!**
+
+---
+
 ## Project Overview
 
 DOCiD is a Flask-based REST API serving as a comprehensive publication and document identifier management platform. It provides persistent identifier (PID) services, metadata management, and scholarly communication tools, with extensive integration to external services including Crossref, CSTR, CORDRA, ROR, ORCID, and Local Contexts.
@@ -33,6 +46,24 @@ DOCiD is a Flask-based REST API serving as a comprehensive publication and docum
 - Publications → PublicationOrganization (ROR ID integration)
 - Publications → PublicationFunders (structured funding information)
 - Publications → PublicationComments (hierarchical tree structure)
+
+### 🎯 REFERENCE PATTERNS FOR NEW FEATURES
+
+**When adding new features, ALWAYS use these as templates:**
+
+1. **Comments API** ([routes/comments.py](app/routes/comments.py)) - Perfect example for:
+   - Database model with relationships
+   - Class methods for business logic
+   - Blueprint routes with error handling
+   - CRUD operations
+   - Frontend API proxy pattern
+
+2. **Publications Model** ([models.py](app/models.py)) - Shows:
+   - Cascading relationships
+   - Indexes on foreign keys
+   - Serialization methods
+
+**See [DEVELOPMENT_PATTERNS.md](../DEVELOPMENT_PATTERNS.md) for step-by-step implementation guides.**
 
 ## Development Commands
 

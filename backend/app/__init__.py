@@ -96,6 +96,7 @@ def create_app():
     from app.routes.comments import comments_bp
     from app.routes.user_profile import user_profile_bp
     from app.routes.analytics import analytics_bp
+    from app.routes.isni import isni_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(datacite_bp, url_prefix='/api/v1/datacite')
@@ -116,6 +117,7 @@ def create_app():
     app.register_blueprint(comments_bp)
     app.register_blueprint(user_profile_bp, url_prefix='/api/v1/user-profile')
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(isni_bp, url_prefix='/api/v1/isni')
 
     # Add root-level DocID route
     from app.routes.docid_root import setup_docid_root_route
