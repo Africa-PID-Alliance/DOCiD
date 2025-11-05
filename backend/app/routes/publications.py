@@ -1927,15 +1927,70 @@ def get_draft_stats():
     """
     try:
         total_drafts = PublicationDrafts.get_user_drafts_count()
-        
+
         return jsonify({
             'totalDrafts': total_drafts,
             'message': 'Draft statistics retrieved successfully'
         }), 200
-        
+
     except Exception as e:
         logger.error(f"Error retrieving draft stats: {str(e)}")
         return jsonify({'error': 'Failed to retrieve draft statistics'}), 500
+
+
+@publications_bp.route('/draft/by-user/<int:user_id>', methods=['GET'])
+def get_draft_by_user_id(user_id):
+    """
+    Get saved draft data for user by user_id
+    ---
+    tags:
+      - Publications
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: Draft data retrieved successfully
+      404:
+        description: User not found or no draft data found
+      500:
+        description: Internal server error
+    """
+    try:
+        logger.info(f"Retrieving draft data for user_id: {user_id}")
+
+        # First, get the user's email from user_id
+        user = UserAccount.query.get(user_id)
+        if not user:
+            return jsonify({
+                'error': 'User not found',
+                'hasDraft': False
+            }), 404
+
+        # Then get the draft using email
+        draft = PublicationDrafts.get_draft(user.email)
+
+        if not draft:
+            return jsonify({
+                'message': 'No draft found',
+                'hasDraft': False,
+                'user_email': user.email
+            }), 200
+
+        return jsonify({
+            'hasDraft': True,
+            'formData': draft.form_data,
+            'lastSaved': draft.updated_at.isoformat(),
+            'user_email': user.email,
+            'message': 'Draft retrieved successfully'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error retrieving draft by user_id: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve draft'}), 500
 
 
 @publications_bp.route('/update-publication/<int:publication_id>', methods=['PUT'])
