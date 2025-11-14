@@ -131,6 +131,17 @@ const resources = {
         "approach_title": "Our Approach",
         "approach_text_1": "Presenting Hybrid Digital Object Identification from the Africa PID Alliance: A hybrid digital object identification system is being pioneered by the Africa PID Alliance. This method connects DOIs produced by the DOI Foundation (prefix 10) with locally generated handles (prefix 20). A digital object identifier container will combine DOIs with locally generated handle IDs for patents, offering a thorough overview of the research process, the inventions that result in patents, and associated publications, papers, and media.",
         "approach_text_2": "By combining scientific data and biocultural characteristics into a single digital object container, this novel multilinear data model also applies to indigenous knowledge. It successfully connects different kinds of digital items. Ceremonies, for example, incorporate various forms of cultural heritage, including dance, singing, textile art, and associated research, all of which require digital identification and preservation.",
+        "diffusion_innovation_title": "Our approach to the Diffusion of Innovation",
+        "diffusion_innovation_read_more": "Click to read more",
+        "diffusion_innovation_collapse": "Click to collapse",
+        "diffusion_innovation_text_1": "While the digital transformation of cultural heritage and research infrastructures has opened up new avenues, it has also given rise to ethical concerns, particularly with regard to Indigenous Knowledge Systems (IKS). African cultural artefacts and knowledge are often scattered across fragmented digital silos with limited interoperability and provenance transparency. This refined and contextually aligned description explains the need for integrating Digital Object Container Identifier (DOCiD) as a use case for universities and Indigenous and cultural heritage institutions, grounded in FAIR and CARE principles and emphasizing interoperability.",
+        "diffusion_innovation_text_2": "Integrating DOCiD as a use case within universities and Indigenous and cultural heritage institutions addresses the urgent need for structured, ethical, and interoperable management of digital knowledge assets. As institutions increasingly digitise research outputs, oral traditions, and cultural materials, there is a critical gap in systems that can ensure both technical discoverability and community sovereignty over data.",
+        "diffusion_innovation_text_3": "Positioning DOCiD as a site for the diffusion of innovation establishes it as a living laboratory where open science practices meet indigenous data governance. This process fosters co-creation between academia, communities, and technology developers, demonstrating how emerging digital infrastructures can evolve responsibly to accommodate plural knowledge systems. Through this integration, DOCiD becomes not just a technological solution but an innovation-in-the-making—a catalyst for redefining interoperability, inclusivity, and equity in the digital knowledge economy.",
+        "diffusion_innovation_text_4": "DOCiD provides a persistent, metadata-rich identifier framework that connects digital objects—such as datasets, recordings, artefacts, and publications—to their contextual relationships and provenance. This enables alignment with the FAIR principles (Findable, Accessible, Interoperable, Reusable), ensuring that institutional knowledge is globally visible and reusable through interoperable metadata standards.",
+        "diffusion_innovation_text_5": "Librarians and curators play a pivotal role in this process—as stewards of metadata quality, provenance, and ethical data governance. Their involvement ensures that DOCiD implementation aligns with institutional data management policies, supports community consent, and embeds traditional knowledge labels or protocols where appropriate. By involving these professionals, institutions can foster a responsible and inclusive data ecosystem that balances openness with cultural sensitivity and ownership.",
+        "diffusion_innovation_text_6": "At the same time, DOCiD integrates the CARE principles (Collective Benefit, Authority to Control, Responsibility, and Ethics), embedding mechanisms for ethical stewardship, attribution, and community governance of Indigenous and cultural heritage data. By doing so, it balances the openness encouraged by FAIR with the protections and respect required by CARE.",
+        "diffusion_innovation_text_7": "For universities, DOCiD supports transparent research management, metadata harmonization, and open science infrastructures. For Indigenous and cultural heritage institutions, it safeguards traditional knowledge through controlled sharing frameworks, acknowledging cultural protocols while enabling participation in global knowledge ecosystems.",
+        "diffusion_innovation_text_8": "Through interoperability with existing PID infrastructures (e.g., CSTR, ISNI, ORCID, RAiD, ROR, DOI, ARK, Handle), DOCiD ensures that African and Indigenous knowledge systems are digitally represented, contextually linked, and ethically governed—contributing to a more inclusive and equitable global research and data landscape.",
         "collaboration_title": "Collaboration",
         "collaboration_text": "Working together with current registration agencies is crucial to improving the discovery and integration of the Africa PID Alliance's DOCiD™ (TM). The infrastructure team of the Africa PID Alliance, which includes its data centre at the Kenya Education Network, data scientists, and co-leaders from the Africa PID Alliance and founding partners, are collaborating closely to determine the most effective ways to accomplish this objective.",
         "showcase_title": "Showcase"
@@ -558,6 +569,30 @@ const resources = {
           "no_url": "File URL is not available",
           "no_config": "File server configuration is missing",
           "unable_to_open": "Unable to open or download the file. Please check if the file exists and try again."
+        },
+        "menu": {
+          "invite_user": "Invite User"
+        },
+        "invite": {
+          "title": "Invite User",
+          "description": "Invite a user to collaborate on this DOCiD. They will receive an invitation email.",
+          "email_label": "Email Address",
+          "email_placeholder": "Enter user email address",
+          "role_label": "Role",
+          "cancel": "Cancel",
+          "send": "Send Invitation",
+          "sending": "Sending..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "Email address is required",
+          "invalid_email": "Please enter a valid email address",
+          "role_required": "Please select a role",
+          "generic": "Failed to send invitation. Please try again."
+        },
+        "success": {
+          "user_invited": "Invitation sent successfully!"
         }
       }
     }
@@ -688,6 +723,17 @@ const resources = {
         "approach_title": "Notre Approche",
         "approach_text_1": "Présentation de l'Identification Hybride d'Objets Numériques de l'Alliance PID Afrique : Un système d'identification hybride d'objets numériques est en cours de développement par l'Alliance PID Afrique. Cette méthode connecte les DOI produits par la Fondation DOI (préfixe 10) avec des handles générés localement (préfixe 20). Un conteneur d'identifiant d'objet numérique combinera les DOI avec des identifiants de handle générés localement pour les brevets, offrant un aperçu complet du processus de recherche, des inventions qui aboutissent à des brevets, et des publications, articles et médias associés.",
         "approach_text_2": "En combinant les données scientifiques et les caractéristiques bioculturelles dans un seul conteneur d'objet numérique, ce nouveau modèle de données multilinéaire s'applique également aux connaissances autochtones. Il connecte avec succès différents types d'éléments numériques. Les cérémonies, par exemple, incorporent diverses formes de patrimoine culturel, y compris la danse, le chant, l'art textile et la recherche associée, qui nécessitent toutes une identification et une préservation numériques.",
+        "diffusion_innovation_title": "Notre approche de la Diffusion de l'Innovation",
+        "diffusion_innovation_read_more": "Cliquer pour en savoir plus",
+        "diffusion_innovation_collapse": "Cliquer pour réduire",
+        "diffusion_innovation_text_1": "Alors que la transformation numérique du patrimoine culturel et des infrastructures de recherche a ouvert de nouvelles voies, elle a également soulevé des préoccupations éthiques, notamment en ce qui concerne les Systèmes de Connaissances Autochtones (SCA). Les artefacts culturels et les connaissances africains sont souvent dispersés dans des silos numériques fragmentés avec une interopérabilité et une transparence de provenance limitées. Cette description raffinée et contextuellement alignée explique la nécessité d'intégrer le Digital Object Container Identifier (DOCiD) comme cas d'usage pour les universités et les institutions de patrimoine culturel autochtone, fondé sur les principes FAIR et CARE et mettant l'accent sur l'interopérabilité.",
+        "diffusion_innovation_text_2": "L'intégration de DOCiD comme cas d'usage au sein des universités et des institutions de patrimoine culturel autochtone répond au besoin urgent d'une gestion structurée, éthique et interopérable des actifs de connaissances numériques. Alors que les institutions numérisent de plus en plus les résultats de recherche, les traditions orales et les matériaux culturels, il existe un écart critique dans les systèmes qui peuvent assurer à la fois la découvrabilité technique et la souveraineté communautaire sur les données.",
+        "diffusion_innovation_text_3": "Positionner DOCiD comme site de diffusion de l'innovation l'établit comme un laboratoire vivant où les pratiques de science ouverte rencontrent la gouvernance des données autochtones. Ce processus favorise la co-création entre le monde académique, les communautés et les développeurs de technologies, démontrant comment les infrastructures numériques émergentes peuvent évoluer de manière responsable pour s'adapter aux systèmes de connaissances pluriels. Grâce à cette intégration, DOCiD devient non seulement une solution technologique mais une innovation en devenir—un catalyseur pour redéfinir l'interopérabilité, l'inclusivité et l'équité dans l'économie de la connaissance numérique.",
+        "diffusion_innovation_text_4": "DOCiD fournit un cadre d'identification persistant et riche en métadonnées qui connecte les objets numériques—tels que les jeux de données, les enregistrements, les artefacts et les publications—à leurs relations contextuelles et leur provenance. Cela permet l'alignement avec les principes FAIR (Trouvable, Accessible, Interopérable, Réutilisable), garantissant que les connaissances institutionnelles sont globalement visibles et réutilisables grâce à des normes de métadonnées interopérables.",
+        "diffusion_innovation_text_5": "Les bibliothécaires et conservateurs jouent un rôle essentiel dans ce processus—en tant que gardiens de la qualité des métadonnées, de la provenance et de la gouvernance éthique des données. Leur implication garantit que la mise en œuvre de DOCiD s'aligne sur les politiques de gestion des données institutionnelles, soutient le consentement communautaire et intègre des étiquettes ou protocoles de connaissances traditionnelles le cas échéant. En impliquant ces professionnels, les institutions peuvent favoriser un écosystème de données responsable et inclusif qui équilibre l'ouverture avec la sensibilité culturelle et la propriété.",
+        "diffusion_innovation_text_6": "Dans le même temps, DOCiD intègre les principes CARE (Bénéfice Collectif, Autorité de Contrôle, Responsabilité et Éthique), incorporant des mécanismes d'intendance éthique, d'attribution et de gouvernance communautaire des données du patrimoine culturel autochtone. Ce faisant, il équilibre l'ouverture encouragée par FAIR avec les protections et le respect requis par CARE.",
+        "diffusion_innovation_text_7": "Pour les universités, DOCiD soutient la gestion transparente de la recherche, l'harmonisation des métadonnées et les infrastructures de science ouverte. Pour les institutions de patrimoine culturel autochtone, il sauvegarde les connaissances traditionnelles à travers des cadres de partage contrôlé, reconnaissant les protocoles culturels tout en permettant la participation aux écosystèmes de connaissances mondiaux.",
+        "diffusion_innovation_text_8": "Grâce à l'interopérabilité avec les infrastructures PID existantes (par exemple, CSTR, ISNI, ORCID, RAiD, ROR, DOI, ARK, Handle), DOCiD garantit que les systèmes de connaissances africains et autochtones sont représentés numériquement, liés contextuellement et gouvernés éthiquement—contribuant à un paysage de recherche et de données mondial plus inclusif et équitable.",
         "collaboration_title": "Collaboration",
         "collaboration_text": "Travailler ensemble avec les agences d'enregistrement actuelles est crucial pour améliorer la découverte et l'intégration du DOCiD™ de l'Alliance PID Afrique. L'équipe d'infrastructure de l'Alliance PID Afrique, qui comprend son centre de données au Kenya Education Network, les scientifiques des données et les co-leaders de l'Alliance PID Afrique et des partenaires fondateurs, collaborent étroitement pour déterminer les moyens les plus efficaces d'accomplir cet objectif.",
         "showcase_title": "Vitrine"
@@ -1115,6 +1161,30 @@ const resources = {
           "no_url": "L'URL du fichier n'est pas disponible",
           "no_config": "La configuration du serveur de fichiers est manquante",
           "unable_to_open": "Impossible d'ouvrir ou de télécharger le fichier. Veuillez vérifier si le fichier existe et réessayer."
+        },
+        "menu": {
+          "invite_user": "Inviter un Utilisateur"
+        },
+        "invite": {
+          "title": "Inviter un Utilisateur",
+          "description": "Invitez un utilisateur à collaborer sur ce DOCiD. Il recevra un email d'invitation.",
+          "email_label": "Adresse Email",
+          "email_placeholder": "Entrez l'adresse email de l'utilisateur",
+          "role_label": "Rôle",
+          "cancel": "Annuler",
+          "send": "Envoyer l'Invitation",
+          "sending": "Envoi en cours..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "L'adresse email est requise",
+          "invalid_email": "Veuillez entrer une adresse email valide",
+          "role_required": "Veuillez sélectionner un rôle",
+          "generic": "Échec de l'envoi de l'invitation. Veuillez réessayer."
+        },
+        "success": {
+          "user_invited": "Invitation envoyée avec succès !"
         }
       }
     }
@@ -1245,6 +1315,17 @@ const resources = {
         "approach_title": "Mbinu Yetu",
         "approach_text_1": "Kutolewa kwa Utambulisho wa Vitu vya Kidijitali vya Mchanganyiko kutoka Ushirika wa PID wa Afrika: Mfumo wa utambulisho wa vitu vya kidijitali wa mchanganyiko unaongozwa na Ushirika wa PID wa Afrika. Mbinu hii inaunganisha DOI zinazozalishwa na Msingi wa DOI (kiambishi 10) na vishikio vya ndani (kiambishi 20). Chombo cha kitambulisho cha kitu cha kidijitali kitaunganisha DOI na vitambulisho vya vishikio vya ndani kwa hataza, ikitoa muhtasari kamili wa mchakato wa utafiti, uvumbuzi ambao husababisha hataza, na machapisho, makala, na vyombo vya habari vya kuhusiana.",
         "approach_text_2": "Kwa kuunganisha data za kisayansi na sifa za kibiolojia na kitamaduni katika chombo kimoja cha kitu cha kidijitali, muundo huu mpya wa data wa mistari mingi pia unatumika kwa maarifa ya asili. Inaunganisha kwa mafanikio aina mbalimbali za vitu vya kidijitali. Sherehe, kwa mfano, zinajumuisha aina mbalimbali za urithi wa kitamaduni, pamoja na ngoma, kuimba, sanaa ya nguo, na utafiti unaohusiana, yote yanayohitaji utambulisho wa kidijitali na uhifadhi.",
+        "diffusion_innovation_title": "Mbinu yetu kwa Usambazaji wa Ubunifu",
+        "diffusion_innovation_read_more": "Bonyeza kusoma zaidi",
+        "diffusion_innovation_collapse": "Bonyeza kufunga",
+        "diffusion_innovation_text_1": "Ingawa mabadiliko ya kidijitali ya urithi wa kitamaduni na miundombinu ya utafiti imefungua njia mpya, pia imezalisha wasiwasi wa kimaadili, hasa kuhusiana na Mifumo ya Maarifa ya Asili (MMA). Vitu vya kitamaduni na maarifa ya Kiafrika mara nyingi yametawanyika kwenye silaha za kidijitali zilizogawanyika na uwezo mdogo wa kushirikiana na uwazi wa asili. Maelezo haya yaliyoboreshwa na yaliyopangwa kwa muktadha yanaelezea hitaji la kuunganisha Kitambulisho cha Chombo cha Kitu cha Kidijitali (DOCiD) kama matumizi kwa vyuo vikuu na taasisi za urithi wa kitamaduni wa asili, kulingana na kanuni za FAIR na CARE na kusisitiza ushirikiano.",
+        "diffusion_innovation_text_2": "Kuunganisha DOCiD kama matumizi ndani ya vyuo vikuu na taasisi za urithi wa kitamaduni wa asili kunashughulikia hitaji la haraka la usimamizi wa kimkakati, wa kimaadili na wa kushirikiana wa mali za maarifa ya kidijitali. Kadiri taasisi zinavyoongeza kwa kasi matokeo ya utafiti, desturi za mdomo, na nyenzo za kitamaduni, kuna pengo muhimu katika mifumo inayoweza kuhakikisha ugunduzi wa kiufundi na uhuru wa jamii juu ya data.",
+        "diffusion_innovation_text_3": "Kuweka DOCiD kama eneo la usambazaji wa ubunifu linalianzisha kama maabara hai ambapo mazoezi ya sayansi wazi yanakutana na utawala wa data za asili. Mchakato huu unakuza uundaji wa pamoja kati ya kitaaluma, jamii, na waendelezaji wa teknolojia, ukionyesha jinsi miundombinu ya kidijitali inayoibuka inaweza kubadilika kwa uwajibikaji ili kukidhi mifumo mingi ya maarifa. Kupitia muunganisho huu, DOCiD inakuwa sio tu suluhisho la kiteknolojia bali ubunifu unaoundwa—chomeo cha kufafanua upya ushirikiano, ujumuishaji, na usawa katika uchumi wa maarifa ya kidijitali.",
+        "diffusion_innovation_text_4": "DOCiD inatoa mfumo wa kitambulisho thabiti na tajiri wa metadata unaoaunganisha vitu vya kidijitali—kama vile seti za data, rekodi, vitu vya sanaa, na machapisho—na mahusiano yao ya muktadha na asili. Hii inaruhusu muunganisho na kanuni za FAIR (Inayopatikana, Inayofikiwa, Inayoshirikiana, Inayoweza Kutumika Tena), ikihakikisha kwamba maarifa ya kitaasisi yanaonekana kimataifa na yanaweza kutumika tena kupitia viwango vya metadata vinavyoshirikiana.",
+        "diffusion_innovation_text_5": "Waanadamu wa maktaba na wakurugenzi wana jukumu muhimu katika mchakato huu—kama walezi wa ubora wa metadata, asili, na utawala wa data wa kimaadili. Ushiriki wao unahakikisha kwamba utekelezaji wa DOCiD unalingana na sera za usimamizi wa data za kitaasisi, unaunga mkono idhini ya jamii, na kuweka lebo au itifaki za maarifa ya jadi pale inapofaa. Kwa kujumuisha wataalamu hawa, taasisi zinaweza kukuza mfumo wa data wenye uwajibikaji na ujumuishaji unaolinganisha uwazi na unyeti wa kitamaduni na umiliki.",
+        "diffusion_innovation_text_6": "Wakati huo huo, DOCiD inaunganisha kanuni za CARE (Faida ya Pamoja, Mamlaka ya Kudhibiti, Uwajibikaji, na Maadili), ikiweka ndani miundo ya ulinzi wa kimaadili, utambuzi, na utawala wa jamii wa data za urithi wa kitamaduni wa asili. Kwa kufanya hivyo, inalinganisha uwazi unaohamasishwa na FAIR na ulinzi na heshima inayohitajika na CARE.",
+        "diffusion_innovation_text_7": "Kwa vyuo vikuu, DOCiD inaunga mkono usimamizi wa uwazi wa utafiti, upatanisho wa metadata, na miundombinu ya sayansi wazi. Kwa taasisi za urithi wa kitamaduni wa asili, inalinda maarifa ya jadi kupitia mifumo ya kushiriki iliyodhibitiwa, ikitambua itifaki za kitamaduni huku ikiruhusu ushiriki katika mifumo ya maarifa ya kimataifa.",
+        "diffusion_innovation_text_8": "Kupitia ushirikiano na miundombinu ya PID iliyopo (k.m., CSTR, ISNI, ORCID, RAiD, ROR, DOI, ARK, Handle), DOCiD inahakikisha kwamba mifumo ya maarifa ya Kiafrika na ya asili inawakilishwa kwa njia ya kidijitali, imeunganishwa kwa muktadha na inadhibitiwa kwa kimaadili—ikichangia mandhari ya utafiti na data ya kimataifa iliyojumuisha zaidi na ya usawa.",
         "collaboration_title": "Ushirikiano",
         "collaboration_text": "Kufanya kazi pamoja na mashirika ya usajili ya sasa ni muhimu sana kwa kuboresha utambulisho na ujumuishaji wa DOCiD™ wa Ushirika wa PID wa Afrika. Timu ya miundombinu ya Ushirika wa PID wa Afrika, ambayo inajumuisha kituo chake cha data katika Mtandao wa Elimu wa Kenya, wanasayansi wa data, na viongozi wa pamoja kutoka Ushirika wa PID wa Afrika na washirika waanzilishi, wanashirikiana kwa karibu ili kubaini njia bora za kufikia lengo hili.",
         "showcase_title": "Maonyesho"
@@ -1672,6 +1753,30 @@ const resources = {
           "no_url": "URL ya faili haipatikani",
           "no_config": "Usanidi wa seva ya faili haupo",
           "unable_to_open": "Imeshindwa kufungua au kupakua faili. Tafadhali angalia kama faili lipo na jaribu tena."
+        },
+        "menu": {
+          "invite_user": "Mwaliko wa Mtumiaji"
+        },
+        "invite": {
+          "title": "Mwaliko wa Mtumiaji",
+          "description": "Alika mtumiaji kushirikiana kwenye DOCiD hii. Atapokea barua pepe ya mwaliko.",
+          "email_label": "Anwani ya Barua Pepe",
+          "email_placeholder": "Ingiza anwani ya barua pepe ya mtumiaji",
+          "role_label": "Jukumu",
+          "cancel": "Ghairi",
+          "send": "Tuma Mwaliko",
+          "sending": "Inatuma..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "Anwani ya barua pepe inahitajika",
+          "invalid_email": "Tafadhali ingiza anwani halali ya barua pepe",
+          "role_required": "Tafadhali chagua jukumu",
+          "generic": "Imeshindwa kutuma mwaliko. Tafadhali jaribu tena."
+        },
+        "success": {
+          "user_invited": "Mwaliko umetumwa kwa mafanikio!"
         }
       }
     }
@@ -1802,6 +1907,17 @@ const resources = {
         "approach_title": "نهجنا",
         "approach_text_1": "تقديم التعريف الهجين للكائنات الرقمية من تحالف PID الأفريقي: يتم تطوير نظام تعريف هجين للكائنات الرقمية من قبل تحالف PID الأفريقي. هذه الطريقة تربط DOI المنتجة من قبل مؤسسة DOI (البادئة 10) مع المقابض المولدة محلياً (البادئة 20). سيجمع حاوي معرف الكائن الرقمي DOI مع معرفات المقابض المولدة محلياً للبراءات، مما يوفر نظرة شاملة لعملية البحث والاختراعات التي تؤدي إلى براءات والمطبوعات والأوراق والوسائط المرتبطة.",
         "approach_text_2": "من خلال دمج البيانات العلمية والخصائص البيولوجية الثقافية في حاوي كائن رقمي واحد، ينطبق نموذج البيانات متعدد الخطوط الجديد هذا أيضاً على المعرفة الأصلية. يربط بنجاح أنواع مختلفة من العناصر الرقمية. الاحتفالات، على سبيل المثال، تشمل أشكالاً مختلفة من التراث الثقافي، بما في ذلك الرقص والغناء والفن النسيجي والبحث المرتبط، وكلها تتطلب تعريفاً رقمياً وحفظاً.",
+        "diffusion_innovation_title": "نهجنا في نشر الابتكار",
+        "diffusion_innovation_read_more": "انقر لقراءة المزيد",
+        "diffusion_innovation_collapse": "انقر للطي",
+        "diffusion_innovation_text_1": "في حين أن التحول الرقمي للتراث الثقافي والبنى التحتية البحثية قد فتح آفاقاً جديدة، فقد أثار أيضاً مخاوف أخلاقية، خاصة فيما يتعلق بأنظمة المعرفة الأصلية. غالباً ما تكون القطع الأثرية الثقافية والمعرفة الأفريقية متناثرة عبر صوامع رقمية مجزأة ذات قابلية محدودة للتشغيل البيني وشفافية المصدر. يشرح هذا الوصف المحسّن والمتوافق سياقياً الحاجة إلى دمج معرّف حاوية الكائن الرقمي (DOCiD) كحالة استخدام للجامعات ومؤسسات التراث الثقافي الأصلي، استناداً إلى مبادئ FAIR و CARE مع التركيز على قابلية التشغيل البيني.",
+        "diffusion_innovation_text_2": "إن دمج DOCiD كحالة استخدام داخل الجامعات ومؤسسات التراث الثقافي الأصلي يعالج الحاجة الملحة للإدارة المنظمة والأخلاقية والقابلة للتشغيل البيني لأصول المعرفة الرقمية. مع قيام المؤسسات برقمنة مخرجات البحث والتقاليد الشفوية والمواد الثقافية بشكل متزايد، هناك فجوة حرجة في الأنظمة التي يمكن أن تضمن كلاً من قابلية الاكتشاف التقني والسيادة المجتمعية على البيانات.",
+        "diffusion_innovation_text_3": "إن وضع DOCiD كموقع لنشر الابتكار يجعله مختبراً حياً حيث تلتقي ممارسات العلم المفتوح بحوكمة البيانات الأصلية. تعزز هذه العملية الإنشاء المشترك بين الأوساط الأكاديمية والمجتمعات ومطوري التكنولوجيا، مما يوضح كيف يمكن للبنى التحتية الرقمية الناشئة أن تتطور بمسؤولية لاستيعاب أنظمة المعرفة المتعددة. من خلال هذا التكامل، لا يصبح DOCiD مجرد حل تكنولوجي بل ابتكاراً قيد التطوير—حافزاً لإعادة تعريف قابلية التشغيل البيني والشمولية والمساواة في اقتصاد المعرفة الرقمية.",
+        "diffusion_innovation_text_4": "يوفر DOCiD إطار معرّف دائم وغني بالبيانات الوصفية يربط الكائنات الرقمية—مثل مجموعات البيانات والتسجيلات والقطع الأثرية والمنشورات—بعلاقاتها السياقية ومصدرها. يتيح ذلك التوافق مع مبادئ FAIR (قابل للعثور، قابل للوصول، قابل للتشغيل البيني، قابل لإعادة الاستخدام)، مما يضمن أن المعرفة المؤسسية مرئية عالمياً وقابلة لإعادة الاستخدام من خلال معايير البيانات الوصفية القابلة للتشغيل البيني.",
+        "diffusion_innovation_text_5": "يلعب أمناء المكتبات والقيمون دوراً محورياً في هذه العملية—كأوصياء على جودة البيانات الوصفية والمصدر وحوكمة البيانات الأخلاقية. يضمن مشاركتهم أن تنفيذ DOCiD يتماشى مع سياسات إدارة البيانات المؤسسية، ويدعم موافقة المجتمع، ويدمج تسميات أو بروتوكولات المعرفة التقليدية حيثما كان ذلك مناسباً. من خلال إشراك هؤلاء المهنيين، يمكن للمؤسسات تعزيز نظام بيانات مسؤول وشامل يوازن بين الانفتاح والحساسية الثقافية والملكية.",
+        "diffusion_innovation_text_6": "في الوقت نفسه، يدمج DOCiD مبادئ CARE (المنفعة الجماعية، سلطة التحكم، المسؤولية، والأخلاقيات)، مع تضمين آليات للإشراف الأخلاقي والإسناد والحوكمة المجتمعية لبيانات التراث الثقافي الأصلي. من خلال القيام بذلك، يوازن بين الانفتاح الذي تشجعه FAIR والحماية والاحترام المطلوبين من CARE.",
+        "diffusion_innovation_text_7": "بالنسبة للجامعات، يدعم DOCiD الإدارة الشفافة للبحث وتنسيق البيانات الوصفية والبنى التحتية للعلوم المفتوحة. بالنسبة لمؤسسات التراث الثقافي الأصلي، فإنه يحمي المعرفة التقليدية من خلال أطر المشاركة المتحكم فيها، مع الاعتراف بالبروتوكولات الثقافية مع تمكين المشاركة في النظم البيئية للمعرفة العالمية.",
+        "diffusion_innovation_text_8": "من خلال قابلية التشغيل البيني مع البنى التحتية الموجودة لـ PID (مثل CSTR و ISNI و ORCID و RAiD و ROR و DOI و ARK و Handle)، يضمن DOCiD أن أنظمة المعرفة الأفريقية والأصلية ممثلة رقمياً ومرتبطة سياقياً ومحكومة أخلاقياً—مما يساهم في مشهد بحثي وبيانات عالمي أكثر شمولاً وإنصافاً.",
         "collaboration_title": "التعاون",
         "collaboration_text": "العمل معاً مع وكالات التسجيل الحالية أمر بالغ الأهمية لتحسين اكتشاف وتكامل DOCiD™ لتحالف PID الأفريقي. فريق البنية التحتية لتحالف PID الأفريقي، والذي يشمل مركز البيانات في شبكة التعليم الكينية وعلماء البيانات والقادة المشاركين من تحالف PID الأفريقي والشركاء المؤسسين، يتعاونون عن كثب لتحديد أكثر الطرق فعالية لتحقيق هذا الهدف.",
         "showcase_title": "العرض"
@@ -2229,6 +2345,30 @@ const resources = {
           "no_url": "رابط الملف غير متوفر",
           "no_config": "إعدادات خادم الملفات مفقودة",
           "unable_to_open": "تعذر فتح أو تحميل الملف. يرجى التحقق من وجود الملف والمحاولة مرة أخرى."
+        },
+        "menu": {
+          "invite_user": "دعوة مستخدم"
+        },
+        "invite": {
+          "title": "دعوة مستخدم",
+          "description": "دعوة مستخدم للتعاون في هذا DOCiD. سيحصل على بريد إلكتروني للدعوة.",
+          "email_label": "عنوان البريد الإلكتروني",
+          "email_placeholder": "أدخل عنوان بريد المستخدم الإلكتروني",
+          "role_label": "الدور",
+          "cancel": "إلغاء",
+          "send": "إرسال الدعوة",
+          "sending": "جاري الإرسال..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "عنوان البريد الإلكتروني مطلوب",
+          "invalid_email": "يرجى إدخال عنوان بريد إلكتروني صحيح",
+          "role_required": "يرجى اختيار دور",
+          "generic": "فشل في إرسال الدعوة. يرجى المحاولة مرة أخرى."
+        },
+        "success": {
+          "user_invited": "تم إرسال الدعوة بنجاح!"
         }
       }
     }
@@ -2359,6 +2499,17 @@ const resources = {
         "approach_title": "Nossa Abordagem",
         "approach_text_1": "Apresentando Identificação Híbrida de Objetos Digitais da Aliança PID África: Um sistema de identificação híbrida de objetos digitais está sendo pioneiro pela Aliança PID África. Este método conecta DOIs produzidos pela Fundação DOI (prefixo 10) com handles gerados localmente (prefixo 20). Um contêiner de identificador de objeto digital combinará DOIs com IDs de handle gerados localmente para patentes, oferecendo uma visão abrangente do processo de pesquisa, as invenções que resultam em patentes, e publicações, artigos e mídia associados.",
         "approach_text_2": "Ao combinar dados científicos e características bioculturais em um único contêiner de objeto digital, este novo modelo de dados multilinear também se aplica ao conhecimento indígena. Ele conecta com sucesso diferentes tipos de itens digitais. Cerimônias, por exemplo, incorporam várias formas de patrimônio cultural, incluindo dança, canto, arte têxtil e pesquisa associada, todas exigindo identificação e preservação digitais.",
+        "diffusion_innovation_title": "Nossa abordagem para a Difusão da Inovação",
+        "diffusion_innovation_read_more": "Clique para ler mais",
+        "diffusion_innovation_collapse": "Clique para recolher",
+        "diffusion_innovation_text_1": "Embora a transformação digital do patrimônio cultural e das infraestruturas de pesquisa tenha aberto novos caminhos, também deu origem a preocupações éticas, particularmente no que diz respeito aos Sistemas de Conhecimento Indígena (SCI). Artefatos culturais e conhecimentos africanos são frequentemente dispersos em silos digitais fragmentados com interoperabilidade limitada e transparência de proveniência. Esta descrição refinada e contextualmente alinhada explica a necessidade de integrar o Identificador de Contêiner de Objeto Digital (DOCiD) como um caso de uso para universidades e instituições de patrimônio cultural indígena, fundamentado nos princípios FAIR e CARE e enfatizando a interoperabilidade.",
+        "diffusion_innovation_text_2": "Integrar o DOCiD como caso de uso dentro de universidades e instituições de patrimônio cultural indígena aborda a necessidade urgente de gestão estruturada, ética e interoperável de ativos de conhecimento digital. À medida que as instituições digitalizam cada vez mais resultados de pesquisa, tradições orais e materiais culturais, existe uma lacuna crítica em sistemas que possam garantir tanto a descoberta técnica quanto a soberania comunitária sobre os dados.",
+        "diffusion_innovation_text_3": "Posicionar o DOCiD como um local para a difusão da inovação o estabelece como um laboratório vivo onde as práticas de ciência aberta encontram a governança de dados indígenas. Este processo promove a cocriação entre academia, comunidades e desenvolvedores de tecnologia, demonstrando como as infraestruturas digitais emergentes podem evoluir de forma responsável para acomodar sistemas de conhecimento plurais. Através desta integração, o DOCiD torna-se não apenas uma solução tecnológica, mas uma inovação em formação—um catalisador para redefinir interoperabilidade, inclusão e equidade na economia do conhecimento digital.",
+        "diffusion_innovation_text_4": "O DOCiD fornece uma estrutura de identificador persistente e rica em metadados que conecta objetos digitais—como conjuntos de dados, gravações, artefatos e publicações—às suas relações contextuais e proveniência. Isso permite o alinhamento com os princípios FAIR (Encontrável, Acessível, Interoperável, Reutilizável), garantindo que o conhecimento institucional seja globalmente visível e reutilizável através de padrões de metadados interoperáveis.",
+        "diffusion_innovation_text_5": "Bibliotecários e curadores desempenham um papel fundamental neste processo—como guardiões da qualidade dos metadados, proveniência e governança ética de dados. Seu envolvimento garante que a implementação do DOCiD se alinhe com as políticas institucionais de gestão de dados, apoie o consentimento comunitário e incorpore rótulos ou protocolos de conhecimento tradicional quando apropriado. Ao envolver esses profissionais, as instituições podem fomentar um ecossistema de dados responsável e inclusivo que equilibra abertura com sensibilidade cultural e propriedade.",
+        "diffusion_innovation_text_6": "Ao mesmo tempo, o DOCiD integra os princípios CARE (Benefício Coletivo, Autoridade para Controlar, Responsabilidade e Ética), incorporando mecanismos para gestão ética, atribuição e governança comunitária de dados de patrimônio cultural indígena. Ao fazê-lo, equilibra a abertura incentivada pelo FAIR com as proteções e o respeito exigidos pelo CARE.",
+        "diffusion_innovation_text_7": "Para as universidades, o DOCiD apoia a gestão transparente da pesquisa, harmonização de metadados e infraestruturas de ciência aberta. Para instituições de patrimônio cultural indígena, salvaguarda o conhecimento tradicional através de estruturas de compartilhamento controlado, reconhecendo protocolos culturais ao mesmo tempo que permite a participação em ecossistemas de conhecimento global.",
+        "diffusion_innovation_text_8": "Através da interoperabilidade com infraestruturas PID existentes (por exemplo, CSTR, ISNI, ORCID, RAiD, ROR, DOI, ARK, Handle), o DOCiD garante que os sistemas de conhecimento africanos e indígenas sejam digitalmente representados, contextualmente vinculados e eticamente governados—contribuindo para um cenário de pesquisa e dados global mais inclusivo e equitativo.",
         "collaboration_title": "Colaboração",
         "collaboration_text": "Trabalhar junto com agências de registro atuais é crucial para melhorar a descoberta e integração do DOCiD™ da Aliança PID África. A equipe de infraestrutura da Aliança PID África, que inclui seu centro de dados na Rede de Educação do Quênia, cientistas de dados e co-líderes da Aliança PID África e parceiros fundadores, estão colaborando de perto para determinar as maneiras mais eficazes de realizar este objetivo.",
         "showcase_title": "Vitrine"
@@ -2786,6 +2937,30 @@ const resources = {
           "no_url": "URL do arquivo não está disponível",
           "no_config": "Configuração do servidor de arquivos está faltando",
           "unable_to_open": "Não foi possível abrir ou baixar o arquivo. Verifique se o arquivo existe e tente novamente."
+        },
+        "menu": {
+          "invite_user": "Convidar Usuário"
+        },
+        "invite": {
+          "title": "Convidar Usuário",
+          "description": "Convide um usuário para colaborar neste DOCiD. Eles receberão um email de convite.",
+          "email_label": "Endereço de Email",
+          "email_placeholder": "Digite o endereço de email do usuário",
+          "role_label": "Função",
+          "cancel": "Cancelar",
+          "send": "Enviar Convite",
+          "sending": "Enviando..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "Endereço de email é obrigatório",
+          "invalid_email": "Por favor, digite um endereço de email válido",
+          "role_required": "Por favor, selecione uma função",
+          "generic": "Falha ao enviar convite. Tente novamente."
+        },
+        "success": {
+          "user_invited": "Convite enviado com sucesso!"
         }
       }
     }
@@ -2911,6 +3086,17 @@ const resources = {
         "approach_title": "Unser Ansatz",
         "approach_text_1": "Vorstellung der Hybriden Digitalen Objekt-Identifikation der Africa PID Alliance: Ein hybrides digitales Objekt-Identifikationssystem wird von der Africa PID Alliance entwickelt. Diese Methode verbindet DOIs, die von der DOI Foundation (Präfix 10) produziert werden, mit lokal generierten Handles (Präfix 20). Ein digitaler Objekt-Identifikator-Container wird DOIs mit lokal generierten Handle-IDs für Patente kombinieren und einen umfassenden Überblick über den Forschungsprozess, die Erfindungen, die zu Patenten führen, und zugehörige Publikationen, Artikel und Medien bieten.",
         "approach_text_2": "Durch die Kombination wissenschaftlicher Daten und biokultureller Eigenschaften in einen einzigen digitalen Objekt-Container gilt dieses neue multilineare Datenmodell auch für indigenes Wissen. Es verbindet erfolgreich verschiedene Arten digitaler Elemente. Zeremonien zum Beispiel beinhalten verschiedene Formen kulturellen Erbes, einschließlich Tanz, Gesang, Textilkunst und zugehöriger Forschung, die alle digitale Identifikation und Erhaltung erfordern.",
+        "diffusion_innovation_title": "Unser Ansatz zur Diffusion von Innovation",
+        "diffusion_innovation_read_more": "Klicken Sie, um mehr zu lesen",
+        "diffusion_innovation_collapse": "Klicken Sie zum Einklappen",
+        "diffusion_innovation_text_1": "Während die digitale Transformation des kulturellen Erbes und der Forschungsinfrastrukturen neue Wege eröffnet hat, hat sie auch ethische Bedenken hervorgerufen, insbesondere in Bezug auf indigene Wissenssysteme (IWS). Afrikanische Kulturartefakte und Wissen sind oft über fragmentierte digitale Silos verstreut mit begrenzter Interoperabilität und Herkunftstransparenz. Diese verfeinerte und kontextuell ausgerichtete Beschreibung erklärt die Notwendigkeit der Integration des Digital Object Container Identifier (DOCiD) als Anwendungsfall für Universitäten und indigene sowie kulturelle Erbe-Institutionen, basierend auf FAIR- und CARE-Prinzipien und mit Schwerpunkt auf Interoperabilität.",
+        "diffusion_innovation_text_2": "Die Integration von DOCiD als Anwendungsfall in Universitäten und indigenen sowie kulturellen Erbe-Institutionen adressiert den dringenden Bedarf an strukturiertem, ethischem und interoperablem Management digitaler Wissensbestände. Da Institutionen zunehmend Forschungsergebnisse, mündliche Überlieferungen und kulturelle Materialien digitalisieren, besteht eine kritische Lücke in Systemen, die sowohl technische Auffindbarkeit als auch gemeinschaftliche Datensouveränität gewährleisten können.",
+        "diffusion_innovation_text_3": "DOCiD als Ort für die Diffusion von Innovation zu positionieren, etabliert es als lebendiges Labor, in dem Open-Science-Praktiken auf indigene Datengovernance treffen. Dieser Prozess fördert die Ko-Kreation zwischen Wissenschaft, Gemeinschaften und Technologieentwicklern und demonstriert, wie sich aufkommende digitale Infrastrukturen verantwortungsvoll weiterentwickeln können, um plurale Wissenssysteme zu berücksichtigen. Durch diese Integration wird DOCiD nicht nur zu einer technologischen Lösung, sondern zu einer Innovation im Entstehen—einem Katalysator für die Neudefinition von Interoperabilität, Inklusivität und Gerechtigkeit in der digitalen Wissensökonomie.",
+        "diffusion_innovation_text_4": "DOCiD bietet ein persistentes, metadatenreiches Identifikations-Framework, das digitale Objekte—wie Datensätze, Aufzeichnungen, Artefakte und Publikationen—mit ihren kontextuellen Beziehungen und ihrer Herkunft verbindet. Dies ermöglicht die Ausrichtung an den FAIR-Prinzipien (Findable, Accessible, Interoperable, Reusable) und stellt sicher, dass institutionelles Wissen global sichtbar und durch interoperable Metadatenstandards wiederverwendbar ist.",
+        "diffusion_innovation_text_5": "Bibliothekare und Kuratoren spielen eine entscheidende Rolle in diesem Prozess—als Verwalter von Metadatenqualität, Herkunft und ethischer Datengovernance. Ihre Beteiligung stellt sicher, dass die DOCiD-Implementierung mit institutionellen Datenmanagement-Richtlinien übereinstimmt, die Zustimmung der Gemeinschaft unterstützt und gegebenenfalls traditionelle Wissensbezeichnungen oder -protokolle einbettet. Durch die Einbeziehung dieser Fachleute können Institutionen ein verantwortungsvolles und inklusives Daten-Ökosystem fördern, das Offenheit mit kultureller Sensibilität und Eigentum in Einklang bringt.",
+        "diffusion_innovation_text_6": "Gleichzeitig integriert DOCiD die CARE-Prinzipien (Collective Benefit, Authority to Control, Responsibility und Ethics) und bettet Mechanismen für ethische Verwaltung, Zuordnung und gemeinschaftliche Governance von indigenen und kulturellen Erbe-Daten ein. Dadurch gleicht es die von FAIR geförderte Offenheit mit dem von CARE geforderten Schutz und Respekt aus.",
+        "diffusion_innovation_text_7": "Für Universitäten unterstützt DOCiD transparentes Forschungsmanagement, Metadaten-Harmonisierung und Open-Science-Infrastrukturen. Für indigene und kulturelle Erbe-Institutionen schützt es traditionelles Wissen durch kontrollierte Austausch-Frameworks und erkennt kulturelle Protokolle an, während es die Teilnahme an globalen Wissens-Ökosystemen ermöglicht.",
+        "diffusion_innovation_text_8": "Durch Interoperabilität mit bestehenden PID-Infrastrukturen (z. B. CSTR, ISNI, ORCID, RAiD, ROR, DOI, ARK, Handle) stellt DOCiD sicher, dass afrikanische und indigene Wissenssysteme digital repräsentiert, kontextuell verknüpft und ethisch verwaltet werden—und trägt zu einer inklusiveren und gerechteren globalen Forschungs- und Datenlandschaft bei.",
         "collaboration_title": "Zusammenarbeit",
         "collaboration_text": "Die Zusammenarbeit mit aktuellen Registrierungsagenturen ist entscheidend für die Verbesserung der Entdeckung und Integration des DOCiD™ der Africa PID Alliance. Das Infrastrukturteam der Africa PID Alliance, das ihr Datenzentrum am Kenya Education Network, Datenspezialisten und Co-Leiter der Africa PID Alliance und Gründungspartner umfasst, arbeitet eng zusammen, um die effektivsten Wege zur Erreichung dieses Ziels zu bestimmen.",
         "showcase_title": "Schaufenster"
@@ -3338,6 +3524,30 @@ const resources = {
           "no_url": "Datei-URL ist nicht verfügbar",
           "no_config": "Dateiserver-Konfiguration fehlt",
           "unable_to_open": "Datei konnte nicht geöffnet oder heruntergeladen werden. Bitte überprüfen Sie, ob die Datei existiert und versuchen Sie es erneut."
+        },
+        "menu": {
+          "invite_user": "Benutzer Einladen"
+        },
+        "invite": {
+          "title": "Benutzer Einladen",
+          "description": "Laden Sie einen Benutzer zur Zusammenarbeit an diesem DOCiD ein. Sie erhalten eine Einladungs-E-Mail.",
+          "email_label": "E-Mail-Adresse",
+          "email_placeholder": "Benutzer-E-Mail-Adresse eingeben",
+          "role_label": "Rolle",
+          "cancel": "Abbrechen",
+          "send": "Einladung Senden",
+          "sending": "Wird gesendet..."
+        }
+      },
+      "invite": {
+        "errors": {
+          "email_required": "E-Mail-Adresse ist erforderlich",
+          "invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+          "role_required": "Bitte wählen Sie eine Rolle aus",
+          "generic": "Einladung konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+        },
+        "success": {
+          "user_invited": "Einladung erfolgreich gesendet!"
         }
       }
     }
