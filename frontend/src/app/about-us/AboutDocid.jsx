@@ -1,16 +1,19 @@
 'use client'
-import { Box, Container, Grid, Paper, Typography, useTheme, Divider, Modal, IconButton } from '@mui/material';
+import { Box, Container, Grid, Paper, Typography, useTheme, Divider, Modal, IconButton, Collapse } from '@mui/material';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import React, { useState } from 'react'
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import CloseIcon from '@mui/icons-material/Close';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
 
 
 const AboutDocid = () => {
   const [openModal, setOpenModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null);
+  const [expandedInnovation, setExpandedInnovation] = useState(false);
   const { t } = useTranslation();
 
   const theme = useTheme();
@@ -22,6 +25,10 @@ const AboutDocid = () => {
   const handleCloseModal = () => {
     setOpenModal(false);
     setSelectedImage(null);
+  };
+
+  const handleToggleInnovation = () => {
+    setExpandedInnovation(!expandedInnovation);
   };
 
   const commonTypographyStyles = {
@@ -72,7 +79,7 @@ const AboutDocid = () => {
             maxWidth: { sm: '100%', md: '100%', lg: '100%' },
             position: 'relative',
             zIndex: 1,
-            
+
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
@@ -117,8 +124,8 @@ const AboutDocid = () => {
         </Container>
       </Box>
 
-  {/* Main Content */}
-  <Container
+      {/* Main Content */}
+      <Container
         maxWidth="lg"
         sx={{
           py: { xs: 6, md: 10 },
@@ -127,7 +134,7 @@ const AboutDocid = () => {
         }}
       >
 
-<Grid
+        <Grid
           container
           spacing={{ xs: 4, md: 6 }}
           component={motion.div}
@@ -520,7 +527,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-{t('about.patent_offices')}
+                          {t('about.patent_offices')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -536,7 +543,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-{t('about.patent_offices_text')}
+                          {t('about.patent_offices_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -609,7 +616,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-{t('about.research_projects')}
+                          {t('about.research_projects')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -625,7 +632,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-{t('about.research_projects_text')}
+                          {t('about.research_projects_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -698,7 +705,7 @@ const AboutDocid = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-{t('about.other_pid_providers')}
+                          {t('about.other_pid_providers')}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -714,7 +721,7 @@ const AboutDocid = () => {
                             fontSize: '0.875rem'
                           }}
                         >
-{t('about.other_pid_providers_text')}
+                          {t('about.other_pid_providers_text')}
                         </Typography>
                       </Box>
                     </Box>
@@ -746,13 +753,13 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-{t('about.use_cases_title')}
+                {t('about.use_cases_title')}
               </Typography>
 
               <Grid container spacing={4}>
 
-                  {/* Universities Scenario */}
-                  <Grid item xs={12} md={6}>
+                {/* Universities Scenario */}
+                <Grid item xs={12} md={6}>
                   <Box sx={{ height: '100%' }}>
                     <Box
                       sx={{
@@ -802,7 +809,7 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-{t('about.click_to_expand')}
+                          {t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
@@ -813,7 +820,7 @@ const AboutDocid = () => {
 
                   </Box>
                 </Grid>
-                
+
                 {/* Museum Scenario */}
                 <Grid item xs={12} md={6}>
                   <Box sx={{ height: '100%' }}>
@@ -865,7 +872,7 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-{t('about.click_to_expand')}
+                          {t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
@@ -877,10 +884,10 @@ const AboutDocid = () => {
                   </Box>
                 </Grid>
 
-              
 
-                   {/* Patent Registration Offices Scenario */}
-                   <Grid item xs={12} md={6}>
+
+                {/* Patent Registration Offices Scenario */}
+                <Grid item xs={12} md={6}>
                   <Box sx={{ height: '100%' }}>
                     <Box
                       sx={{
@@ -930,7 +937,7 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-{t('about.click_to_expand')}
+                          {t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
@@ -993,7 +1000,7 @@ const AboutDocid = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-{t('about.click_to_expand')}
+                          {t('about.click_to_expand')}
                         </Typography>
                         <ZoomOutMapIcon />
                       </Box>
@@ -1005,7 +1012,7 @@ const AboutDocid = () => {
                   </Box>
                 </Grid>
 
-             
+
               </Grid>
             </MotionPaper>
           </Grid>
@@ -1036,7 +1043,7 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-{t('about.approach_title')}
+                {t('about.approach_title')}
               </Typography>
               <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
                 {t('about.approach_text_1')}
@@ -1045,6 +1052,131 @@ const AboutDocid = () => {
               <Typography variant="body1" sx={commonTypographyStyles}>
                 {t('about.approach_text_2')}
               </Typography>
+
+              {/* Diffusion of Innovation Accordion Section */}
+              <Box sx={{ mt: 4 }}>
+                <Box
+                  onClick={handleToggleInnovation}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: expandedInnovation ? theme.palette.action.selected : 'transparent',
+                    transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    '&:hover': {
+                      bgcolor: theme.palette.action.hover,
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <InfoOutlinedIcon
+                        sx={{
+                          fontSize: '1.4rem',
+                          color: theme.palette.primary.main,
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          color: theme.palette.primary.main,
+                        }}
+                      >
+                        {t('about.diffusion_innovation_title')}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: theme.palette.text.secondary,
+                        fontStyle: 'italic',
+                        ml: 4.5,
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {expandedInnovation ? t('about.diffusion_innovation_collapse') : t('about.diffusion_innovation_read_more')}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                      transform: expandedInnovation ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                  >
+                    <ExpandMoreIcon sx={{ color: theme.palette.primary.main }} />
+                  </Box>
+                </Box>
+
+                <Collapse
+                  in={expandedInnovation}
+                  timeout={1000}
+                  unmountOnExit
+                  easing={{
+                    enter: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    exit: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 3,
+                      borderLeft: `4px solid ${theme.palette.primary.main}`,
+                      bgcolor: theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.05)'
+                        : 'rgba(0, 0, 0, 0.02)',
+                      borderRadius: 1,
+                      animation: expandedInnovation ? 'fadeInSlide 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+                      '@keyframes fadeInSlide': {
+                        '0%': {
+                          opacity: 0,
+                          transform: 'translateY(-10px)',
+                        },
+                        '100%': {
+                          opacity: 1,
+                          transform: 'translateY(0)',
+                        },
+                      },
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_1')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_2')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_3')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_4')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_5')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_6')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ ...commonTypographyStyles, mb: 3 }}>
+                      {t('about.diffusion_innovation_text_7')}
+                    </Typography>
+
+                    <Typography variant="body1" sx={commonTypographyStyles}>
+                      {t('about.diffusion_innovation_text_8')}
+                    </Typography>
+                  </Box>
+                </Collapse>
+              </Box>
             </MotionPaper>
           </Grid>
 
@@ -1075,7 +1207,7 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-{t('about.collaboration_title')}
+                {t('about.collaboration_title')}
               </Typography>
               <Typography variant="body1" sx={commonTypographyStyles}>
                 {t('about.collaboration_text')}
@@ -1110,7 +1242,7 @@ const AboutDocid = () => {
                   fontSize: { xs: '1.75rem', md: '2rem' }
                 }}
               >
-{t('about.showcase_title')}
+                {t('about.showcase_title')}
               </Typography>
               <Box
                 sx={{
@@ -1157,7 +1289,7 @@ const AboutDocid = () => {
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {t('about.click_to_expand')}
+                    {t('about.click_to_expand')}
                   </Typography>
                   <ZoomOutMapIcon />
                 </Box>
@@ -1166,76 +1298,76 @@ const AboutDocid = () => {
           </Grid>
         </Grid>
 
-        </Container>
+      </Container>
 
-        {/* Lightbox Modal */}
-        <Modal
-          open={openModal}
-          onClose={handleCloseModal}
+      {/* Lightbox Modal */}
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 2
+        }}
+      >
+        <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 2
+            position: 'relative',
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            outline: 'none',
+            overflow: 'hidden'
           }}
         >
-          <Box
+          {/* Close Button */}
+          <IconButton
+            onClick={handleCloseModal}
             sx={{
-              position: 'relative',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              boxShadow: 24,
-              outline: 'none',
-              overflow: 'hidden'
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              zIndex: 1,
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.7)'
+              }
             }}
           >
-            {/* Close Button */}
-            <IconButton
-              onClick={handleCloseModal}
+            <CloseIcon />
+          </IconButton>
+
+          {/* Image */}
+          {selectedImage && (
+            <Box
               sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                bgcolor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                zIndex: 1,
-                '&:hover': {
-                  bgcolor: 'rgba(0, 0, 0, 0.7)'
-                }
+                position: 'relative',
+                width: '80vw',
+                height: '80vh',
+                maxWidth: '1200px',
+                maxHeight: '800px'
               }}
             >
-              <CloseIcon />
-            </IconButton>
-
-            {/* Image */}
-            {selectedImage && (
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '80vw',
-                  height: '80vh',
-                  maxWidth: '1200px',
-                  maxHeight: '800px'
+              <Image
+                src={selectedImage}
+                alt="Expanded view"
+                fill
+                style={{
+                  objectFit: 'contain'
                 }}
-              >
-                <Image
-                  src={selectedImage}
-                  alt="Expanded view"
-                  fill
-                  style={{
-                    objectFit: 'contain'
-                  }}
-                  sizes="80vw"
-                  quality={100}
-                />
-              </Box>
-            )}
-          </Box>
-        </Modal>
+                sizes="80vw"
+                quality={100}
+              />
+            </Box>
+          )}
+        </Box>
+      </Modal>
 
-      </Box>
+    </Box>
   )
 }
 
