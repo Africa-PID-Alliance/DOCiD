@@ -664,6 +664,8 @@ const DocIDPage = ({ params }) => {
     // Handle both old call style (just URL) and new style (item object)
     let fileUrl, fileId, isDocument;
 
+    console.log('handleDownloadFile called with:', fileUrlOrItem, 'itemType:', itemType);
+
     if (typeof fileUrlOrItem === 'string') {
       // Old style: just URL passed
       fileUrl = fileUrlOrItem;
@@ -676,6 +678,8 @@ const DocIDPage = ({ params }) => {
       isDocument = itemType === 'document';
     }
 
+    console.log('Extracted:', { fileUrl, fileId, isDocument });
+
     if (!fileUrl) {
       console.error('No file URL provided');
       alert(t('docid_page.file_errors.no_url'));
@@ -684,6 +688,7 @@ const DocIDPage = ({ params }) => {
 
     // Track download if we have an ID
     if (fileId) {
+      console.log('Tracking download for fileId:', fileId);
       try {
         const endpoint = isDocument
           ? `/api/publications/documents/${fileId}/downloads`
@@ -711,6 +716,8 @@ const DocIDPage = ({ params }) => {
         console.error('Error tracking download:', error);
         // Continue with download even if tracking fails
       }
+    } else {
+      console.warn('No fileId found, download will not be tracked. Item:', fileUrlOrItem);
     }
 
     let fullUrl;

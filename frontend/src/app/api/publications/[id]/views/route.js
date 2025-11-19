@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import axios from 'axios';
 
 const ANALYTICS_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5001/api';
 
@@ -7,23 +8,27 @@ export async function POST(request, { params }) {
   const body = await request.json();
 
   try {
-    const response = await fetch(`${ANALYTICS_API_URL}/publications/${id}/views`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    const response = await axios.post(
+      `${ANALYTICS_API_URL}/publications/${id}/views`,
+      body,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(errorData, { status: response.status });
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(response.data, { status: 201 });
   } catch (error) {
     console.error('Error tracking view:', error);
+
+    if (error.response) {
+      return NextResponse.json(
+        error.response.data || { error: 'Failed to track view' },
+        { status: error.response.status }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -35,24 +40,26 @@ export async function GET(request, { params }) {
   const { id } = (await params);
 
   try {
-    const response = await fetch(`${ANALYTICS_API_URL}/publications/${id}/views/count`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await axios.get(
+      `${ANALYTICS_API_URL}/publications/${id}/views/count`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    if (!response.ok) {
+    return NextResponse.json(response.data);
+  } catch (error) {
+    console.error('Error fetching view count:', error);
+
+    if (error.response) {
       return NextResponse.json(
         { error: 'Failed to fetch view count' },
-        { status: response.status }
+        { status: error.response.status }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error fetching view count:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
