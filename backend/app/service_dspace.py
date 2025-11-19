@@ -240,11 +240,22 @@ class DSpaceMetadataMapper:
             ''
         )
 
-        # Extract date
+        # Extract dates
         date_issued = cls._get_metadata_value(metadata, 'dc.date.issued')
+        date_accessioned = cls._get_metadata_value(metadata, 'dc.date.accessioned')
+        date_available = cls._get_metadata_value(metadata, 'dc.date.available')
+
+        # Extract identifiers
+        identifier_uri = cls._get_metadata_value(metadata, 'dc.identifier.uri')
+
+        # Extract language
+        language = cls._get_metadata_value(metadata, 'dc.language')
+        language_iso = cls._get_metadata_value(metadata, 'dc.language.iso')
+        final_language = language_iso or language or 'en'
 
         # Extract type
         dspace_type = cls._get_metadata_value(metadata, 'dc.type', 'Article')
+        dspace_entity_type = cls._get_metadata_value(metadata, 'dspace.entity.type')
         resource_type = cls.TYPE_MAPPING.get(dspace_type, 'Text')
 
         # Build publication data
@@ -267,11 +278,69 @@ class DSpaceMetadataMapper:
         # Extract publisher
         publisher = cls._get_metadata_value(metadata, 'dc.publisher')
 
+        # Extract author relations
+        author_relations = cls._get_metadata_values(metadata, 'relation.isAuthorOfPublication')
+        author_relations_latest = cls._get_metadata_values(metadata, 'relation.isAuthorOfPublication.latestForDiscovery')
+
+        # Extract organizations (corporate contributors, affiliations)
+        organizations = []
+        corporate_contributors = cls._get_metadata_values(metadata, 'dc.contributor.corporate')
+        organizations.extend(corporate_contributors)
+
+        # Extract affiliations from various possible fields
+        affiliations = cls._get_metadata_values(metadata, 'dc.contributor.affiliation')
+        organizations.extend(affiliations)
+
+        # Extract funders
+        funders = []
+        funder_names = cls._get_metadata_values(metadata, 'dc.contributor.funder')
+        funders.extend(funder_names)
+
+        # Also check sponsorship field
+        sponsorships = cls._get_metadata_values(metadata, 'dc.description.sponsorship')
+        funders.extend(sponsorships)
+
+        # Extract projects
+        projects = []
+        project_names = cls._get_metadata_values(metadata, 'dc.relation.ispartof')
+        projects.extend(project_names)
+
+        # Also check project field
+        project_refs = cls._get_metadata_values(metadata, 'dc.relation.project')
+        projects.extend(project_refs)
+
+        # Build comprehensive metadata object
+        extended_metadata = {
+            'dates': {
+                'issued': date_issued,
+                'accessioned': date_accessioned,
+                'available': date_available
+            },
+            'identifiers': {
+                'uri': identifier_uri,
+                'handle': dspace_item.get('handle'),
+                'uuid': dspace_item.get('uuid')
+            },
+            'language': final_language,
+            'types': {
+                'dc_type': dspace_type,
+                'entity_type': dspace_entity_type
+            },
+            'relations': {
+                'author_publications': author_relations,
+                'author_publications_latest': author_relations_latest
+            }
+        }
+
         return {
             'publication': publication_data,
             'creators': creators,
             'subjects': subjects,
-            'publisher': publisher
+            'publisher': publisher,
+            'organizations': organizations,
+            'funders': funders,
+            'projects': projects,
+            'extended_metadata': extended_metadata
         }
 
     @staticmethod

@@ -27,7 +27,36 @@ def get_dspace_client():
 @dspace_bp.route('/config', methods=['GET'])
 @jwt_required()
 def get_config():
-    """Get DSpace integration configuration"""
+    """
+    Get DSpace integration configuration
+
+    Returns the current DSpace server configuration and connection status
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: DSpace configuration retrieved successfully
+        schema:
+          type: object
+          properties:
+            dspace_url:
+              type: string
+              description: DSpace server base URL
+              example: https://demo.dspace.org/server
+            configured:
+              type: boolean
+              description: Whether DSpace credentials are configured
+              example: true
+            status:
+              type: string
+              description: Connection status
+              example: connected
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+    """
     return jsonify({
         'dspace_url': DSPACE_BASE_URL,
         'configured': bool(DSPACE_USERNAME and DSPACE_PASSWORD),
@@ -40,7 +69,57 @@ def get_config():
 def get_dspace_items():
     """
     Get items from DSpace repository
-    Query params: page (default 0), size (default 20)
+
+    Fetches a paginated list of items from the configured DSpace repository
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 0
+        description: Page number (0-indexed)
+        example: 0
+      - name: size
+        in: query
+        type: integer
+        default: 20
+        description: Number of items per page
+        example: 20
+    responses:
+      200:
+        description: Items retrieved successfully
+        schema:
+          type: object
+          properties:
+            _embedded:
+              type: object
+              properties:
+                items:
+                  type: array
+                  description: Array of DSpace items
+                  items:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        description: Item UUID
+                      handle:
+                        type: string
+                        description: Item handle
+                      name:
+                        type: string
+                        description: Item name/title
+            page:
+              type: object
+              description: Pagination information
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+      500:
+        description: Failed to fetch items from DSpace
     """
     try:
         page = request.args.get('page', 0, type=int)
@@ -62,10 +141,75 @@ def get_dspace_items():
 @jwt_required()
 def sync_single_item(uuid):
     """
-    Import single DSpace item to DOCiD
+    Sync single DSpace item to DOCiD publications table
 
-    Args:
-        uuid: DSpace item UUID
+    Imports a DSpace item and creates a corresponding publication record in DOCiD database.
+    Extracts metadata including title, description, authors, dates, identifiers, and language.
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    parameters:
+      - name: uuid
+        in: path
+        type: string
+        required: true
+        description: DSpace item UUID to sync
+        example: 017138d0-9ced-4c49-9be1-5eebe816c528
+    responses:
+      201:
+        description: Item synced successfully to publications table
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              description: Sync operation success status
+              example: true
+            publication_id:
+              type: integer
+              description: Created publication ID in DOCiD database
+              example: 123
+            docid:
+              type: string
+              description: Generated DOCiD identifier
+              example: "20.500.DSPACE/017138d0-9ced-4c49-9be1-5eebe816c528"
+            dspace_handle:
+              type: string
+              description: DSpace handle identifier
+              example: "123456789/131"
+            message:
+              type: string
+              description: Success message
+              example: "Item synced successfully"
+      200:
+        description: Item already synced (existing record found)
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Status message
+              example: "Item already synced"
+            publication_id:
+              type: integer
+              description: Existing publication ID
+            docid:
+              type: string
+              description: Existing DOCiD identifier
+      404:
+        description: Item not found in DSpace
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Item 017138d0-9ced-4c49-9be1-5eebe816c528 not found in DSpace"
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+      500:
+        description: Server error during sync operation
     """
     try:
         current_user_id = get_jwt_identity()
@@ -144,14 +288,76 @@ def sync_single_item(uuid):
 @jwt_required()
 def sync_batch():
     """
-    Batch import items from DSpace
+    Batch sync multiple DSpace items to DOCiD publications table
 
-    Request body:
-    {
-        "page": 0,
-        "size": 50,
-        "skip_existing": true
-    }
+    Imports multiple items from DSpace in one operation. Useful for bulk importing
+    repository content into DOCiD.
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: false
+        schema:
+          type: object
+          properties:
+            page:
+              type: integer
+              default: 0
+              description: Page number to fetch from DSpace
+              example: 0
+            size:
+              type: integer
+              default: 50
+              description: Number of items to sync
+              example: 50
+            skip_existing:
+              type: boolean
+              default: true
+              description: Skip items that are already synced
+              example: true
+    responses:
+      200:
+        description: Batch sync completed
+        schema:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total items processed
+            created:
+              type: integer
+              description: Number of items successfully synced
+            skipped:
+              type: integer
+              description: Number of items skipped (already exist)
+            errors:
+              type: integer
+              description: Number of items that failed to sync
+            items:
+              type: array
+              description: Detailed results for each item
+              items:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                  handle:
+                    type: string
+                  status:
+                    type: string
+                    enum: [created, skipped, error]
+                  publication_id:
+                    type: integer
+                  docid:
+                    type: string
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+      500:
+        description: Server error during batch sync
     """
     try:
         current_user_id = get_jwt_identity()
@@ -309,7 +515,42 @@ def get_mapping_by_handle(handle):
 @dspace_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_stats():
-    """Get DSpace integration statistics"""
+    """
+    Get DSpace integration statistics
+
+    Returns statistics about synced items from DSpace to DOCiD
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Statistics retrieved successfully
+        schema:
+          type: object
+          properties:
+            total_synced:
+              type: integer
+              description: Total number of synced items
+              example: 100
+            synced:
+              type: integer
+              description: Number of successfully synced items
+              example: 95
+            errors:
+              type: integer
+              description: Number of items with sync errors
+              example: 5
+            pending:
+              type: integer
+              description: Number of items pending sync
+              example: 0
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+      500:
+        description: Server error while fetching statistics
+    """
     try:
         total_mappings = DSpaceMapping.query.count()
         synced = DSpaceMapping.query.filter_by(sync_status='synced').count()
@@ -320,6 +561,102 @@ def get_stats():
             'synced': synced,
             'errors': errors,
             'pending': total_mappings - synced - errors
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@dspace_bp.route('/preview/item/<uuid>', methods=['GET'])
+@jwt_required()
+def preview_item_metadata(uuid):
+    """
+    Preview DSpace item metadata extraction without syncing
+
+    Shows exactly what metadata will be extracted from a DSpace item without creating
+    a database record. Useful for testing and verification before syncing.
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    parameters:
+      - name: uuid
+        in: path
+        type: string
+        required: true
+        description: DSpace item UUID to preview
+        example: 017138d0-9ced-4c49-9be1-5eebe816c528
+    responses:
+      200:
+        description: Metadata extracted successfully
+        schema:
+          type: object
+          properties:
+            dspace_uuid:
+              type: string
+              description: DSpace item UUID
+            dspace_handle:
+              type: string
+              description: DSpace handle
+            raw_metadata:
+              type: object
+              description: Original DSpace metadata (Dublin Core format)
+            mapped_data:
+              type: object
+              description: Transformed metadata for DOCiD
+              properties:
+                publication:
+                  type: object
+                  description: Publication data
+                  properties:
+                    document_title:
+                      type: string
+                    document_description:
+                      type: string
+                    published_date:
+                      type: string
+                    resource_type:
+                      type: string
+                creators:
+                  type: array
+                  description: List of authors/creators
+                  items:
+                    type: object
+                    properties:
+                      creator_name:
+                        type: string
+                      creator_role:
+                        type: string
+                extended_metadata:
+                  type: object
+                  description: Additional metadata (dates, identifiers, language, relations)
+      404:
+        description: Item not found in DSpace
+      401:
+        description: Unauthorized - Invalid or missing JWT token
+      500:
+        description: Server error during metadata extraction
+    """
+    try:
+        current_user_id = get_jwt_identity()
+
+        # Get DSpace item
+        client = get_dspace_client()
+        dspace_item = client.get_item(uuid)
+
+        if not dspace_item:
+            return jsonify({'error': f'Item {uuid} not found in DSpace'}), 404
+
+        # Transform metadata
+        mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id)
+
+        # Return the full mapped data for preview
+        return jsonify({
+            'dspace_uuid': uuid,
+            'dspace_handle': dspace_item.get('handle'),
+            'raw_metadata': dspace_item.get('metadata'),  # Original DSpace metadata
+            'mapped_data': mapped_data  # Transformed data for DOCiD
         })
 
     except Exception as e:

@@ -99,6 +99,7 @@ def create_app():
     from app.routes.isni import isni_bp
     from app.routes.ringgold import ringgold_bp
     from app.routes.dspace import dspace_bp
+    from app.routes.dspace_legacy import dspace_legacy_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(datacite_bp, url_prefix='/api/v1/datacite')
@@ -121,7 +122,8 @@ def create_app():
     app.register_blueprint(analytics_bp)
     app.register_blueprint(isni_bp, url_prefix='/api/v1/isni')
     app.register_blueprint(ringgold_bp, url_prefix='/api/v1/ringgold')
-    app.register_blueprint(dspace_bp)  # DSpace integration
+    app.register_blueprint(dspace_bp)  # DSpace 7+ integration
+    app.register_blueprint(dspace_legacy_bp)  # DSpace 6.x Legacy integration
 
     # Add root-level DocID route
     from app.routes.docid_root import setup_docid_root_route
