@@ -1020,3 +1020,58 @@ class FileDownloads(db.Model):
         db.session.add(download)
         db.session.commit()
         return download
+
+
+class DSpaceMapping(db.Model):
+    """
+    Tracks mapping between DSpace items and DOCiD publications for integration
+    """
+    __tablename__ = 'dspace_mappings'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # DSpace identifiers
+    dspace_handle = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    dspace_uuid = db.Column(db.String(36), nullable=False, index=True)
+    dspace_url = db.Column(db.String(500))  # Full DSpace instance URL
+
+    # DOCiD reference
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    # Sync tracking
+    sync_status = db.Column(db.String(50), default='synced')  # synced, pending, error, conflict
+    last_sync_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Change detection (for future bidirectional sync)
+    dspace_metadata_hash = db.Column(db.String(64))  # MD5 hash of DSpace metadata
+    docid_metadata_hash = db.Column(db.String(64))   # MD5 hash of DOCiD metadata
+
+    # Error tracking
+    error_message = db.Column(db.Text)
+    retry_count = db.Column(db.Integer, default=0)
+
+    # Audit
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    publication = db.relationship('Publications', backref=db.backref('dspace_mapping', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<DSpaceMapping {self.dspace_handle} -> Publication {self.publication_id}>'
+
+    def to_dict(self):
+        """Serialize DSpace mapping for JSON responses"""
+        return {
+            'id': self.id,
+            'dspace_handle': self.dspace_handle,
+            'dspace_uuid': self.dspace_uuid,
+            'dspace_url': self.dspace_url,
+            'publication_id': self.publication_id,
+            'sync_status': self.sync_status,
+            'last_sync_at': self.last_sync_at.isoformat() if self.last_sync_at else None,
+            'error_message': self.error_message,
+            'retry_count': self.retry_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

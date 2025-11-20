@@ -110,8 +110,8 @@ migrations/versions/
 test_*.png
 test_*.jpg
 
-# Git workflow documentation
-GIT_WORKFLOW.md
+# All Markdown documentation files
+*.md
 
 # Database query utility (contains sensitive queries/credentials)
 backend/db_query.py

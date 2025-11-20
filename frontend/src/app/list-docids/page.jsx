@@ -678,7 +678,7 @@ const ListDocIds = () => {
                             }}>
                               <Avatar
                                 src={doc.avatar || '/assets/images/Logo2.png'}
-                                alt={doc.owner}
+                                alt={doc.owner || 'System'}
                                 sx={{
                                   width: 44,
                                   height: 44,
@@ -687,7 +687,7 @@ const ListDocIds = () => {
                                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                 }}
                               >
-                                {!doc.avatar && doc.owner[0].toUpperCase()}
+                                {!doc.avatar && doc.owner && doc.owner[0] ? doc.owner[0].toUpperCase() : 'S'}
                               </Avatar>
                               <Box>
                                 <Typography
@@ -697,7 +697,7 @@ const ListDocIds = () => {
                                     color: theme.palette.text.primary
                                   }}
                                 >
-                                  {doc.owner}
+                                  {doc.owner || 'System'}
                                 </Typography>
                                 <Typography
                                   variant="caption"
@@ -942,7 +942,7 @@ const ListDocIds = () => {
                         <ListItemAvatar>
                           <Avatar
                             src={doc.avatar || '/assets/images/Logo2.png'}
-                            alt={doc.owner}
+                            alt={doc.owner || 'System'}
                             sx={{
                               width: 48,
                               height: 48,
@@ -950,7 +950,7 @@ const ListDocIds = () => {
                               border: `2px solid ${theme.palette.primary.light}`
                             }}
                           >
-                            {!doc.avatar && doc.owner[0].toUpperCase()}
+                            {!doc.avatar && doc.owner && doc.owner[0] ? doc.owner[0].toUpperCase() : 'S'}
                           </Avatar>
                         </ListItemAvatar>
                         <Box sx={{ flex: 1 }}>
