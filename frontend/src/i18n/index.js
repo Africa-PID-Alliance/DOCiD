@@ -594,6 +594,26 @@ const resources = {
         "success": {
           "user_invited": "Invitation sent successfully!"
         }
+      },
+      "drafts": {
+        "page_title": "My Draft",
+        "page_description": "View and manage your saved drafts. Continue editing or delete drafts you no longer need.",
+        "back_to_publications": "Back to DOCiD™s",
+        "no_drafts_title": "No Drafts Found",
+        "no_drafts_description": "You don't have any saved drafts yet. Start creating a new publication!",
+        "create_new_publication": "Assign DOCiD™",
+        "untitled_draft": "Untitled Draft",
+        "unknown_type": "Unknown Type",
+        "no_description": "No description available",
+        "draft_badge": "Draft",
+        "continue_button": "Continue",
+        "delete_dialog_title": "Delete Draft",
+        "delete_dialog_message": "Are you sure you want to delete this draft? This action cannot be undone.",
+        "cancel_button": "Cancel",
+        "delete_button": "Delete",
+        "success_delete_draft": "Draft deleted successfully",
+        "error_delete_draft": "Failed to delete draft",
+        "error_load_drafts": "Failed to load drafts"
       }
     }
   },
@@ -1186,6 +1206,26 @@ const resources = {
         "success": {
           "user_invited": "Invitation envoyée avec succès !"
         }
+      },
+      "drafts": {
+        "page_title": "Mon Brouillon",
+        "page_description": "Consultez et gérez vos brouillons enregistrés. Continuez à modifier ou supprimez les brouillons dont vous n'avez plus besoin.",
+        "back_to_publications": "Retour aux DOCiD™s",
+        "no_drafts_title": "Aucun Brouillon Trouvé",
+        "no_drafts_description": "Vous n'avez pas encore de brouillons enregistrés. Commencez à créer une nouvelle publication !",
+        "create_new_publication": "Attribuer DOCiD™",
+        "untitled_draft": "Brouillon Sans Titre",
+        "unknown_type": "Type Inconnu",
+        "no_description": "Aucune description disponible",
+        "draft_badge": "Brouillon",
+        "continue_button": "Continuer",
+        "delete_dialog_title": "Supprimer le Brouillon",
+        "delete_dialog_message": "Êtes-vous sûr de vouloir supprimer ce brouillon ? Cette action ne peut pas être annulée.",
+        "cancel_button": "Annuler",
+        "delete_button": "Supprimer",
+        "success_delete_draft": "Brouillon supprimé avec succès",
+        "error_delete_draft": "Échec de la suppression du brouillon",
+        "error_load_drafts": "Échec du chargement des brouillons"
       }
     }
   },
@@ -1778,6 +1818,26 @@ const resources = {
         "success": {
           "user_invited": "Mwaliko umetumwa kwa mafanikio!"
         }
+      },
+      "drafts": {
+        "page_title": "Rasimu Yangu",
+        "page_description": "Angalia na dhibiti rasimu zako zilizohifadhiwa. Endelea kuhariri au ufute rasimu usiozihitaji tena.",
+        "back_to_publications": "Rudi kwa DOCiD™s",
+        "no_drafts_title": "Hakuna Rasimu Zilizopatikana",
+        "no_drafts_description": "Bado huna rasimu yoyote iliyohifadhiwa. Anza kuunda chapisho jipya!",
+        "create_new_publication": "Tenga DOCiD™",
+        "untitled_draft": "Rasimu Bila Jina",
+        "unknown_type": "Aina Isiyojulikana",
+        "no_description": "Hakuna maelezo yaliyopatikana",
+        "draft_badge": "Rasimu",
+        "continue_button": "Endelea",
+        "delete_dialog_title": "Futa Rasimu",
+        "delete_dialog_message": "Je, una uhakika unataka kufuta rasimu hii? Hatua hii haiwezi kutendeka.",
+        "cancel_button": "Ghairi",
+        "delete_button": "Futa",
+        "success_delete_draft": "Rasimu imefutwa kwa mafanikio",
+        "error_delete_draft": "Imeshindwa kufuta rasimu",
+        "error_load_drafts": "Imeshindwa kupakia rasimu"
       }
     }
   },
@@ -2370,6 +2430,26 @@ const resources = {
         "success": {
           "user_invited": "تم إرسال الدعوة بنجاح!"
         }
+      },
+      "drafts": {
+        "page_title": "مسودتي",
+        "page_description": "عرض وإدارة مسوداتك المحفوظة. تابع التحرير أو احذف المسودات التي لم تعد بحاجة إليها.",
+        "back_to_publications": "العودة إلى DOCiD™s",
+        "no_drafts_title": "لم يتم العثور على مسودات",
+        "no_drafts_description": "ليس لديك أي مسودات محفوظة حتى الآن. ابدأ في إنشاء منشور جديد!",
+        "create_new_publication": "تعيين DOCiD™",
+        "untitled_draft": "مسودة بدون عنوان",
+        "unknown_type": "نوع غير معروف",
+        "no_description": "لا يوجد وصف متاح",
+        "draft_badge": "مسودة",
+        "continue_button": "متابعة",
+        "delete_dialog_title": "حذف المسودة",
+        "delete_dialog_message": "هل أنت متأكد أنك تريد حذف هذه المسودة؟ لا يمكن التراجع عن هذا الإجراء.",
+        "cancel_button": "إلغاء",
+        "delete_button": "حذف",
+        "success_delete_draft": "تم حذف المسودة بنجاح",
+        "error_delete_draft": "فشل حذف المسودة",
+        "error_load_drafts": "فشل تحميل المسودات"
       }
     }
   },
@@ -2962,6 +3042,26 @@ const resources = {
         "success": {
           "user_invited": "Convite enviado com sucesso!"
         }
+      },
+      "drafts": {
+        "page_title": "Meu Rascunho",
+        "page_description": "Visualize e gerencie seus rascunhos salvos. Continue editando ou exclua rascunhos que você não precisa mais.",
+        "back_to_publications": "Voltar para DOCiD™s",
+        "no_drafts_title": "Nenhum Rascunho Encontrado",
+        "no_drafts_description": "Você ainda não tem nenhum rascunho salvo. Comece a criar uma nova publicação!",
+        "create_new_publication": "Atribuir DOCiD™",
+        "untitled_draft": "Rascunho Sem Título",
+        "unknown_type": "Tipo Desconhecido",
+        "no_description": "Nenhuma descrição disponível",
+        "draft_badge": "Rascunho",
+        "continue_button": "Continuar",
+        "delete_dialog_title": "Excluir Rascunho",
+        "delete_dialog_message": "Tem certeza de que deseja excluir este rascunho? Esta ação não pode ser desfeita.",
+        "cancel_button": "Cancelar",
+        "delete_button": "Excluir",
+        "success_delete_draft": "Rascunho excluído com sucesso",
+        "error_delete_draft": "Falha ao excluir rascunho",
+        "error_load_drafts": "Falha ao carregar rascunhos"
       }
     }
   },
@@ -3549,6 +3649,26 @@ const resources = {
         "success": {
           "user_invited": "Einladung erfolgreich gesendet!"
         }
+      },
+      "drafts": {
+        "page_title": "Mein Entwurf",
+        "page_description": "Zeigen Sie Ihre gespeicherten Entwürfe an und verwalten Sie sie. Bearbeiten Sie weiter oder löschen Sie Entwürfe, die Sie nicht mehr benötigen.",
+        "back_to_publications": "Zurück zu DOCiD™s",
+        "no_drafts_title": "Keine Entwürfe gefunden",
+        "no_drafts_description": "Sie haben noch keine gespeicherten Entwürfe. Beginnen Sie mit der Erstellung einer neuen Veröffentlichung!",
+        "create_new_publication": "DOCiD™ zuweisen",
+        "untitled_draft": "Entwurf ohne Titel",
+        "unknown_type": "Unbekannter Typ",
+        "no_description": "Keine Beschreibung verfügbar",
+        "draft_badge": "Entwurf",
+        "continue_button": "Fortsetzen",
+        "delete_dialog_title": "Entwurf löschen",
+        "delete_dialog_message": "Sind Sie sicher, dass Sie diesen Entwurf löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+        "cancel_button": "Abbrechen",
+        "delete_button": "Löschen",
+        "success_delete_draft": "Entwurf erfolgreich gelöscht",
+        "error_delete_draft": "Fehler beim Löschen des Entwurfs",
+        "error_load_drafts": "Fehler beim Laden der Entwürfe"
       }
     }
   }

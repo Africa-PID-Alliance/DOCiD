@@ -31,6 +31,7 @@ import {
   Folder,
   Warning as WarningIcon
 } from '@mui/icons-material';
+import { Divider } from '@mui/material';
 import CustomStepIcon from './components/CustomStepIcon';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -67,7 +68,8 @@ const AssignDocID = () => {
       files: []
     },
     creators: { creators: [] },
-    organizations: { organizations: [] },
+    organizationsOrcid: { organizations: [] },
+    organizationsIsni: { organizations: [] },
     funders: { funders: [] },
     project: {
       projects: []
@@ -271,7 +273,8 @@ const AssignDocID = () => {
           files: []
         },
         creators: { creators: [] },
-        organizations: { organizations: [] },
+        organizationsOrcid: { organizations: [] },
+        organizationsIsni: { organizations: [] },
         funders: { funders: [] },
         project: {
           projects: []
@@ -337,10 +340,40 @@ const AssignDocID = () => {
         );
       case 4:
         return (
-          <OrganizationsForm
-            formData={formData.organizations}
-            updateFormData={(data) => updateFormData('organizations', data)}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <OrganizationsForm
+                formData={formData.organizationsOrcid || { organizations: [] }}
+                updateFormData={(data) => updateFormData('organizationsOrcid', data)}
+                type="orcid"
+                label="ORCID"
+              />
+            </Paper>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <OrganizationsForm
+                formData={formData.organizationsIsni || { organizations: [] }}
+                updateFormData={(data) => updateFormData('organizationsIsni', data)}
+                type="isni"
+                label="ISNI"
+              />
+            </Paper>
+          </Box>
         );
       case 5:
         return (
@@ -499,14 +532,25 @@ const AssignDocID = () => {
         });
       }
 
-      // 5. Organizations
-      if (formData.organizations?.organizations?.length > 0) {
-        formData.organizations.organizations.forEach((organization, index) => {
-          submitData.append(`organization[${index}][name]`, organization.name);
-          submitData.append(`organization[${index}][other_name]`, organization.otherName);
-          submitData.append(`organization[${index}][type]`, organization.type);
-          submitData.append(`organization[${index}][country]`, organization.country);
-          submitData.append(`organization[${index}][ror_id]`, organization.rorId || '');
+      // 5. Organizations (ORCID)
+      if (formData.organizationsOrcid?.organizations?.length > 0) {
+        formData.organizationsOrcid.organizations.forEach((organization, index) => {
+          submitData.append(`organizationOrcid[${index}][name]`, organization.name);
+          submitData.append(`organizationOrcid[${index}][other_name]`, organization.otherName);
+          submitData.append(`organizationOrcid[${index}][type]`, organization.type);
+          submitData.append(`organizationOrcid[${index}][country]`, organization.country);
+          submitData.append(`organizationOrcid[${index}][ror_id]`, organization.rorId || '');
+        });
+      }
+
+      // 5b. Organizations (ISNI)
+      if (formData.organizationsIsni?.organizations?.length > 0) {
+        formData.organizationsIsni.organizations.forEach((organization, index) => {
+          submitData.append(`organizationIsni[${index}][name]`, organization.name);
+          submitData.append(`organizationIsni[${index}][other_name]`, organization.otherName);
+          submitData.append(`organizationIsni[${index}][type]`, organization.type);
+          submitData.append(`organizationIsni[${index}][country]`, organization.country);
+          submitData.append(`organizationIsni[${index}][ror_id]`, organization.rorId || '');
         });
       }
 

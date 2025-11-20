@@ -55,7 +55,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </div>
 );
 
-const OrganizationsForm = ({ formData, updateFormData }) => {
+const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, type = 'orcid', label = 'ORCID' }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -147,9 +147,11 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
 
   const handleSearchRor = async () => {
     // Different validation and search logic based on active tab
-    if (activeTab === 0) { // ROR ID tab
+    if (activeTab === 0) { // ID tab (ROR ID or ISNI ID)
       if (!newOrganization.rorId) {
-        setRorError(t('assign_docid.organizations_form.errors.ror_id_required'));
+        setRorError(type === 'isni' 
+          ? 'ISNI ID is required' 
+          : t('assign_docid.organizations_form.errors.ror_id_required'));
         return;
       }
       
@@ -157,49 +159,62 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
       setRorError('');
 
       try {
-        const response = await fetch(`/api/ror/get-ror-by-id/${encodeURIComponent(newOrganization.rorId)}`);
+        const endpoint = type === 'isni' 
+          ? `/api/isni/get-isni-by-id/${encodeURIComponent(newOrganization.rorId)}`
+          : `/api/ror/get-ror-by-id/${encodeURIComponent(newOrganization.rorId)}`;
+        
+        const response = await fetch(endpoint);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch ROR data: ${response.status}`);
+          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : 'ROR'} data: ${response.status}`);
         }
 
-        const rorData = await response.json();
+        const data = await response.json();
         
-        if (rorData) {
-          // Extract organization name (prefer ror_display, fallback to label)
-          const orgName = rorData.names?.find(name => name.types?.includes('ror_display'))?.value || 
-                         rorData.names?.find(name => name.types?.includes('label'))?.value || '';
-          
-          // Extract country from locations
-          const country = rorData.locations?.[0]?.geonames_details?.country_name || '';
-          
-          // Extract organization type (first type)
-          const orgType = rorData.types?.[0] || '';
-          
-          // Extract aliases
-          const aliases = rorData.names?.filter(name => name.types?.includes('alias')).map(alias => alias.value) || [];
-          const otherName = aliases.length > 0 ? aliases[0] : '';
+        if (data) {
+          if (type === 'isni') {
+            // Handle ISNI response format
+            setNewOrganization(prev => ({
+              ...prev,
+              name: data.name || '',
+              country: data.country_code || '',
+              type: '',
+              otherName: '',
+              city: data.locality || '',
+              rorId: data.isni || newOrganization.rorId
+            }));
+          } else {
+            // Handle ROR response format
+            const orgName = data.names?.find(name => name.types?.includes('ror_display'))?.value || 
+                           data.names?.find(name => name.types?.includes('label'))?.value || '';
+            const country = data.locations?.[0]?.geonames_details?.country_name || '';
+            const orgType = data.types?.[0] || '';
+            const aliases = data.names?.filter(name => name.types?.includes('alias')).map(alias => alias.value) || [];
+            const otherName = aliases.length > 0 ? aliases[0] : '';
 
-          setNewOrganization(prev => ({
-            ...prev,
-            name: orgName,
-            country: country,
-            type: orgType,
-            otherName: otherName,
-            rorId: newOrganization.rorId
-          }));
+            setNewOrganization(prev => ({
+              ...prev,
+              name: orgName,
+              country: country,
+              type: orgType,
+              otherName: otherName,
+              rorId: newOrganization.rorId
+            }));
+          }
           
           setShowRorForm(true);
         } else {
-          setRorError(t('assign_docid.organizations_form.errors.no_ror_found'));
+          setRorError(type === 'isni' 
+            ? 'No ISNI record found' 
+            : t('assign_docid.organizations_form.errors.no_ror_found'));
         }
       } catch (error) {
-        console.error('Error fetching ROR data:', error);
-        setRorError(`${t('assign_docid.organizations_form.errors.failed_fetch_ror')}: ${error.message}`);
+        console.error(`Error fetching ${type === 'isni' ? 'ISNI' : 'ROR'} data:`, error);
+        setRorError(`${type === 'isni' ? 'Failed to fetch ISNI' : t('assign_docid.organizations_form.errors.failed_fetch_ror')}: ${error.message}`);
       } finally {
         setIsLoadingRor(false);
       }
-    } else { // ROR Details tab (index 1)
+    } else { // Details tab (ROR Details or ISNI Details)
       if (!newOrganization.name || !newOrganization.country) {
         setRorError(t('assign_docid.organizations_form.errors.both_name_country_required'));
         return;
@@ -213,11 +228,14 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
         const orgName = newOrganization.name.trim();
         const countryName = newOrganization.country.trim();
 
-        // Use separate parameters for name and country to leverage ROR's advanced query
-        const searchUrl = `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`;
+        // Use different endpoints for ISNI vs ROR
+        const searchUrl = type === 'isni'
+          ? `/api/isni/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}`
+          : `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`;
 
         // Log search parameters
         console.log('Search Parameters:', {
+          type: type,
           organizationName: orgName,
           country: countryName,
           fullUrl: searchUrl
@@ -226,40 +244,55 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
         const response = await fetch(searchUrl);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch ROR');
+          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : 'ROR'}`);
         }
 
         const data = await response.json();
 
         // Log the full response data
-        console.log('ROR Search Response:', {
-          totalResults: data.length,
-          fullData: data
-        });
+        console.log(`${type === 'isni' ? 'ISNI' : 'ROR'} Search Response:`, data);
 
-        if (data && data.length > 0) {
-          // Backend now handles country filtering via advanced query
-          const matchingOrg = data[0];
-          console.log('Found matching organization:', matchingOrg);
-
-          const { id, name: orgName, country, status, wikipedia_url } = matchingOrg;
-
-          setNewOrganization(prev => ({
-            ...prev,
-            name: orgName || '',
-            country: country || '',
-            type: '',
-            otherName: '',
-            rorId: id || ''
-          }));
-
-          setShowRorForm(true);
+        if (type === 'isni') {
+          // ISNI returns a single object
+          if (data && data.name) {
+            setNewOrganization(prev => ({
+              ...prev,
+              name: data.name || '',
+              country: data.country_code || '',
+              type: '',
+              otherName: '',
+              city: data.locality || '',
+              rorId: data.isni || ''
+            }));
+            setShowRorForm(true);
+          } else {
+            setRorError('No ISNI records found for the provided organization name and country');
+          }
         } else {
-          setRorError('No ROR records found for the provided organization name and country');
+          // ROR returns an array
+          if (data && data.length > 0) {
+            const matchingOrg = data[0];
+            console.log('Found matching organization:', matchingOrg);
+
+            const { id, name: orgName, country } = matchingOrg;
+
+            setNewOrganization(prev => ({
+              ...prev,
+              name: orgName || '',
+              country: country || '',
+              type: '',
+              otherName: '',
+              rorId: id || ''
+            }));
+
+            setShowRorForm(true);
+          } else {
+            setRorError('No ROR records found for the provided organization name and country');
+          }
         }
       } catch (error) {
-        console.error('Error searching ROR data:', error);
-        setRorError('Failed to retrieve ROR information. Please try again.');
+        console.error(`Error searching ${type === 'isni' ? 'ISNI' : 'ROR'} data:`, error);
+        setRorError(`Failed to retrieve ${type === 'isni' ? 'ISNI' : 'ROR'} information. Please try again.`);
       } finally {
         setIsLoadingRor(false);
       }
@@ -310,7 +343,7 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label={t('assign_docid.organizations_form.ror_id_tab')}
+            label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')}
             value={newOrganization.rorId}
             InputProps={{
               readOnly: true,
@@ -374,7 +407,11 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
   );
 
   return (
-    <Box>
+    <Box
+    sx={{
+      mb: 2
+    }}
+    >
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -389,7 +426,7 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
             fontSize: '1.25rem'
           }}
         >
-          {t('assign_docid.organizations_form.title')}
+          {t('assign_docid.organizations_form.title')} ({label})
         </Typography>
         <Button
           variant="contained"
@@ -410,9 +447,9 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
       <Divider sx={{ mb: 3, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider }} />
 
       {/* Organizations List */}
-      {formData.organizations && formData.organizations.length > 0 ? (
+      {formData?.organizations && formData.organizations.length > 0 ? (
         <Box sx={{ width: '100%' }}>
-          {formData.organizations.map((organization, index) => (
+          {formData?.organizations.map((organization, index) => (
             <Paper
               key={index}
               elevation={1}
@@ -432,7 +469,7 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                 justifyContent: 'space-between'
               }}>
                 <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
-                  {t('assign_docid.organizations_form.organization_number', { number: index + 1 })}
+                  {t('assign_docid.organizations_form.organization_number', { number: index + 1 })} ({label})
                 </Typography>
                 <IconButton 
                   onClick={() => handleRemoveOrganization(index)}
@@ -472,7 +509,7 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label={t('assign_docid.organizations_form.ror_id_tab')}
+                      label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')}
                       value={organization.rorId}
                       InputProps={{
                         readOnly: true,
@@ -565,7 +602,7 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
             alignItems: 'center'
           }}>
             <Typography variant="h6" component="h2">
-              {t('assign_docid.organizations_form.add_organization')}
+              {t('assign_docid.organizations_form.add_organization')} ({label})
             </Typography>
             <IconButton 
               onClick={handleModalClose}
@@ -588,11 +625,11 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
               }}
               variant="fullWidth"
             >
-              <Tab label={t('assign_docid.organizations_form.ror_id_tab')} />
-              <Tab label={t('assign_docid.organizations_form.ror_details_tab')} />
+              <Tab label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')} />
+              <Tab label={type === 'isni' ? 'ISNI Details' : t('assign_docid.organizations_form.ror_details_tab')} />
             </Tabs>
 
-            {/* ROR ID Tab */}
+            {/* ROR ID / ISNI ID Tab */}
             <TabPanel value={activeTab} index={0}>
               {!showRorForm ? (
               <Grid container spacing={3}>
@@ -600,10 +637,10 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
                       sx={{ flex: 1 }}
-                      label={t('assign_docid.organizations_form.enter_ror_id')}
+                      label={type === 'isni' ? 'Enter ISNI ID' : t('assign_docid.organizations_form.enter_ror_id')}
                       value={newOrganization.rorId}
                       onChange={handleInputChange('rorId')}
-                      placeholder="ROR ID"
+                      placeholder={type === 'isni' ? 'ISNI ID' : 'ROR ID'}
                         error={Boolean(rorError)}
                         helperText={rorError}
                     />
@@ -614,20 +651,22 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                         disabled={isLoadingRor || !newOrganization.rorId}
                       sx={{ minWidth: '150px' }}
                     >
-                        {isLoadingRor ? t('assign_docid.organizations_form.searching') : t('assign_docid.organizations_form.search_ror')}
+                        {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : t('assign_docid.organizations_form.search_ror'))}
                     </Button>
                   </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <GetRorButton />
-                  </Grid>
+                  {type !== 'isni' && (
+                    <Grid item xs={12}>
+                      <GetRorButton />
+                    </Grid>
+                  )}
                 </Grid>
               ) : (
                 renderOrganizationForm()
               )}
             </TabPanel>
 
-            {/* ROR Details Tab */}
+            {/* ROR Details / ISNI Details Tab */}
             <TabPanel value={activeTab} index={1}>
               {!showRorForm ? (
               <Grid container spacing={3}>
@@ -647,8 +686,8 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                       label={t('assign_docid.organizations_form.country')}
                       value={newOrganization.country}
                       onChange={handleInputChange('country')}
-                      placeholder="e.g., Kenya, South Africa, United States"
-                      helperText="Enter the full country name (e.g., Kenya, South Africa)"
+                      placeholder={type === 'isni' ? 'e.g., US, GB, KE' : 'e.g., Kenya, South Africa, United States'}
+                      helperText={type === 'isni' ? 'Enter the Country Code (ISO 2-letter code, e.g., "US", "GB", "KE")' : 'Enter the full country name (e.g., Kenya, South Africa)'}
                       required
                     />
                     <Button
@@ -658,13 +697,15 @@ const OrganizationsForm = ({ formData, updateFormData }) => {
                       disabled={isLoadingRor || !newOrganization.name || !newOrganization.country}
                       sx={{ minWidth: '150px' }}
                     >
-                      {isLoadingRor ? t('assign_docid.organizations_form.searching') : t('assign_docid.organizations_form.search_ror')}
+                      {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : t('assign_docid.organizations_form.search_ror'))}
                     </Button>
                   </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <GetRorButton />
-                  </Grid>
+                  {type !== 'isni' && (
+                    <Grid item xs={12}>
+                      <GetRorButton />
+                    </Grid>
+                  )}
                 </Grid>
               ) : (
                 renderOrganizationForm()
