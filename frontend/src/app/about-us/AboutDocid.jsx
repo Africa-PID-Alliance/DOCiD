@@ -253,7 +253,7 @@ const AboutDocid = () => {
                   }}
                 >
                   <Image
-                    src={theme.palette.mode === 'dark' ? '/assets/images/Logo2.png' : '/assets/images/Docid-dark.png'}
+                    src={theme.palette.mode === 'dark' ? '/assets/images/logo2.png' : '/assets/images/docid-dark.png'}
                     alt="Who should use DOCiD"
                     width={200}
                     height={100}
@@ -579,7 +579,7 @@ const AboutDocid = () => {
                         }}
                       >
                         <Image
-                          src="/assets/images/Research-icon.png"
+                          src="/assets/images/research-icon.png"
                           alt="Research Projects Icon"
                           width={150}
                           height={150}
@@ -1372,3 +1372,4 @@ const AboutDocid = () => {
 }
 
 export default AboutDocid;
+
