@@ -38,6 +38,7 @@ import {
   Close,
   InfoOutlined,
   MoreVert as MoreVertIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import EmailIcon from '@mui/icons-material/Email';
 import FacebookIcon from '@mui/icons-material/Facebook';
@@ -127,50 +128,24 @@ const DocIDPage = ({ params }) => {
     const fetchDocData = async () => {
       try {
         setLoading(true);
-        // Normalize the docId for API requests
-        const normalizedId = formatDocIdForUrl(docId);
-        console.log('Normalized docId:', normalizedId);
-        
-        // First find the publication ID from the list
-        const listResponse = await axios.get('/api/publications/get-publications');
-        // Need to handle both encoded and non-encoded versions when comparing with API data
-        const decodedForComparison = formatDocIdForDisplay(normalizedId);
-        const publication = listResponse.data.data.find(pub => 
-          pub.docid === decodedForComparison || pub.docid === normalizedId
-        );
-        
-        if (!publication) {
-          throw new Error('DOCiD not found');
-        }
+        // Decode the docId from URL (it comes already encoded), then re-encode for query parameter
+        const decodedDocId = decodeURIComponent(docId);
+        console.log('Fetching DOCiD:', decodedDocId);
 
-       
-        setPublicationId(publication.id);
-
-        // Then fetch the full publication details
+        // Fetch publication directly by DOCiD using query parameter
         try {
-          const response = await axios.get(`/api/publications/get-publication/${publication.id}`);
+          const response = await axios.get(`/api/publications/docid?docid=${encodeURIComponent(decodedDocId)}`);
           console.log('DocData received:', response.data);
           console.log('Published field:', response.data.published);
           console.log('Published_isoformat field:', response.data.published_isoformat);
+          setPublicationId(response.data.id);
           setDocData(response.data);
         } catch (apiError) {
-          // Handle API errors gracefully
-          if (apiError.response?.status === 502) {
-            console.warn('External API issue, using basic publication data');
-            // Use the basic data from the list if the detailed API fails
-            setDocData({
-              ...publication,
-              document_title: publication.title,
-              document_docid: publication.docid,
-              document_description: publication.description,
-              publication_poster_url: publication.publication_poster_url,
-              publication_creators: [],
-              publication_organizations: [],
-              publication_funders: [],
-              publication_projects: [],
-              publications_files: [],
-              publication_documents: []
-            });
+          // Handle API errors
+          if (apiError.response?.status === 404) {
+            throw new Error('DOCiD not found');
+          } else if (apiError.response?.status === 502) {
+            throw new Error('External API issue - please try again later');
           } else {
             throw apiError;
           }
@@ -808,6 +783,30 @@ const DocIDPage = ({ params }) => {
               <Typography align="center" variant="subtitle1" color="text.secondary" mb={2}>
                 DOCiD: {formatDocIdForDisplay(docData.document_docid || docData.docid)}
               </Typography>
+              {docData.handle_url && (
+                <Box display="flex" justifyContent="center" mb={2}>
+                  <Link
+                    href={docData.handle_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                  >
+                    <Typography variant="body2">
+                      View in Repository
+                    </Typography>
+                    <OpenInNewIcon sx={{ fontSize: 16 }} />
+                  </Link>
+                </Box>
+              )}
               {/* Main Image */}
               <Box 
                 display="flex" 
@@ -1481,6 +1480,35 @@ const DocIDPage = ({ params }) => {
                                     size="small"
                                   />
                                 </Grid>
+                                {item.handle_identifier && (
+                                  <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                      Handle ID
+                                    </Typography>
+                                    <Box display="flex" gap={1}>
+                                      <TextField
+                                        fullWidth
+                                        value={item.handle_identifier}
+                                        InputProps={{
+                                          readOnly: true,
+                                        }}
+                                        variant="outlined"
+                                        size="small"
+                                      />
+                                      <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => {
+                                          const handleUrl = `https://dspace-demo.atmire.com/handle/${item.handle_identifier}`;
+                                          window.open(handleUrl, '_blank', 'noopener,noreferrer');
+                                        }}
+                                        sx={{ minWidth: 'auto', px: 2 }}
+                                      >
+                                        View
+                                      </Button>
+                                    </Box>
+                                  </Grid>
+                                )}
                               </Grid>
                             </Box>
                           </Box>

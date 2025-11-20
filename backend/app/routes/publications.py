@@ -530,7 +530,7 @@ def get_publication(publication_id):
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Log publication details
         logger.info(f"Fetching publication details for ID: {publication_id}, User ID: {getattr(data, 'user_id', 'unknown')}")
@@ -635,8 +635,8 @@ def get_publication(publication_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@publications_bp.route('/docid/<string:document_docid>', methods=['GET'])
-def get_publication_by_docid_prefix(document_docid):
+@publications_bp.route('/docid', methods=['GET'])
+def get_publication_by_docid_prefix():
     """
     Fetches a specific publication by its document DocID along with related tables.
 
@@ -644,8 +644,8 @@ def get_publication_by_docid_prefix(document_docid):
     tags:
       - Publications
     parameters:
-      - in: path
-        name: document_docid
+      - in: query
+        name: docid
         type: string
         required: true
         description: The unique DocID of the publication to retrieve.
@@ -663,6 +663,12 @@ def get_publication_by_docid_prefix(document_docid):
         description: Internal server error
     """
     try:
+        # Get docid from query parameter
+        document_docid = request.args.get('docid')
+
+        if not document_docid:
+            return jsonify({'error': 'docid parameter is required'}), 400
+
         # Retrieve the publication data with all related tables using joinedload
         data = Publications.query \
             .options(
@@ -682,7 +688,7 @@ def get_publication_by_docid_prefix(document_docid):
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:
@@ -784,7 +790,7 @@ def get_publication_by_docid_prefix(document_docid):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@publications_bp.route('/<string:document_docid>', methods=['GET'])
+@publications_bp.route('/<path:document_docid>', methods=['GET'])
 def get_publication_by_docid_simple(document_docid):
     """
     Fetches a specific publication by its document DocID at the root level.
@@ -844,7 +850,7 @@ def get_publication_by_docid_simple(document_docid):
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:

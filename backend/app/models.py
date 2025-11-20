@@ -451,7 +451,7 @@ class Publications(db.Model):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=False, index=True)
-    document_docid = Column(String(255), nullable=False)
+    document_docid = Column(String(255), nullable=False, unique=True, index=True)  # Unique identifier, indexed for O(1) lookups
     document_title = Column(String(255), nullable=False)
     document_description = Column(Text)
     avatar = Column(String(255))
