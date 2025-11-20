@@ -136,6 +136,14 @@ def seed():
 		  {
 		    "role_id": "7",
 		    "role_name": "Deputy Vice Chancellor"
+		  },
+		  {
+		    "role_id": "8",
+		    "role_name": "Author"
+		  },
+		  {
+		    "role_id": "9",
+		    "role_name": "Contributor"
 		  }
 		]
 

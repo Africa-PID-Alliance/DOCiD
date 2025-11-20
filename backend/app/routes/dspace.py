@@ -5,7 +5,7 @@ DSpace Integration API Endpoints
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Publications, DSpaceMapping, UserAccount
+from app.models import Publications, DSpaceMapping, UserAccount, PublicationCreators, CreatorsRoles
 from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
 import os
 
@@ -22,6 +22,54 @@ def get_dspace_client():
     client = DSpaceClient(DSPACE_BASE_URL, DSPACE_USERNAME, DSPACE_PASSWORD)
     client.authenticate()
     return client
+
+
+def save_publication_creators(publication_id, creators_data):
+    """
+    Save creators to publication_creators table
+
+    Args:
+        publication_id: Publication ID
+        creators_data: List of creator dictionaries from DSpaceMetadataMapper
+    """
+    if not creators_data:
+        return
+
+    creators = []
+    for creator_data in creators_data:
+        # Get role_id for the creator role
+        role_name = creator_data.get('creator_role', 'Author')
+        role = CreatorsRoles.query.filter_by(role_name=role_name).first()
+
+        if not role:
+            # Default to "Author" role if not found
+            role = CreatorsRoles.query.filter_by(role_name='Author').first()
+
+        if not role:
+            continue  # Skip if no role found
+
+        # Parse full name into family_name and given_name
+        full_name = creator_data.get('creator_name', '')
+        name_parts = full_name.split(',', 1) if ',' in full_name else full_name.rsplit(' ', 1)
+
+        if len(name_parts) == 2:
+            family_name = name_parts[0].strip()
+            given_name = name_parts[1].strip()
+        else:
+            family_name = full_name.strip()
+            given_name = ''
+
+        creators.append(PublicationCreators(
+            publication_id=publication_id,
+            family_name=family_name,
+            given_name=given_name,
+            identifier=creator_data.get('orcid_id', ''),
+            identifier_type='orcid' if creator_data.get('orcid_id') else None,
+            role_id=role.role_id
+        ))
+
+    if creators:
+        db.session.bulk_save_objects(creators)
 
 
 @dspace_bp.route('/config', methods=['GET'])
@@ -175,6 +223,10 @@ def sync_single_item(uuid):
               type: string
               description: Generated DOCiD identifier
               example: "20.500.DSPACE/017138d0-9ced-4c49-9be1-5eebe816c528"
+            doi:
+              type: string
+              description: DSpace handle saved as DOI
+              example: "123456789/131"
             dspace_handle:
               type: string
               description: DSpace handle identifier
@@ -241,8 +293,8 @@ def sync_single_item(uuid):
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
-        # Generate Handle-format DocID for DSpace items
-        document_docid = f"20.500.DSPACE/{uuid}"
+        # Use DSpace handle as document_docid (unique identifier)
+        document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
 
         # Create publication
         publication = Publications(
@@ -250,13 +302,16 @@ def sync_single_item(uuid):
             document_title=mapped_data['publication']['document_title'],
             document_description=mapped_data['publication'].get('document_description', ''),
             resource_type_id=resource_type_id,
-            doi='',  # Will be generated later
-            document_docid=document_docid,
+            doi=handle if handle else '',  # Use DSpace handle as DOI
+            document_docid=document_docid,  # Use DSpace handle as document_docid
             owner='DSpace Repository',  # Temporary - will be linked to university ID later
         )
 
         db.session.add(publication)
         db.session.flush()  # Get publication ID
+
+        # Save creators
+        save_publication_creators(publication.id, mapped_data.get('creators', []))
 
         # Create mapping
         mapping = DSpaceMapping(
@@ -275,6 +330,7 @@ def sync_single_item(uuid):
             'success': True,
             'publication_id': publication.id,
             'docid': publication.document_docid,
+            'doi': publication.doi,
             'dspace_handle': handle,
             'message': 'Item synced successfully'
         }), 201
@@ -420,21 +476,24 @@ def sync_batch():
                 resource_type_obj = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
                 resource_type_id = resource_type_obj.id if resource_type_obj else 1
 
-                # Generate Handle-format DocID for DSpace items
-                document_docid = f"20.500.DSPACE/{uuid}"
+                # Use DSpace handle as document_docid (unique identifier)
+                document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
 
                 publication = Publications(
                     user_id=current_user_id,
                     document_title=mapped_data['publication']['document_title'],
                     document_description=mapped_data['publication'].get('document_description', ''),
                     resource_type_id=resource_type_id,
-                    doi='',  # Will be generated later
-                    document_docid=document_docid,
+                    doi=handle if handle else '',  # Use DSpace handle as DOI
+                    document_docid=document_docid,  # Use DSpace handle as document_docid
                     owner='DSpace Repository',  # Temporary - will be linked to university ID later
                 )
 
                 db.session.add(publication)
                 db.session.flush()
+
+                # Save creators
+                save_publication_creators(publication.id, mapped_data.get('creators', []))
 
                 mapping = DSpaceMapping(
                     dspace_handle=handle,
@@ -564,6 +623,113 @@ def get_stats():
         })
 
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@dspace_bp.route('/sync/delete/<int:publication_id>', methods=['DELETE'])
+@jwt_required()
+def delete_synced_item(publication_id):
+    """
+    Delete a synced DSpace item and its mapping
+
+    Removes a publication record that was synced from DSpace along with its mapping.
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    parameters:
+      - name: publication_id
+        in: path
+        type: integer
+        required: true
+        description: Publication ID to delete
+    responses:
+      200:
+        description: Item deleted successfully
+      404:
+        description: Publication or mapping not found
+      401:
+        description: Unauthorized
+      500:
+        description: Server error during deletion
+    """
+    try:
+        # Find the mapping
+        mapping = DSpaceMapping.query.filter_by(publication_id=publication_id).first()
+        if not mapping:
+            return jsonify({'error': 'DSpace mapping not found for this publication'}), 404
+
+        # Find the publication
+        publication = Publications.query.get(publication_id)
+        if not publication:
+            return jsonify({'error': 'Publication not found'}), 404
+
+        # Delete the mapping first
+        db.session.delete(mapping)
+
+        # Delete associated creators
+        PublicationCreators.query.filter_by(publication_id=publication_id).delete()
+
+        # Delete the publication
+        db.session.delete(publication)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Publication {publication_id} and its DSpace mapping deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@dspace_bp.route('/sync/delete-all', methods=['DELETE'])
+@jwt_required()
+def delete_all_synced_items():
+    """
+    Delete all synced DSpace items and their mappings
+
+    WARNING: This will delete all publications synced from DSpace
+    ---
+    tags:
+      - DSpace Integration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: All synced items deleted successfully
+      401:
+        description: Unauthorized
+      500:
+        description: Server error during deletion
+    """
+    try:
+        # Get all mappings
+        mappings = DSpaceMapping.query.all()
+        publication_ids = [m.publication_id for m in mappings]
+
+        # Delete all creators for these publications
+        for pub_id in publication_ids:
+            PublicationCreators.query.filter_by(publication_id=pub_id).delete()
+
+        # Delete all publications
+        Publications.query.filter(Publications.id.in_(publication_ids)).delete(synchronize_session=False)
+
+        # Delete all mappings
+        DSpaceMapping.query.delete()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {len(publication_ids)} synced publications and their mappings'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
