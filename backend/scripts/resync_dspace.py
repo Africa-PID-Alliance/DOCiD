@@ -173,13 +173,21 @@ def resync_dspace_items():
 
                     # Create publication - use DSpace handle as document_docid
                     document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
+
+                    # Construct full resolvable URL for handle_url
+                    handle_url = None
+                    if handle:
+                        base_url = DSPACE_BASE_URL.replace('/server', '')
+                        handle_url = f"{base_url}/handle/{handle}"
+
                     publication = Publications(
                         user_id=user_id,
                         document_title=mapped_data['publication']['document_title'],
                         document_description=mapped_data['publication'].get('document_description', ''),
                         resource_type_id=resource_type_id,
                         doi=handle if handle else '',
-                        document_docid=document_docid,  # Use DSpace handle as document_docid
+                        document_docid=document_docid,  # DSpace handle (not full URL)
+                        handle_url=handle_url,  # Full resolvable URL for DSpace item
                         owner='DSpace Repository',
                     )
 

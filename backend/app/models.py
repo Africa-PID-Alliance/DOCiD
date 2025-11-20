@@ -460,6 +460,7 @@ class Publications(db.Model):
     resource_type_id = Column(Integer, ForeignKey('resource_types.id'), nullable=False, index=True)
     publication_poster_url = Column(String(255))
     doi = Column(String(50), nullable=False)
+    handle_url = Column(String(500), nullable=True)  # Full resolvable URL for DSpace/repository handles
     published = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)

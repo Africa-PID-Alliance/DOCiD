@@ -4,7 +4,10 @@ import requests
 import json
 from urllib.parse import urlencode
 
-# Open ISNI for Organizations API base URL
+# ISNI (International Standard Name Identifier) API
+# Purpose: Identifies public identities of people and organizations contributing to creative works
+# Format: 16-digit ISO standard identifier (e.g., 0000-0000-0000-000X)
+# Use cases: Author disambiguation, linking works across platforms, rights management, citation tracking
 ISNI_API_URL = "https://isni.ringgold.com/api"
 ISNI_STABLE_API_URL = "https://isni.ringgold.com/api/stable"
 
@@ -14,7 +17,9 @@ isni_bp = Blueprint("isni", __name__, url_prefix="/api/v1/isni")
 @isni_bp.route('/get-isni-by-id/<path:isni_id>', methods=['GET'])
 def get_isni_by_id(isni_id):
     """
-    Fetches details of an organization by ISNI ID.
+    Fetches details of a creative contributor (person or organization) by ISNI ID.
+    ISNI identifies public identities contributing to creative works (authors, researchers,
+    artists, performers, and organizations as creative contributors).
     Accepts either just the ISNI ID (e.g., "0000000419369078") or with formatting.
 
     ---
@@ -25,10 +30,10 @@ def get_isni_by_id(isni_id):
         name: isni_id
         type: string
         required: true
-        description: The ISNI ID of the organization to retrieve details for.
+        description: The ISNI ID (16-digit ISO standard identifier) of the creative contributor to retrieve details for.
     responses:
       200:
-        description: Successful retrieval of ISNI data
+        description: Successful retrieval of ISNI data for creative contributor
         content:
           application/json:
             schema:
@@ -36,10 +41,10 @@ def get_isni_by_id(isni_id):
               properties:
                 ISNI:
                   type: string
-                  description: The ISNI identifier
+                  description: The ISNI identifier (16-digit ISO standard)
                 name:
                   type: string
-                  description: Organization name
+                  description: Name of the creative contributor (person or organization)
                 locality:
                   type: string
                   description: City or locality
@@ -50,7 +55,7 @@ def get_isni_by_id(isni_id):
                   type: string
                   description: ISO country code
       404:
-        description: Organization with specified ISNI ID not found
+        description: Creative contributor with specified ISNI ID not found
         content:
           application/json:
             schema:
@@ -58,7 +63,7 @@ def get_isni_by_id(isni_id):
               properties:
                 error:
                   type: string
-                  description: Error message indicating organization not found
+                  description: Error message indicating creative contributor not found
       5XX:
         description: Internal server error
         content:
@@ -84,7 +89,7 @@ def get_isni_by_id(isni_id):
             data = response.json()
             return jsonify(data)
         elif response.status_code == 404:
-            return jsonify({'error': f"Organization with ISNI ID '{clean_isni}' not found"}), 404
+            return jsonify({'error': f"Creative contributor with ISNI ID '{clean_isni}' not found"}), 404
         else:
             return jsonify({'error': f"Failed to retrieve ISNI data (status code: {response.status_code})"}), response.status_code
 
@@ -97,7 +102,9 @@ def get_isni_by_id(isni_id):
 @isni_bp.route('/search', methods=['GET'])
 def search_organizations():
     """
-    Searches for organizations in the ISNI database based on query parameters.
+    Searches for creative contributors (people and organizations) in the ISNI database.
+    ISNI identifies public identities contributing to creative works - useful for author
+    disambiguation, linking works across platforms, and citation tracking.
 
     ---
     tags:
@@ -107,7 +114,7 @@ def search_organizations():
         name: q
         type: string
         required: true
-        description: Search query for organization names or identifiers.
+        description: Search query for creative contributor names (authors, researchers, artists, etc.).
       - in: query
         name: offset
         type: integer
@@ -137,14 +144,16 @@ def search_organizations():
                   description: Current limit
                 institutions:
                   type: array
-                  description: Array of matching organizations
+                  description: Array of matching creative contributors (people and organizations)
                   items:
                     type: object
                     properties:
                       ISNI:
                         type: string
+                        description: 16-digit ISNI identifier
                       name:
                         type: string
+                        description: Name of creative contributor
                       locality:
                         type: string
                       admin_area_level_1:
@@ -202,7 +211,7 @@ def search_organizations():
             # Check if results are found
             if data.get('total', 0) == 0:
                 return jsonify({
-                    "message": "No organizations found for your query",
+                    "message": "No creative contributors found for your query",
                     "total": 0,
                     "institutions": []
                 }), 200
@@ -223,8 +232,9 @@ def search_organizations():
 @isni_bp.route('/search-organization', methods=['GET'])
 def search_organization():
     """
-    Searches for a single organization and returns the first match.
-    Useful for autocomplete or quick lookups.
+    Searches for a single creative contributor and returns the first match.
+    Useful for autocomplete, author disambiguation, or quick lookups.
+    Can search for individual researchers, authors, or organizations as creative contributors.
 
     ---
     tags:
@@ -234,7 +244,7 @@ def search_organization():
         name: name
         type: string
         required: true
-        description: Organization name to search for.
+        description: Name of creative contributor to search for (author, researcher, artist, or organization).
       - in: query
         name: country
         type: string
@@ -242,7 +252,7 @@ def search_organization():
         description: Country code to filter results (ISO 2-letter code, e.g., "US", "GB", "KE").
     responses:
       200:
-        description: Successful retrieval of organization
+        description: Successful retrieval of creative contributor
         content:
           application/json:
             schema:
@@ -250,8 +260,10 @@ def search_organization():
               properties:
                 ISNI:
                   type: string
+                  description: 16-digit ISNI identifier
                 name:
                   type: string
+                  description: Name of creative contributor
                 locality:
                   type: string
                 admin_area_level_1:
@@ -287,18 +299,18 @@ def search_organization():
                   type: string
     """
 
-    organization_name = request.args.get('name')
+    contributor_name = request.args.get('name')
     country_code = request.args.get('country')
 
-    if not organization_name:
-        return jsonify({'error': 'Organization name parameter (name) is required'}), 400
+    if not contributor_name:
+        return jsonify({'error': 'Creative contributor name parameter (name) is required'}), 400
 
     # Normalize country code to uppercase
     if country_code:
         country_code = country_code.strip().upper()
 
     params = {
-        'q': organization_name,
+        'q': contributor_name,
         'offset': 0,
         'limit': 20  # Get more results to filter by country
     }
@@ -327,7 +339,7 @@ def search_organization():
                 ]
 
                 if not filtered_institutions:
-                    return jsonify({"error": f"No organizations found in country '{country_code}'"}), 404
+                    return jsonify({"error": f"No creative contributors found in country '{country_code}'"}), 404
 
                 first_result = filtered_institutions[0]
             else:

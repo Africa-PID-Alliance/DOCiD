@@ -59,12 +59,16 @@ def save_publication_creators(publication_id, creators_data):
             family_name = full_name.strip()
             given_name = ''
 
+        # Only set identifier and identifier_type if there's an actual identifier value
+        identifier_value = creator_data.get('orcid_id', '') or ''
+        identifier_type_value = 'orcid' if identifier_value else ''
+
         creators.append(PublicationCreators(
             publication_id=publication_id,
             family_name=family_name,
             given_name=given_name,
-            identifier=creator_data.get('orcid_id', ''),
-            identifier_type='orcid' if creator_data.get('orcid_id') else None,
+            identifier=identifier_value,
+            identifier_type=identifier_type_value,
             role_id=role.role_id
         ))
 
@@ -293,8 +297,14 @@ def sync_single_item(uuid):
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
-        # Use DSpace handle as document_docid (unique identifier)
+        # Use DSpace handle as document_docid
         document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
+
+        # Construct full resolvable URL for handle_url
+        handle_url = None
+        if handle:
+            base_url = DSPACE_BASE_URL.replace('/server', '')
+            handle_url = f"{base_url}/handle/{handle}"
 
         # Create publication
         publication = Publications(
@@ -303,7 +313,8 @@ def sync_single_item(uuid):
             document_description=mapped_data['publication'].get('document_description', ''),
             resource_type_id=resource_type_id,
             doi=handle if handle else '',  # Use DSpace handle as DOI
-            document_docid=document_docid,  # Use DSpace handle as document_docid
+            document_docid=document_docid,  # DSpace handle (not full URL)
+            handle_url=handle_url,  # Full resolvable URL for DSpace item
             owner='DSpace Repository',  # Temporary - will be linked to university ID later
         )
 
@@ -476,8 +487,14 @@ def sync_batch():
                 resource_type_obj = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
                 resource_type_id = resource_type_obj.id if resource_type_obj else 1
 
-                # Use DSpace handle as document_docid (unique identifier)
+                # Use DSpace handle as document_docid
                 document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
+
+                # Construct full resolvable URL for handle_url
+                handle_url = None
+                if handle:
+                    base_url = DSPACE_BASE_URL.replace('/server', '')
+                    handle_url = f"{base_url}/handle/{handle}"
 
                 publication = Publications(
                     user_id=current_user_id,
@@ -485,7 +502,8 @@ def sync_batch():
                     document_description=mapped_data['publication'].get('document_description', ''),
                     resource_type_id=resource_type_id,
                     doi=handle if handle else '',  # Use DSpace handle as DOI
-                    document_docid=document_docid,  # Use DSpace handle as document_docid
+                    document_docid=document_docid,  # DSpace handle (not full URL)
+                    handle_url=handle_url,  # Full resolvable URL for DSpace item
                     owner='DSpace Repository',  # Temporary - will be linked to university ID later
                 )
 
