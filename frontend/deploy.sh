@@ -7,13 +7,10 @@ set -e  # Exit on any error
 
 echo "🚀 Starting DOCiD Frontend Production Deployment Package..."
 
-# Check if build exists
-if [ ! -d ".next" ]; then
-    echo "❌ Build directory (.next) not found. Running production build first..."
-    npm run build
-else
-    echo "✅ Build directory found"
-fi
+# Always rebuild to ensure latest changes are included
+echo "🔨 Running production build..."
+npm run build
+echo "✅ Build completed"
 
 # Define deployment filename with timestamp
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -51,8 +48,7 @@ echo ""
 echo "🎯 Deployment Instructions:"
 echo "1. Upload ${DEPLOYMENT_ZIP} to your server"
 echo "2. Extract: unzip ${DEPLOYMENT_ZIP}"
-echo "3. Install dependencies: npm ci --production"
-echo "4. Start application: npm start (or pm2 start ecosystem.config.js)"
+echo "3. Run: ./deploy-server.sh"
 echo ""
 echo "🌐 Production API URL: https://docid.africapidalliance.org/api/v1"
 echo "✨ Deployment package ready!"

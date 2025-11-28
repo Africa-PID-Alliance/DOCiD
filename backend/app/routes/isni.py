@@ -321,10 +321,13 @@ def search_organization():
     print(f"ISNI API Request URL: {url}")
 
     try:
-        response = requests.get(url, timeout=10)
+        print(f"Fetching ISNI data from: {url}")
+        response = requests.get(url, timeout=30)  # Increased timeout
+        print(f"ISNI API response status: {response.status_code}")
 
         if response.status_code == 200:
             data = response.json()
+            print(f"ISNI API returned {data.get('total', 0)} total results")
 
             institutions = data.get('institutions', [])
 
@@ -348,11 +351,18 @@ def search_organization():
             return jsonify(first_result)
 
         else:
+            print(f"ISNI API error response: {response.text[:500]}")
             return jsonify({'error': f"Failed to retrieve ISNI data (status code: {response.status_code})"}), response.status_code
 
     except requests.exceptions.Timeout:
-        return jsonify({'error': 'Request to ISNI API timed out'}), 504
+        print("ISNI API request timed out")
+        return jsonify({'error': 'Request to ISNI API timed out. Please try again.'}), 504
+    except requests.exceptions.ConnectionError as e:
+        print(f"ISNI API connection error: {str(e)}")
+        return jsonify({'error': 'Cannot connect to ISNI API. Server may be unreachable.'}), 503
     except requests.exceptions.RequestException as e:
+        print(f"ISNI API request error: {str(e)}")
         return jsonify({'error': f'Error connecting to ISNI API: {str(e)}'}), 500
-    except (ValueError, json.JSONDecodeError):
+    except (ValueError, json.JSONDecodeError) as e:
+        print(f"ISNI API JSON parse error: {str(e)}")
         return jsonify({'error': "Failed to parse ISNI API response"}), 500

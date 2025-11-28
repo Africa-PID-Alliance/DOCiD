@@ -18,20 +18,37 @@ export async function GET(request) {
     const params = new URLSearchParams({ name });
     if (country) params.append('country', country);
 
-    const response = await fetch(`${API_BASE_URL}/isni/search-organization?${params}`, {
+    const backendUrl = `${API_BASE_URL}/isni/search-organization?${params}`;
+    console.log('ISNI proxy request to:', backendUrl);
+
+    const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    const data = await response.json();
+    console.log('ISNI backend response status:', response.status);
+
+    // Try to parse JSON response
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse ISNI response:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid response from ISNI service' },
+        { status: 502 }
+      );
+    }
+
+    // Pass through the backend response with its status
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Error searching ISNI organization:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: `Failed to connect to ISNI service: ${error.message}` },
+      { status: 503 }
     );
   }
 }
