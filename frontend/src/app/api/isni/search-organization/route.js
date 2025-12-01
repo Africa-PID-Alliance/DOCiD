@@ -4,12 +4,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.afri
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const name = searchParams.get('name');
+  // Accept both 'name' and 'q' as query parameter
+  const name = searchParams.get('name') || searchParams.get('q');
   const country = searchParams.get('country');
 
   if (!name) {
     return NextResponse.json(
-      { error: 'Organization name is required' },
+      { error: 'Organization name (name or q) is required' },
       { status: 400 }
     );
   }

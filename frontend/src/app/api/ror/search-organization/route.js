@@ -3,13 +3,14 @@ import { NextResponse } from 'next/server';
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const name = searchParams.get('name');
+    // Accept both 'name' and 'q' as query parameter
+    const name = searchParams.get('name') || searchParams.get('q');
     const country = searchParams.get('country');
     const page = searchParams.get('page') || '1';
-    
+
     if (!name) {
       return NextResponse.json(
-        { error: 'Organization name parameter (name) is required' },
+        { error: 'Organization name parameter (name or q) is required' },
         { status: 400 }
       );
     }

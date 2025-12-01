@@ -32,6 +32,14 @@ fi
 
 print_message $GREEN "Starting DOCiD Frontend..."
 
+# Kill any process running on port 3000
+if lsof -ti:3000 > /dev/null 2>&1; then
+    print_message $YELLOW "Port 3000 is in use. Killing existing process..."
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    sleep 1
+    print_message $GREEN "Port 3000 freed."
+fi
+
 # Install dependencies if node_modules doesn't exist
 if [ ! -d "node_modules" ]; then
     print_message $YELLOW "Installing dependencies..."
