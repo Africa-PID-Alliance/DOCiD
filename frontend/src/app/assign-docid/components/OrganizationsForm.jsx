@@ -55,7 +55,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </div>
 );
 
-const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, type = 'orcid', label = 'ORCID' }) => {
+const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, type = 'ror', label = 'ROR' }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);

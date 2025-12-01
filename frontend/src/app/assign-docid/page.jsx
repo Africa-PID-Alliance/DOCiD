@@ -68,7 +68,7 @@ const AssignDocID = () => {
       files: []
     },
     creators: { creators: [] },
-    organizationsOrcid: { organizations: [] },
+    organizationsRor: { organizations: [] },
     organizationsIsni: { organizations: [] },
     funders: { funders: [] },
     project: {
@@ -273,7 +273,7 @@ const AssignDocID = () => {
           files: []
         },
         creators: { creators: [] },
-        organizationsOrcid: { organizations: [] },
+        organizationsRor: { organizations: [] },
         organizationsIsni: { organizations: [] },
         funders: { funders: [] },
         project: {
@@ -351,10 +351,10 @@ const AssignDocID = () => {
               }}
             >
               <OrganizationsForm
-                formData={formData.organizationsOrcid || { organizations: [] }}
-                updateFormData={(data) => updateFormData('organizationsOrcid', data)}
-                type="orcid"
-                label="ORCID"
+                formData={formData.organizationsRor || { organizations: [] }}
+                updateFormData={(data) => updateFormData('organizationsRor', data)}
+                type="ror"
+                label="ROR"
               />
             </Paper>
             <Paper
@@ -532,14 +532,14 @@ const AssignDocID = () => {
         });
       }
 
-      // 5. Organizations (ORCID)
-      if (formData.organizationsOrcid?.organizations?.length > 0) {
-        formData.organizationsOrcid.organizations.forEach((organization, index) => {
-          submitData.append(`organizationOrcid[${index}][name]`, organization.name);
-          submitData.append(`organizationOrcid[${index}][other_name]`, organization.otherName);
-          submitData.append(`organizationOrcid[${index}][type]`, organization.type);
-          submitData.append(`organizationOrcid[${index}][country]`, organization.country);
-          submitData.append(`organizationOrcid[${index}][ror_id]`, organization.rorId || '');
+      // 5. Organizations (ROR)
+      if (formData.organizationsRor?.organizations?.length > 0) {
+        formData.organizationsRor.organizations.forEach((organization, index) => {
+          submitData.append(`organizationRor[${index}][name]`, organization.name);
+          submitData.append(`organizationRor[${index}][other_name]`, organization.otherName);
+          submitData.append(`organizationRor[${index}][type]`, organization.type);
+          submitData.append(`organizationRor[${index}][country]`, organization.country);
+          submitData.append(`organizationRor[${index}][ror_id]`, organization.rorId || '');
         });
       }
 
