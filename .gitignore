@@ -119,6 +119,9 @@ test_*.jpg
 
 # Database query utility (contains sensitive queries/credentials)
 backend/db_query.py
+
+# Planning/overview documents
+FIGSHARE-OJS/
 backend/test_user_profile_api.py
 
 # Playwright E2E tests

@@ -465,6 +465,12 @@ class Publications(db.Model):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
 
+    # External repository links
+    figshare_article_id = Column(String(50), nullable=True, index=True)  # Figshare article ID
+    figshare_url = Column(String(500), nullable=True)  # Full Figshare URL
+    ojs_submission_id = Column(String(50), nullable=True, index=True)  # OJS submission ID
+    ojs_url = Column(String(500), nullable=True)  # Full OJS article URL
+
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
