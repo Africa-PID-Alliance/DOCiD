@@ -1498,93 +1498,103 @@ def create_publication():
         # Save PublicationOrganization records
         logger.info("Processing PublicationOrganizations...")
         organizations = []
-        index = 0
-        while True:
-            name = request.form.get(f'organization[{index}][name]')
-            if name is None:
-                break
 
-            org_type = request.form.get(f'organization[{index}][type]')
-            other_name = clean_undefined_string(request.form.get(f'organization[{index}][other_name]'))
-            country = request.form.get(f'organization[{index}][country]')
-            
-            # Get identifier fields (e.g., ROR ID for organizations)
-            identifier_type = request.form.get(f'organization[{index}][identifier_type]')  # e.g., 'ror'
-            identifier_value = request.form.get(f'organization[{index}][identifier]')  # e.g., '02nr0ka47'
-            
-            # If no explicit identifier_type but we have a ROR field, handle it
-            if not identifier_type and not identifier_value:
-                # Check for specific identifier fields like organization[0][ror] or organization[0][ror_id]
-                ror_id = request.form.get(f'organization[{index}][ror]')
-                if not ror_id:
-                    ror_id = request.form.get(f'organization[{index}][ror_id]')
-                if ror_id:
-                    identifier_type = 'ror'
-                    identifier_value = ror_id
+        # Helper function to format identifier as resolvable URL
+        def format_organization_identifier(identifier_type, identifier_value):
+            if not identifier_type or not identifier_value:
+                return None
+            if identifier_type.lower() == 'ror':
+                if identifier_value.startswith('https://ror.org/'):
+                    return identifier_value
+                elif identifier_value.startswith('ror.org/'):
+                    return f"https://{identifier_value}"
                 else:
-                    # Also check for GRID ID with both formats
-                    grid_id = request.form.get(f'organization[{index}][grid]')
-                    if not grid_id:
-                        grid_id = request.form.get(f'organization[{index}][grid_id]')
-                    if grid_id:
-                        identifier_type = 'grid'
-                        identifier_value = grid_id
-            
-            # Format identifier as resolvable URL
-            resolvable_identifier = None
-            if identifier_type and identifier_value:
-                if identifier_type.lower() == 'ror':
-                    # Format ROR as resolvable URL
-                    if identifier_value.startswith('https://ror.org/'):
-                        resolvable_identifier = identifier_value
-                    elif identifier_value.startswith('ror.org/'):
-                        resolvable_identifier = f"https://{identifier_value}"
-                    else:
-                        # Just the ID part, add the full URL
-                        resolvable_identifier = f"https://ror.org/{identifier_value}"
-                elif identifier_type.lower() == 'grid':
-                    # Format GRID as resolvable URL
-                    if not identifier_value.startswith('http'):
-                        resolvable_identifier = f"https://www.grid.ac/institutes/{identifier_value}"
-                    else:
-                        resolvable_identifier = identifier_value
-                elif identifier_type.lower() == 'isni':
-                    # Format ISNI as resolvable URL
-                    resolvable_identifier = f"https://isni.org/isni/{identifier_value}"
+                    return f"https://ror.org/{identifier_value}"
+            elif identifier_type.lower() == 'grid':
+                if not identifier_value.startswith('http'):
+                    return f"https://www.grid.ac/institutes/{identifier_value}"
                 else:
-                    # For unknown types, store the raw value
-                    resolvable_identifier = identifier_value
-            
-            logger.info(f"PublicationOrganization [{index}]:")
-            logger.info(f"  name: {name}")
-            logger.info(f"  type: {org_type}")
-            logger.info(f"  other_name: {other_name}")
-            logger.info(f"  country: {country}")
-            logger.info(f"  identifier_type: {identifier_type}")
-            logger.info(f"  identifier_value: {identifier_value}")
-            logger.info(f"  resolvable_identifier: {resolvable_identifier}")
-            
-            # Debug logging for identifier lookup
-            debug_ror1 = request.form.get(f'organization[{index}][ror]')
-            debug_ror2 = request.form.get(f'organization[{index}][ror_id]')
-            debug_grid1 = request.form.get(f'organization[{index}][grid]')
-            debug_grid2 = request.form.get(f'organization[{index}][grid_id]')
-            logger.info(f"  DEBUG - Looking for organization[{index}][ror]: {debug_ror1}")
-            logger.info(f"  DEBUG - Looking for organization[{index}][ror_id]: {debug_ror2}")
-            logger.info(f"  DEBUG - Looking for organization[{index}][grid]: {debug_grid1}")
-            logger.info(f"  DEBUG - Looking for organization[{index}][grid_id]: {debug_grid2}")
+                    return identifier_value
+            elif identifier_type.lower() == 'isni':
+                if identifier_value.startswith('https://isni.org/'):
+                    return identifier_value
+                else:
+                    return f"https://isni.org/isni/{identifier_value}"
+            else:
+                return identifier_value
 
-            organizations.append(PublicationOrganization(
-                publication_id=publication_id,
-                name=name,
-                type=org_type,
-                other_name=other_name,
-                country=country,
-                identifier=resolvable_identifier,  # Store the full resolvable URL
-                identifier_type=identifier_type    # Store the type (e.g., 'ror', 'grid', 'isni')
-            ))
-            index += 1
-        
+        # Process organizations from multiple sources: organization[], organizationRor[], organizationIsni[]
+        organization_sources = [
+            ('organization', None),      # Legacy format with auto-detect identifier type
+            ('organizationRor', 'ror'),  # ROR organizations
+            ('organizationIsni', 'isni') # ISNI organizations
+        ]
+
+        for source_prefix, default_identifier_type in organization_sources:
+            index = 0
+            while True:
+                name = request.form.get(f'{source_prefix}[{index}][name]')
+                if name is None:
+                    break
+
+                org_type = request.form.get(f'{source_prefix}[{index}][type]')
+                other_name = clean_undefined_string(request.form.get(f'{source_prefix}[{index}][other_name]'))
+                country = request.form.get(f'{source_prefix}[{index}][country]')
+
+                # Get identifier fields
+                identifier_type = request.form.get(f'{source_prefix}[{index}][identifier_type]')
+                identifier_value = request.form.get(f'{source_prefix}[{index}][identifier]')
+
+                # If no explicit identifier, check for ror_id field
+                if not identifier_value:
+                    ror_id = request.form.get(f'{source_prefix}[{index}][ror_id]')
+                    if ror_id:
+                        identifier_value = ror_id
+                        if not identifier_type:
+                            identifier_type = default_identifier_type or 'ror'
+
+                # If still no identifier type but we have a default from the source
+                if not identifier_type and default_identifier_type and identifier_value:
+                    identifier_type = default_identifier_type
+
+                # Legacy fallback for organization[] format
+                if source_prefix == 'organization' and not identifier_type and not identifier_value:
+                    ror_id = request.form.get(f'{source_prefix}[{index}][ror]')
+                    if not ror_id:
+                        ror_id = request.form.get(f'{source_prefix}[{index}][ror_id]')
+                    if ror_id:
+                        identifier_type = 'ror'
+                        identifier_value = ror_id
+                    else:
+                        grid_id = request.form.get(f'{source_prefix}[{index}][grid]')
+                        if not grid_id:
+                            grid_id = request.form.get(f'{source_prefix}[{index}][grid_id]')
+                        if grid_id:
+                            identifier_type = 'grid'
+                            identifier_value = grid_id
+
+                resolvable_identifier = format_organization_identifier(identifier_type, identifier_value)
+
+                logger.info(f"PublicationOrganization [{source_prefix}][{index}]:")
+                logger.info(f"  name: {name}")
+                logger.info(f"  type: {org_type}")
+                logger.info(f"  other_name: {other_name}")
+                logger.info(f"  country: {country}")
+                logger.info(f"  identifier_type: {identifier_type}")
+                logger.info(f"  identifier_value: {identifier_value}")
+                logger.info(f"  resolvable_identifier: {resolvable_identifier}")
+
+                organizations.append(PublicationOrganization(
+                    publication_id=publication_id,
+                    name=name,
+                    type=org_type,
+                    other_name=other_name,
+                    country=country,
+                    identifier=resolvable_identifier,
+                    identifier_type=identifier_type
+                ))
+                index += 1
+
         if organizations:
             db.session.bulk_save_objects(organizations)
             logger.info(f"Saved {len(organizations)} PublicationOrganizations")

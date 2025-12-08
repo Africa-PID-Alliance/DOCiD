@@ -132,3 +132,6 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/playwright/.cache/
 
+# Deployment scripts (contain server-specific configurations)
+scripts/
+
