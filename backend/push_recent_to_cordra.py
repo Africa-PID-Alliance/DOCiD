@@ -34,20 +34,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main():
-    """Process publications created in the last 2 minutes"""
-    
-    logger.info("Checking for recent publications to push to CORDRA...")
-    
+    """Process publications that haven't been synced to CORDRA yet"""
+
+    logger.info("Checking for unsynced publications to push to CORDRA...")
+
     # Create Flask app context
     app = create_app()
-    
+
     with app.app_context():
         try:
-            # Get publications created in the last 2 minutes
-            two_minutes_ago = datetime.now() - timedelta(minutes=2)
-            
+            # Get publications that haven't been synced yet
             recent_publications = Publications.query.filter(
-                Publications.published >= two_minutes_ago
+                (Publications.cordra_synced == False) | (Publications.cordra_synced == None)
             ).all()
             
             if not recent_publications:

@@ -16,7 +16,7 @@ import os
 import sys
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -470,6 +470,8 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='Push publications to CORDRA')
     parser.add_argument('--publication-id', type=int, help='Push only a specific publication ID')
+    parser.add_argument('--all', action='store_true', help='Process all publications (override time filter)')
+    parser.add_argument('--hours', type=int, default=12, help='Process publications from last N hours (default: 12)')
     args = parser.parse_args()
     
     logger.info("=" * 80)
@@ -477,6 +479,10 @@ def main():
     logger.info(f"Application domain: {APPLICATION_DOMAIN}")
     if args.publication_id:
         logger.info(f"Processing only publication ID: {args.publication_id}")
+    elif args.all:
+        logger.info("Processing ALL publications")
+    else:
+        logger.info(f"Processing publications from last {args.hours} hours")
     logger.info("=" * 80)
     
     # Create Flask app context
@@ -492,9 +498,19 @@ def main():
                     logger.error(f"Publication {args.publication_id} not found")
                     return 1
                 publications = [publication]
-            else:
+            elif args.all:
                 # Get all publications
                 publications = Publications.query.all()
+            else:
+                # Get publications from last N hours
+                time_threshold = datetime.utcnow() - timedelta(hours=args.hours)
+                logger.info(f"Looking for publications created/updated after: {time_threshold}")
+                
+                # Query publications created or updated in the last N hours
+                publications = Publications.query.filter(
+                    (Publications.published >= time_threshold) | 
+                    (Publications.updated_at >= time_threshold)
+                ).all()
             
             total_publications = len(publications)
             
@@ -516,7 +532,12 @@ def main():
                         push_publication_organizations_to_cordra(publication)
                         push_publication_funders_to_cordra(publication)
                         push_publication_projects_to_cordra(publication)
-                        
+
+                        # Mark as synced to prevent duplicate pushes
+                        publication.cordra_synced = True
+                        publication.cordra_synced_at = datetime.utcnow()
+                        db.session.commit()
+
                         success_count += 1
                         logger.info(f"✓ Successfully pushed Publication {publication.id} and all semantics")
                     else:
