@@ -1033,6 +1033,132 @@ class FileDownloads(db.Model):
         return download
 
 
+class RinggoldInstitution(db.Model):
+    """
+    Local cache of Ringgold institution data for African institutions.
+    Enables fast local searches without API calls.
+    Data sourced from Ringgold data export for African countries.
+    """
+    __tablename__ = 'ringgold_institutions'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    ringgold_id = db.Column(db.Integer, unique=True, nullable=False, index=True)
+    name = db.Column(db.String(500), nullable=False, index=True)
+    country = db.Column(db.String(100), nullable=False, index=True)
+    city = db.Column(db.String(200), nullable=True)
+    post_code = db.Column(db.String(50), nullable=True)
+    administrative_area_level_1 = db.Column(db.String(200), nullable=True)
+    administrative_area_level_2 = db.Column(db.String(200), nullable=True)
+    administrative_area_level_3 = db.Column(db.String(200), nullable=True)
+    isni = db.Column(db.String(20), nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<RinggoldInstitution(ringgold_id={self.ringgold_id}, name='{self.name}', country='{self.country}')>"
+
+    def to_dict(self):
+        """Serialize institution for JSON responses (matching Ringgold API format)"""
+        return {
+            'ringgold_id': self.ringgold_id,
+            'name': self.name,
+            'country': self.country,
+            'locality': self.city,
+            'city': self.city,
+            'post_code': self.post_code,
+            'admin_area_level_1': self.administrative_area_level_1,
+            'admin_area_level_2': self.administrative_area_level_2,
+            'admin_area_level_3': self.administrative_area_level_3,
+            'country_code': self.get_country_code(),
+            'ISNI': self.isni
+        }
+
+    def get_country_code(self):
+        """Convert country name to ISO 2-letter code"""
+        country_codes = {
+            'South Africa': 'ZA', 'Nigeria': 'NG', 'Egypt': 'EG', 'Kenya': 'KE',
+            'Algeria': 'DZ', 'Uganda': 'UG', 'Ghana': 'GH', 'Ethiopia': 'ET',
+            'Morocco': 'MA', 'Tanzania, United Republic of': 'TZ', 'Tunisia': 'TN',
+            'Zimbabwe': 'ZW', 'Cameroon': 'CM', 'Zambia': 'ZM', 'Botswana': 'BW',
+            'Rwanda': 'RW', 'Sudan': 'SD', 'Mauritius': 'MU', 'Mozambique': 'MZ',
+            'Malawi': 'MW', 'Senegal': 'SN', 'Namibia': 'NA', 'Libya': 'LY',
+            'Reunion': 'RE', 'Congo, Democratic Republic of the': 'CD',
+            'Burkina Faso': 'BF', "Cote d'Ivoire": 'CI', 'Angola': 'AO',
+            'Madagascar': 'MG', 'Benin': 'BJ', 'Somalia': 'SO', 'Lesotho': 'LS',
+            'Eswatini': 'SZ', 'Sierra Leone': 'SL', 'Togo': 'TG', 'Mali': 'ML',
+            'Liberia': 'LR', 'South Sudan': 'SS', 'Seychelles': 'SC', 'Guinea': 'GN',
+            'Burundi': 'BI', 'Gabon': 'GA', 'Gambia': 'GM', 'Eritrea': 'ER',
+            'Mauritania': 'MR', 'Niger': 'NE', 'Cape Verde': 'CV', 'Chad': 'TD',
+            'Djibouti': 'DJ', 'Congo, Republic of the': 'CG',
+            'Central African Republic': 'CF', 'Guinea-Bissau': 'GW', 'Comoros': 'KM',
+            'Saint Helena, Ascension and Tristan da Cunha': 'SH', 'Mayotte': 'YT',
+            'Equatorial Guinea': 'GQ', 'Sao Tome and Principe': 'ST'
+        }
+        return country_codes.get(self.country, '')
+
+    @classmethod
+    def search(cls, query, country=None, limit=20, offset=0):
+        """
+        Search institutions by name with optional country filter
+
+        Args:
+            query (str): Search query for institution name
+            country (str, optional): Country name or code to filter by
+            limit (int): Maximum results to return
+            offset (int): Offset for pagination
+
+        Returns:
+            tuple: (list of institutions, total count)
+        """
+        search_filter = cls.name.ilike(f'%{query}%')
+
+        if country:
+            # Support both country name and country code
+            country_upper = country.strip().upper()
+            if len(country_upper) == 2:
+                # It's a country code, convert to name
+                code_to_country = {v: k for k, v in {
+                    'South Africa': 'ZA', 'Nigeria': 'NG', 'Egypt': 'EG', 'Kenya': 'KE',
+                    'Algeria': 'DZ', 'Uganda': 'UG', 'Ghana': 'GH', 'Ethiopia': 'ET',
+                    'Morocco': 'MA', 'Tanzania, United Republic of': 'TZ', 'Tunisia': 'TN',
+                    'Zimbabwe': 'ZW', 'Cameroon': 'CM', 'Zambia': 'ZM', 'Botswana': 'BW',
+                    'Rwanda': 'RW', 'Sudan': 'SD', 'Mauritius': 'MU', 'Mozambique': 'MZ',
+                    'Malawi': 'MW', 'Senegal': 'SN', 'Namibia': 'NA', 'Libya': 'LY',
+                    'Reunion': 'RE', 'Congo, Democratic Republic of the': 'CD',
+                    'Burkina Faso': 'BF', "Cote d'Ivoire": 'CI', 'Angola': 'AO',
+                    'Madagascar': 'MG', 'Benin': 'BJ', 'Somalia': 'SO', 'Lesotho': 'LS',
+                    'Eswatini': 'SZ', 'Sierra Leone': 'SL', 'Togo': 'TG', 'Mali': 'ML',
+                    'Liberia': 'LR', 'South Sudan': 'SS', 'Seychelles': 'SC', 'Guinea': 'GN',
+                    'Burundi': 'BI', 'Gabon': 'GA', 'Gambia': 'GM', 'Eritrea': 'ER',
+                    'Mauritania': 'MR', 'Niger': 'NE', 'Cape Verde': 'CV', 'Chad': 'TD',
+                    'Djibouti': 'DJ', 'Congo, Republic of the': 'CG',
+                    'Central African Republic': 'CF', 'Guinea-Bissau': 'GW', 'Comoros': 'KM',
+                    'Saint Helena, Ascension and Tristan da Cunha': 'SH', 'Mayotte': 'YT',
+                    'Equatorial Guinea': 'GQ', 'Sao Tome and Principe': 'ST'
+                }.items()}
+                country_name = code_to_country.get(country_upper)
+                if country_name:
+                    search_filter = db.and_(search_filter, cls.country == country_name)
+            else:
+                # It's a country name
+                search_filter = db.and_(search_filter, cls.country.ilike(f'%{country}%'))
+
+        total = cls.query.filter(search_filter).count()
+        institutions = cls.query.filter(search_filter).offset(offset).limit(limit).all()
+
+        return institutions, total
+
+    @classmethod
+    def get_by_ringgold_id(cls, ringgold_id):
+        """Get institution by Ringgold ID"""
+        return cls.query.filter_by(ringgold_id=ringgold_id).first()
+
+    @classmethod
+    def get_by_isni(cls, isni):
+        """Get institution by ISNI"""
+        clean_isni = ''.join(filter(str.isdigit, str(isni)))
+        return cls.query.filter_by(isni=clean_isni).first()
+
+
 class DSpaceMapping(db.Model):
     """
     Tracks mapping between DSpace items and DOCiD publications for integration
