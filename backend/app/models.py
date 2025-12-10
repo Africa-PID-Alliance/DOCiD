@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, Boolean
 from sqlalchemy.orm import relationship
 from app import db
  
@@ -470,6 +470,10 @@ class Publications(db.Model):
     figshare_url = Column(String(500), nullable=True)  # Full Figshare URL
     ojs_submission_id = Column(String(50), nullable=True, index=True)  # OJS submission ID
     ojs_url = Column(String(500), nullable=True)  # Full OJS article URL
+
+    # CORDRA sync tracking
+    cordra_synced = Column(Boolean, default=False)  # Track if pushed to CORDRA
+    cordra_synced_at = Column(DateTime, nullable=True)  # When it was synced
 
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
