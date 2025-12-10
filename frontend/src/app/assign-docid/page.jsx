@@ -154,22 +154,26 @@ const AssignDocID = () => {
   // Auto-save function (now called saveDraft)
   const saveDraft = useCallback(async () => {
     if (!user?.email || !isFormDirty.current) return;
-    
-    console.log('Auto-saving draft at:', new Date().toLocaleTimeString());
+
+    // Get current resource_type_id from form data (default to 1 if not set)
+    const resourceTypeId = formDataRef.current?.docId?.resourceType || 1;
+
+    console.log('Auto-saving draft at:', new Date().toLocaleTimeString(), 'resource_type_id:', resourceTypeId);
     setDraftStatus('saving');
-    
+
     try {
       const response = await axios.post('/api/publications/draft', {
         email: user.email,
+        resource_type_id: resourceTypeId,
         formData: formDataRef.current // Use ref to get current form data
       });
-      
+
       if (response.data.saved) {
         setDraftStatus('saved');
         setLastSaved(new Date());
         setShowDraftNotification(true);
         isFormDirty.current = false;
-        
+
         // Hide notification after 3 seconds
         setTimeout(() => setShowDraftNotification(false), 3000);
       }
@@ -181,25 +185,49 @@ const AssignDocID = () => {
   }, [user?.email]); // Only depend on user.email, not formData
 
   // Load saved draft data on component mount
-  const loadSavedDraft = useCallback(async () => {
+  const loadSavedDraft = useCallback(async (resourceTypeId = null) => {
     if (!user?.email) return;
-    
+
     try {
-      const response = await axios.get(`/api/publications/draft/${user.email}`);
-      
+      let response;
+      if (resourceTypeId) {
+        // Load specific draft by email and resource_type_id
+        response = await axios.get(`/api/publications/draft/${user.email}/${resourceTypeId}`);
+      } else {
+        // Load all drafts and get the most recent one
+        response = await axios.get(`/api/publications/draft/${user.email}`);
+        // If we have multiple drafts, load the first one (most recent)
+        if (response.data.hasDrafts && response.data.drafts?.length > 0) {
+          const firstDraft = response.data.drafts[0];
+          const savedFormData = firstDraft.form_data;
+          setFormData(savedFormData);
+          setLastSaved(new Date(firstDraft.updated_at));
+          setDraftLoaded(true);
+
+          setNotification({
+            open: true,
+            message: `Draft restored from ${new Date(firstDraft.updated_at).toLocaleString()}`,
+            severity: 'info'
+          });
+
+          console.log('Draft loaded successfully:', savedFormData);
+          return;
+        }
+      }
+
       if (response.data.hasDraft) {
         const savedFormData = response.data.formData;
         setFormData(savedFormData);
         setLastSaved(new Date(response.data.lastSaved));
         setDraftLoaded(true);
-        
+
         // Show notification about loaded draft
         setNotification({
           open: true,
           message: `Draft restored from ${new Date(response.data.lastSaved).toLocaleString()}`,
           severity: 'info'
         });
-        
+
         console.log('Draft loaded successfully:', savedFormData);
       }
     } catch (error) {
@@ -210,7 +238,15 @@ const AssignDocID = () => {
   // Load saved draft only on component mount
   useEffect(() => {
     if (user?.email) {
-      loadSavedDraft();
+      // Check for draft_resource_type URL param (from my-drafts page)
+      const urlParams = new URLSearchParams(window.location.search);
+      const draftResourceType = urlParams.get('draft_resource_type');
+
+      if (draftResourceType) {
+        loadSavedDraft(parseInt(draftResourceType, 10));
+      } else {
+        loadSavedDraft();
+      }
     }
   }, [user?.email]); // Only depend on user email, run once when user is available
 
@@ -253,8 +289,11 @@ const AssignDocID = () => {
 
     if (!confirmDiscard) return;
 
+    // Get current resource_type_id from form data (default to 1 if not set)
+    const resourceTypeId = formData?.docId?.resourceType || 1;
+
     try {
-      await axios.delete(`/api/publications/draft/${user.email}`);
+      await axios.delete(`/api/publications/draft/${user.email}/${resourceTypeId}`);
 
       // Reset form data to initial state
       setFormData({

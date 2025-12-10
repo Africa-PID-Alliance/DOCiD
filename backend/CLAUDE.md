@@ -201,6 +201,10 @@ LC_API_KEY=local_contexts_api_key
 - **Production Safety**: Test migrations on staging before production
 - **Rollback Plans**: Ensure all migrations are reversible
 
+### Git Commit Guidelines
+- **NEVER** include `Co-Authored-By: Claude <noreply@anthropic.com>` in commits
+- Keep the `🤖 Generated with [Claude Code](https://claude.com/claude-code)` line only
+
 ## Performance Considerations
 
 ### Database Optimization

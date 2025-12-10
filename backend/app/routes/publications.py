@@ -1812,6 +1812,9 @@ def save_draft():
             email:
               type: string
               description: User email
+            resource_type_id:
+              type: integer
+              description: Resource type ID for this draft
             formData:
               type: object
               description: Complete form state
@@ -1825,77 +1828,42 @@ def save_draft():
     """
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
-            
+
         email = data.get('email')
+        resource_type_id = data.get('resource_type_id')
         form_data = data.get('formData')
-        
+
         if not email or not form_data:
             return jsonify({'error': 'Email and formData are required'}), 400
-        
-        logger.info(f"Saving draft for user: {email}")
-        
+
+        # Default to resource_type_id=1 if not provided (backward compatibility)
+        if not resource_type_id:
+            resource_type_id = 1
+
+        logger.info(f"Saving draft for user: {email}, resource_type_id: {resource_type_id}")
+
         # Save draft data
-        draft = PublicationDrafts.save_draft(email, form_data)
-        
+        draft = PublicationDrafts.save_draft(email, resource_type_id, form_data)
+
         return jsonify({
             'message': 'Draft saved successfully',
             'timestamp': draft.updated_at.isoformat(),
+            'resource_type_id': draft.resource_type_id,
             'saved': True
         }), 200
-        
+
     except Exception as e:
         logger.error(f"Error saving draft: {str(e)}")
         return jsonify({'error': 'Failed to save draft'}), 500
 
 
 @publications_bp.route('/draft/<email>', methods=['GET'])
-def get_draft_data(email):
+def get_all_drafts_for_user(email):
     """
-    Get saved draft data for user
-    ---
-    tags:
-      - Publications  
-    parameters:
-      - name: email
-        in: path
-        type: string
-        required: true
-        description: User email
-    responses:
-      200:
-        description: Draft data retrieved successfully
-      404:
-        description: No draft data found
-      500:
-        description: Internal server error
-    """
-    try:
-        logger.info(f"Retrieving draft data for user: {email}")
-        
-        draft = PublicationDrafts.get_draft(email)
-        
-        if not draft:
-            return jsonify({'message': 'No draft found', 'hasDraft': False}), 200
-        
-        return jsonify({
-            'hasDraft': True,
-            'formData': draft.form_data,
-            'lastSaved': draft.updated_at.isoformat(),
-            'message': 'Draft retrieved successfully'
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error retrieving draft: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve draft'}), 500
-
-
-@publications_bp.route('/draft/<email>', methods=['DELETE'])
-def delete_draft_data(email):
-    """
-    Delete draft data after successful submission
+    Get all saved drafts for user (returns array of drafts)
     ---
     tags:
       - Publications
@@ -1907,6 +1875,102 @@ def delete_draft_data(email):
         description: User email
     responses:
       200:
+        description: Drafts retrieved successfully
+      500:
+        description: Internal server error
+    """
+    try:
+        logger.info(f"Retrieving all drafts for user: {email}")
+
+        drafts = PublicationDrafts.get_all_drafts_by_email(email)
+
+        if not drafts:
+            return jsonify({
+                'message': 'No drafts found',
+                'hasDrafts': False,
+                'drafts': []
+            }), 200
+
+        return jsonify({
+            'hasDrafts': True,
+            'drafts': [draft.to_dict() for draft in drafts],
+            'count': len(drafts),
+            'message': 'Drafts retrieved successfully'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error retrieving drafts: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve drafts'}), 500
+
+
+@publications_bp.route('/draft/<email>/<int:resource_type_id>', methods=['GET'])
+def get_specific_draft(email, resource_type_id):
+    """
+    Get specific draft for user by email and resource_type_id
+    ---
+    tags:
+      - Publications
+    parameters:
+      - name: email
+        in: path
+        type: string
+        required: true
+        description: User email
+      - name: resource_type_id
+        in: path
+        type: integer
+        required: true
+        description: Resource type ID
+    responses:
+      200:
+        description: Draft data retrieved successfully
+      404:
+        description: No draft data found
+      500:
+        description: Internal server error
+    """
+    try:
+        logger.info(f"Retrieving draft for user: {email}, resource_type_id: {resource_type_id}")
+
+        draft = PublicationDrafts.get_draft(email, resource_type_id)
+
+        if not draft:
+            return jsonify({'message': 'No draft found', 'hasDraft': False}), 200
+
+        return jsonify({
+            'hasDraft': True,
+            'formData': draft.form_data,
+            'resource_type_id': draft.resource_type_id,
+            'resource_type_name': draft.resource_type.resource_type if draft.resource_type else None,
+            'lastSaved': draft.updated_at.isoformat(),
+            'message': 'Draft retrieved successfully'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error retrieving draft: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve draft'}), 500
+
+
+@publications_bp.route('/draft/<email>/<int:resource_type_id>', methods=['DELETE'])
+def delete_draft_data(email, resource_type_id):
+    """
+    Delete specific draft after successful submission
+    ---
+    tags:
+      - Publications
+    parameters:
+      - name: email
+        in: path
+        type: string
+        required: true
+        description: User email
+      - name: resource_type_id
+        in: path
+        type: integer
+        required: true
+        description: Resource type ID
+    responses:
+      200:
         description: Draft deleted successfully
       404:
         description: No draft found
@@ -1914,15 +1978,15 @@ def delete_draft_data(email):
         description: Internal server error
     """
     try:
-        logger.info(f"Deleting draft for user: {email}")
-        
-        deleted = PublicationDrafts.delete_draft(email)
-        
+        logger.info(f"Deleting draft for user: {email}, resource_type_id: {resource_type_id}")
+
+        deleted = PublicationDrafts.delete_draft(email, resource_type_id)
+
         if deleted:
             return jsonify({'message': 'Draft deleted successfully'}), 200
         else:
             return jsonify({'message': 'No draft found to delete'}), 404
-        
+
     except Exception as e:
         logger.error(f"Error deleting draft: {str(e)}")
         return jsonify({'error': 'Failed to delete draft'}), 500
@@ -1955,9 +2019,9 @@ def get_draft_stats():
 
 
 @publications_bp.route('/draft/by-user/<int:user_id>', methods=['GET'])
-def get_draft_by_user_id(user_id):
+def get_drafts_by_user_id(user_id):
     """
-    Get saved draft data for user by user_id
+    Get all saved drafts for user by user_id
     ---
     tags:
       - Publications
@@ -1969,39 +2033,40 @@ def get_draft_by_user_id(user_id):
         description: User ID
     responses:
       200:
-        description: Draft data retrieved successfully
+        description: Drafts retrieved successfully
       404:
-        description: User not found or no draft data found
+        description: User not found
       500:
         description: Internal server error
     """
     try:
-        logger.info(f"Retrieving draft data for user_id: {user_id}")
+        logger.info(f"Retrieving all drafts for user_id: {user_id}")
 
         # First, get the user's email from user_id
         user = UserAccount.query.get(user_id)
         if not user:
             return jsonify({
                 'error': 'User not found',
-                'hasDraft': False
+                'hasDrafts': False
             }), 404
 
-        # Then get the draft using email
-        draft = PublicationDrafts.get_draft(user.email)
+        # Get all drafts for this user
+        drafts = PublicationDrafts.get_all_drafts_by_email(user.email)
 
-        if not draft:
+        if not drafts:
             return jsonify({
-                'message': 'No draft found',
-                'hasDraft': False,
+                'message': 'No drafts found',
+                'hasDrafts': False,
+                'drafts': [],
                 'user_email': user.email
             }), 200
 
         return jsonify({
-            'hasDraft': True,
-            'formData': draft.form_data,
-            'lastSaved': draft.updated_at.isoformat(),
+            'hasDrafts': True,
+            'drafts': [draft.to_dict() for draft in drafts],
+            'count': len(drafts),
             'user_email': user.email,
-            'message': 'Draft retrieved successfully'
+            'message': 'Drafts retrieved successfully'
         }), 200
 
     except Exception as e:

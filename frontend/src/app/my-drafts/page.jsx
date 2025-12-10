@@ -69,25 +69,18 @@ const MyDrafts = () => {
   useEffect(() => {
     const fetchDrafts = async () => {
       if (!user?.id) return;
-      
+
       try {
         setIsLoading(true);
         const response = await axios.get(`/api/publications/draft/by-user/${user.id}`);
-        
+
         console.log('Drafts response:', response.data);
-        
-        // The backend returns a single draft object with hasDraft flag
-        if (response.data.hasDraft && response.data.formData) {
-          // Convert single draft to array format for rendering
-          setDrafts([{
-            id: user.id, // Use user ID as draft ID
-            form_data: response.data.formData,
-            created_at: response.data.lastSaved,
-            updated_at: response.data.lastSaved,
-            user_email: response.data.user_email
-          }]);
+
+        // The backend now returns an array of drafts with hasDrafts flag
+        if (response.data.hasDrafts && response.data.drafts) {
+          setDrafts(response.data.drafts);
         } else {
-          // No draft found
+          // No drafts found
           setDrafts([]);
         }
       } catch (error) {
@@ -109,8 +102,8 @@ const MyDrafts = () => {
   }, [user?.id, isRehydrated, isAuthenticated]);
 
   const handleEditDraft = (draft) => {
-    // Navigate to assign-docid page - the page will automatically load the draft
-    router.push('/assign-docid');
+    // Navigate to assign-docid page with resource_type_id to load specific draft
+    router.push(`/assign-docid?draft_resource_type=${draft.resource_type_id}`);
   };
 
   const handleDeleteClick = (draft) => {
@@ -122,11 +115,12 @@ const MyDrafts = () => {
     if (!draftToDelete || !user?.email) return;
 
     try {
-      await axios.delete(`/api/publications/draft/${user.email}`);
-      
+      // Delete specific draft using email and resource_type_id
+      await axios.delete(`/api/publications/draft/${user.email}/${draftToDelete.resource_type_id}`);
+
       // Remove draft from local state
       setDrafts(drafts.filter(d => d.id !== draftToDelete.id));
-      
+
       setNotification({
         open: true,
         message: t('drafts.success_delete_draft'),
@@ -374,7 +368,8 @@ const MyDrafts = () => {
                 }
 
                 const title = formData?.docId?.title || t('drafts.untitled_draft');
-                const resourceType = formData?.docId?.resourceType || t('drafts.unknown_type');
+                // Use resource_type_name from API response, fallback to form data
+                const resourceType = draft.resource_type_name || formData?.docId?.resourceType || t('drafts.unknown_type');
                 const description = formData?.docId?.description || t('drafts.no_description');
                 const lastSaved = draft.updated_at || draft.created_at;
 

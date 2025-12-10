@@ -752,54 +752,79 @@ class PublicationComments(db.Model):
 
 class PublicationDrafts(db.Model):
     """
-    Draft storage for assign-docid form - allows users to save and continue later
+    Draft storage for assign-docid form - allows users to save and continue later.
+    Supports multiple drafts per user (one per resource type).
     """
     __tablename__ = 'publication_drafts'
-    
+    __table_args__ = (
+        db.UniqueConstraint('email', 'resource_type_id', name='uq_publication_drafts_email_resource_type'),
+    )
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.String(100), nullable=False, unique=True, index=True)  # One draft per user
+    email = db.Column(db.String(100), nullable=False, index=True)
+    resource_type_id = db.Column(db.Integer, db.ForeignKey('resource_types.id'), nullable=False, index=True)
     form_data = db.Column(db.JSON, nullable=False)  # Complete form state as JSON
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
+    # Relationship to ResourceTypes
+    resource_type = db.relationship('ResourceTypes', backref='drafts')
+
     def __repr__(self):
-        return f"<PublicationDrafts(id={self.id}, email='{self.email}')>"
-    
+        return f"<PublicationDrafts(id={self.id}, email='{self.email}', resource_type_id={self.resource_type_id})>"
+
+    def to_dict(self):
+        """Serialize draft for API responses"""
+        return {
+            'id': self.id,
+            'email': self.email,
+            'resource_type_id': self.resource_type_id,
+            'resource_type_name': self.resource_type.resource_type if self.resource_type else None,
+            'form_data': self.form_data,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
     @classmethod
-    def save_draft(cls, email, form_data):
-        """Save or update draft data for user"""
-        draft = cls.query.filter_by(email=email).first()
-        
+    def save_draft(cls, email, resource_type_id, form_data):
+        """Save or update draft data for user and resource type combination"""
+        draft = cls.query.filter_by(email=email, resource_type_id=resource_type_id).first()
+
         if draft:
             # Update existing draft
             draft.form_data = form_data
             draft.updated_at = datetime.utcnow()
         else:
             # Create new draft
-            draft = cls(email=email, form_data=form_data)
+            draft = cls(email=email, resource_type_id=resource_type_id, form_data=form_data)
             db.session.add(draft)
-        
+
         db.session.commit()
         return draft
-    
+
     @classmethod
-    def get_draft(cls, email):
-        """Get draft data for user"""
-        return cls.query.filter_by(email=email).first()
-    
+    def get_draft(cls, email, resource_type_id):
+        """Get specific draft for user and resource type"""
+        return cls.query.filter_by(email=email, resource_type_id=resource_type_id).first()
+
     @classmethod
-    def delete_draft(cls, email):
-        """Delete draft data after successful submission"""
-        draft = cls.query.filter_by(email=email).first()
+    def get_all_drafts_by_email(cls, email):
+        """Get all drafts for a user"""
+        return cls.query.filter_by(email=email).order_by(cls.updated_at.desc()).all()
+
+    @classmethod
+    def delete_draft(cls, email, resource_type_id):
+        """Delete specific draft after successful submission"""
+        draft = cls.query.filter_by(email=email, resource_type_id=resource_type_id).first()
         if draft:
             db.session.delete(draft)
             db.session.commit()
             return True
         return False
-    
+
     @classmethod
     def get_user_drafts_count(cls):
-        """Get total count of users with saved drafts (for admin purposes)"""
+        """Get total count of drafts (for admin purposes)"""
         return cls.query.count()
 
 
