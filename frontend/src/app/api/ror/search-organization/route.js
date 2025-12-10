@@ -5,7 +5,9 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     // Accept both 'name' and 'q' as query parameter
     const name = searchParams.get('name') || searchParams.get('q');
-    const country = searchParams.get('country');
+    // Normalize country: trim whitespace and collapse multiple spaces
+    const rawCountry = searchParams.get('country');
+    const country = rawCountry ? rawCountry.trim().replace(/\s+/g, ' ') : null;
     const page = searchParams.get('page') || '1';
 
     if (!name) {
