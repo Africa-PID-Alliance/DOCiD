@@ -433,55 +433,29 @@ const ListDocIds = () => {
                 {t('docid.description')}
                 </Typography>
               </Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<FolderOpenIcon />}
-                  onClick={() => router.push('/my-drafts')}
-                  sx={{
-                    borderColor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
-                    color: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
-                    px: { xs: 3, md: 4 },
-                    py: 1.75,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      borderColor: theme.palette.mode === 'dark' ? '#1e2756' : '#1976d2',
-                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(20, 26, 59, 0.08)' : 'rgba(21, 101, 192, 0.08)',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                    }
-                  }}
-                >
-                  My Drafts
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => router.push('/assign-docid')}
-                  sx={{
-                    bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
-                    color: 'white',
-                    px: { xs: 3, md: 4 },
-                    py: 1.75,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === 'dark' ? '#1e2756' : '#1976d2',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                    }
-                  }}
-                >
-                  {t('docid.button')}
-                </Button>
-              </Stack>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/assign-docid')}
+                sx={{
+                  bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
+                  color: 'white',
+                  px: { xs: 3, md: 4 },
+                  py: 1.75,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: theme.palette.mode === 'dark' ? '#1e2756' : '#1976d2',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }
+                }}
+              >
+                {t('docid.button')}
+              </Button>
             </Box>
 
             {/* Search and Filter Section */}

@@ -65,6 +65,10 @@ const MyAccountPage = () => {
   const [userStatistics, setUserStatistics] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [publicationToDelete, setPublicationToDelete] = useState(null);
+  const [userDrafts, setUserDrafts] = useState([]);
+  const [draftsLoading, setDraftsLoading] = useState(false);
+  const [deleteDraftConfirmOpen, setDeleteDraftConfirmOpen] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
@@ -233,6 +237,27 @@ const MyAccountPage = () => {
     }
   };
 
+  // Function to fetch user's drafts
+  const fetchUserDrafts = async () => {
+    if (!user?.id) return;
+
+    try {
+      setDraftsLoading(true);
+      const response = await axios.get(`/api/publications/draft/by-user/${user.id}`);
+
+      if (response.data.hasDrafts && response.data.drafts) {
+        setUserDrafts(response.data.drafts);
+      } else {
+        setUserDrafts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user drafts:', error);
+      setUserDrafts([]);
+    } finally {
+      setDraftsLoading(false);
+    }
+  };
+
   // Function to fetch ORCID data
   const fetchOrcidData = async (orcidId, accessToken) => {
     if (!orcidId) {
@@ -330,10 +355,11 @@ const MyAccountPage = () => {
     }
   };
 
-  // Fetch user publications and statistics when user is available
+  // Fetch user publications, drafts, and statistics when user is available
   useEffect(() => {
     if (user?.id) {
       fetchUserPublications();
+      fetchUserDrafts();
       fetchUserStatistics();
     }
   }, [user?.id]);
@@ -576,6 +602,38 @@ const MyAccountPage = () => {
   const handleDeleteCancel = () => {
     setDeleteConfirmOpen(false);
     setPublicationToDelete(null);
+  };
+
+  // Handle delete draft
+  const handleDeleteDraftClick = (draft) => {
+    setDraftToDelete(draft);
+    setDeleteDraftConfirmOpen(true);
+  };
+
+  const handleDeleteDraftConfirm = async () => {
+    if (!draftToDelete || !user?.email) return;
+
+    try {
+      await axios.delete(`/api/publications/draft/${user.email}/${draftToDelete.resource_type_id}`);
+
+      setUserDrafts(userDrafts.filter(d => d.id !== draftToDelete.id));
+      alert('Draft deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      alert('Failed to delete draft. Please try again.');
+    } finally {
+      setDeleteDraftConfirmOpen(false);
+      setDraftToDelete(null);
+    }
+  };
+
+  const handleDeleteDraftCancel = () => {
+    setDeleteDraftConfirmOpen(false);
+    setDraftToDelete(null);
+  };
+
+  const handleEditDraft = (draft) => {
+    router.push(`/assign-docid?draft_resource_type=${draft.resource_type_id}`);
   };
 
   const accordionSections = [
@@ -1934,6 +1992,187 @@ const MyAccountPage = () => {
                 </Box>
               </Box>
             </Paper>
+
+            {/* Drafts Table */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                mt: 3
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  My Drafts ({userDrafts.length})
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                width: '100%',
+                backgroundColor: theme.palette.background.default,
+                borderRadius: 1,
+                overflow: 'auto'
+              }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '50%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Title
+                      </TableCell>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '30%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Resource Type
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '20%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {draftsLoading ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ py: 4 }}
+                        >
+                          <CircularProgress size={30} />
+                        </TableCell>
+                      </TableRow>
+                    ) : userDrafts.length === 0 ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ 
+                            py: 4,
+                            color: 'text.secondary',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          No drafts found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      userDrafts.map((draft) => {
+                        let formData = draft.form_data;
+                        if (typeof formData === 'string') {
+                          try {
+                            formData = JSON.parse(formData);
+                          } catch (e) {
+                            formData = {};
+                          }
+                        }
+                        const title = formData?.docId?.title || 'Untitled Draft';
+                        const resourceType = draft.resource_type_name || formData?.docId?.resourceType || 'Unknown';
+
+                        return (
+                          <TableRow 
+                            key={draft.id} 
+                            sx={{ 
+                              '&:nth-of-type(odd)': { 
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? alpha(theme.palette.background.paper, 0.05)
+                                  : alpha(theme.palette.background.paper, 0.9)
+                              }, 
+                              '&:nth-of-type(even)': { 
+                                backgroundColor: theme.palette.background.paper 
+                              }, 
+                              '&:hover': { 
+                                backgroundColor: theme.palette.action.hover 
+                              },
+                              '& .MuiTableCell-root': {
+                                borderBottom: `1px solid ${theme.palette.divider}`,
+                                color: theme.palette.text.primary
+                              }
+                            }}
+                          >
+                            <TableCell>
+                              <Typography
+                                sx={{
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  lineHeight: 1.4,
+                                  textTransform: 'capitalize'
+                                }}
+                              >
+                                {title}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={resourceType}
+                                size="small"
+                                sx={{
+                                  bgcolor: `${theme.palette.warning.main}12`,
+                                  color: theme.palette.warning.main,
+                                  fontWeight: 600,
+                                  textTransform: 'capitalize'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditDraft(draft)}
+                                sx={{
+                                  color: '#1565c0',
+                                  '&:hover': {
+                                    backgroundColor: alpha('#1565c0', 0.1)
+                                  }
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteDraftClick(draft)}
+                                sx={{
+                                  color: theme.palette.error.main,
+                                  '&:hover': {
+                                    backgroundColor: alpha(theme.palette.error.main, 0.1)
+                                  }
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Paper>
           </Grid>
         </Grid>
         {EditProfileModal}
@@ -1990,9 +2229,61 @@ const MyAccountPage = () => {
             </Box>
           </Box>
         </Modal>
+
+        {/* Delete Draft Confirmation Modal */}
+        <Modal
+          open={deleteDraftConfirmOpen}
+          onClose={handleDeleteDraftCancel}
+          aria-labelledby="delete-draft-confirmation-modal"
+        >
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: '400px' },
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            outline: 'none',
+          }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Delete Draft?
+            </Typography>
+            <Typography sx={{ mb: 3, color: 'text.secondary' }}>
+              Are you sure you want to delete this draft? This action cannot be undone.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                onClick={handleDeleteDraftCancel}
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary,
+                  borderColor: theme.palette.divider
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteDraftConfirm}
+                variant="contained"
+                color="error"
+                sx={{
+                  backgroundColor: theme.palette.error.main,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.error.main, 0.8),
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
       </Container>
     </Box>
   );
 };
 
-export default MyAccountPage; 
+export default MyAccountPage;
