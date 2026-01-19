@@ -1520,14 +1520,20 @@ def create_publication():
                     return identifier_value
                 else:
                     return f"https://isni.org/isni/{identifier_value}"
+            elif identifier_type.lower() == 'ringgold':
+                if identifier_value.startswith('https://'):
+                    return identifier_value
+                else:
+                    return f"https://www.ringgold.com/ringgold-identifier/?id={identifier_value}"
             else:
                 return identifier_value
 
-        # Process organizations from multiple sources: organization[], organizationRor[], organizationIsni[]
+        # Process organizations from multiple sources: organization[], organizationRor[], organizationIsni[], organizationRinggold[]
         organization_sources = [
             ('organization', None),      # Legacy format with auto-detect identifier type
             ('organizationRor', 'ror'),  # ROR organizations
-            ('organizationIsni', 'isni') # ISNI organizations
+            ('organizationIsni', 'isni'), # ISNI organizations
+            ('organizationRinggold', 'ringgold')  # Ringgold organizations
         ]
 
         for source_prefix, default_identifier_type in organization_sources:
@@ -1552,6 +1558,8 @@ def create_publication():
                         identifier_value = ror_id
                         if not identifier_type:
                             identifier_type = default_identifier_type or 'ror'
+                
+            
 
                 # If still no identifier type but we have a default from the source
                 if not identifier_type and default_identifier_type and identifier_value:

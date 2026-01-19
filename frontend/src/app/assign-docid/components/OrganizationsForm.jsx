@@ -9,37 +9,28 @@ import {
   Tabs,
   Tab,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+
   IconButton,
   Paper,
   Grid,
   Divider,
   CircularProgress,
-  useTheme
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   Business as BusinessIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
-const organizationRoles = [
-  'Lead Institution',
-  'Partner Institution',
-  'Funding Institution',
-  'Research Center',
-  'Department'
-];
 
 const TabPanel = ({ children, value, index, ...other }) => (
   <div
@@ -75,6 +66,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
   const [isLoadingRor, setIsLoadingRor] = useState(false);
   const [showRorForm, setShowRorForm] = useState(false);
   const [rorError, setRorError] = useState('');
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
 
   const handleModalOpen = () => {
     setIsModalOpen(true);
@@ -147,10 +139,12 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
 
   const handleSearchRor = async () => {
     // Different validation and search logic based on active tab
-    if (activeTab === 0) { // ID tab (ROR ID or ISNI ID)
+    if (activeTab === 0) { // ID tab (ROR ID or ISNI ID or Ringgold ID)
       if (!newOrganization.rorId) {
         setRorError(type === 'isni' 
           ? 'ISNI ID is required' 
+          : type === 'ringgold'
+          ? 'ISNI ID is required for Ringgold lookup'
           : t('assign_docid.organizations_form.errors.ror_id_required'));
         return;
       }
@@ -161,12 +155,14 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
       try {
         const endpoint = type === 'isni' 
           ? `/api/isni/get-isni-by-id/${encodeURIComponent(newOrganization.rorId)}`
+          : type === 'ringgold'
+          ? `/api/v1/ringgold/get-by-isni/${encodeURIComponent(newOrganization.rorId)}`
           : `/api/ror/get-ror-by-id/${encodeURIComponent(newOrganization.rorId)}`;
         
         const response = await fetch(endpoint);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : 'ROR'} data: ${response.status}`);
+          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'} data: ${response.status}`);
         }
 
         const data = await response.json();
@@ -182,6 +178,17 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               otherName: '',
               city: data.locality || '',
               rorId: data.isni || newOrganization.rorId
+            }));
+          } else if (type === 'ringgold') {
+            // Handle Ringgold response format
+            setNewOrganization(prev => ({
+              ...prev,
+              name: data.name || '',
+              country: data.country_code || '',
+              type: '',
+              otherName: '',
+              city: data.locality || '',
+              rorId: data.ringgold_id || newOrganization.rorId
             }));
           } else {
             // Handle ROR response format
@@ -206,15 +213,17 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         } else {
           setRorError(type === 'isni' 
             ? 'No ISNI record found' 
+            : type === 'ringgold'
+            ? 'No Ringgold record found'
             : t('assign_docid.organizations_form.errors.no_ror_found'));
         }
       } catch (error) {
-        console.error(`Error fetching ${type === 'isni' ? 'ISNI' : 'ROR'} data:`, error);
-        setRorError(`${type === 'isni' ? 'Failed to fetch ISNI' : t('assign_docid.organizations_form.errors.failed_fetch_ror')}: ${error.message}`);
+        console.error(`Error fetching ${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'} data:`, error);
+        setRorError(`${type === 'isni' ? 'Failed to fetch ISNI' : type === 'ringgold' ? 'Failed to fetch Ringgold' : t('assign_docid.organizations_form.errors.failed_fetch_ror')}: ${error.message}`);
       } finally {
         setIsLoadingRor(false);
       }
-    } else { // Details tab (ROR Details or ISNI Details)
+    } else { // Details tab (ROR Details or ISNI Details or Ringgold Details)
       if (!newOrganization.name || !newOrganization.country) {
         setRorError(t('assign_docid.organizations_form.errors.both_name_country_required'));
         return;
@@ -228,11 +237,13 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         const orgName = newOrganization.name.trim();
         const countryName = newOrganization.country.trim();
 
-        // Use different endpoints for ISNI vs ROR
+        // Use different endpoints for ISNI vs ROR vs Ringgold
         const searchUrl = type === 'isni'
           ? `/api/isni/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}`
+          : type === 'ringgold'
+          ? `/api/v1/ringgold/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}`
           : `/api/ror/search-organization?name=${encodeURIComponent(orgName)}&country=${encodeURIComponent(countryName)}&page=1`;
-
+        
         // Log search parameters
         console.log('Search Parameters:', {
           type: type,
@@ -244,13 +255,13 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         const response = await fetch(searchUrl);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : 'ROR'}`);
+          throw new Error(`Failed to fetch ${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'}`);
         }
 
         const data = await response.json();
 
         // Log the full response data
-        console.log(`${type === 'isni' ? 'ISNI' : 'ROR'} Search Response:`, data);
+        console.log(`${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'} Search Response:`, data);
 
         if (type === 'isni') {
           // ISNI returns a single object
@@ -267,6 +278,25 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
             setShowRorForm(true);
           } else {
             setRorError('No ISNI records found for the provided organization name and country');
+          }
+        } else if (type === 'ringgold') {
+          // Ringgold returns a single object
+          if (data && data.name) {
+            console.log('Found matching Ringgold institution:', data);
+
+            setNewOrganization(prev => ({
+              ...prev,
+              name: data.name || '',
+              country: data.country_code || '',
+              type: '',
+              otherName: '',
+              city: data.locality || '',
+              rorId: data.ringgold_id || ''
+            }));
+
+            setShowRorForm(true);
+          } else {
+            setRorError('No Ringgold records found for the provided organization name and country');
           }
         } else {
           // ROR returns an array
@@ -291,8 +321,8 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
           }
         }
       } catch (error) {
-        console.error(`Error searching ${type === 'isni' ? 'ISNI' : 'ROR'} data:`, error);
-        setRorError(`Failed to retrieve ${type === 'isni' ? 'ISNI' : 'ROR'} information. Please try again.`);
+        console.error(`Error searching ${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'} data:`, error);
+        setRorError(`Failed to retrieve ${type === 'isni' ? 'ISNI' : type === 'ringgold' ? 'Ringgold' : 'ROR'} information. Please try again.`);
       } finally {
         setIsLoadingRor(false);
       }
@@ -343,7 +373,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')}
+            label={type === 'isni' ? 'ISNI ID' : type === 'ringgold' ? 'Ringgold ID' : t('assign_docid.organizations_form.ror_id_tab')}
             value={newOrganization.rorId}
             InputProps={{
               readOnly: true,
@@ -418,16 +448,32 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         alignItems: 'center',
         mb: 2
       }}>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: theme.palette.text.primary,
-            fontWeight: 600,
-            fontSize: '1.25rem'
-          }}
-        >
-          {t('assign_docid.organizations_form.title')} ({label})
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: theme.palette.text.primary,
+              fontWeight: 600,
+              fontSize: '1.25rem'
+            }}
+          >
+            {t('assign_docid.organizations_form.title')} ({label})
+          </Typography>
+          {type === 'ringgold' && (
+            <IconButton
+              size="small"
+              onClick={() => setInfoDialogOpen(true)}
+              sx={{
+                color: theme.palette.primary.main,
+                '&:hover': {
+                  bgcolor: theme.palette.action.hover
+                }
+              }}
+            >
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -509,7 +555,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')}
+                      label={type === 'isni' ? 'ISNI ID' : type === 'ringgold' ? 'Ringgold ID' : t('assign_docid.organizations_form.ror_id_tab')}
                       value={organization.rorId}
                       InputProps={{
                         readOnly: true,
@@ -625,11 +671,11 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               }}
               variant="fullWidth"
             >
-              <Tab label={type === 'isni' ? 'ISNI ID' : t('assign_docid.organizations_form.ror_id_tab')} />
-              <Tab label={type === 'isni' ? 'ISNI Details' : t('assign_docid.organizations_form.ror_details_tab')} />
+              <Tab label={type === 'isni' ? 'ISNI ID' : type === 'ringgold' ? 'Ringgold ID' : t('assign_docid.organizations_form.ror_id_tab')} />
+              <Tab label={type === 'isni' ? 'ISNI Details' : type === 'ringgold' ? 'Ringgold Details' : t('assign_docid.organizations_form.ror_details_tab')} />
             </Tabs>
 
-            {/* ROR ID / ISNI ID Tab */}
+            {/* ROR ID / ISNI ID / Ringgold ID Tab */}
             <TabPanel value={activeTab} index={0}>
               {!showRorForm ? (
               <Grid container spacing={3}>
@@ -637,10 +683,10 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
                       sx={{ flex: 1 }}
-                      label={type === 'isni' ? 'Enter ISNI ID' : t('assign_docid.organizations_form.enter_ror_id')}
+                      label={type === 'isni' ? 'Enter ISNI ID' : type === 'ringgold' ? 'Enter Ringgold ID' : t('assign_docid.organizations_form.enter_ror_id')}
                       value={newOrganization.rorId}
                       onChange={handleInputChange('rorId')}
-                      placeholder={type === 'isni' ? 'ISNI ID' : 'ROR ID'}
+                      placeholder={type === 'isni' ? 'ISNI ID' : type === 'ringgold' ? 'Ringgold ID' : 'ROR ID'}
                         error={Boolean(rorError)}
                         helperText={rorError}
                     />
@@ -648,25 +694,24 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                       variant="contained"
                         startIcon={isLoadingRor ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
                         onClick={handleSearchRor}
-                        disabled={isLoadingRor || !newOrganization.rorId}
                       sx={{ minWidth: '150px' }}
                     >
-                        {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : t('assign_docid.organizations_form.search_ror'))}
+                      {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : type === 'ringgold' ? 'Search Ringgold' : t('assign_docid.organizations_form.search_ror'))}
                     </Button>
                   </Box>
-                  </Grid>
-                  {type !== 'isni' && (
-                    <Grid item xs={12}>
-                      <GetRorButton />
-                    </Grid>
-                  )}
                 </Grid>
+                {type === 'ror' && (
+                  <Grid item xs={12}>
+                    <GetRorButton />
+                  </Grid>
+                )}
+              </Grid>
               ) : (
                 renderOrganizationForm()
               )}
             </TabPanel>
 
-            {/* ROR Details / ISNI Details Tab */}
+            {/* ROR Details / ISNI Details / Ringgold Details Tab */}
             <TabPanel value={activeTab} index={1}>
               {!showRorForm ? (
               <Grid container spacing={3}>
@@ -686,8 +731,8 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                       label={t('assign_docid.organizations_form.country')}
                       value={newOrganization.country}
                       onChange={handleInputChange('country')}
-                      placeholder={type === 'isni' ? 'e.g., US, GB, KE' : 'e.g., Kenya, South Africa, United States'}
-                      helperText={type === 'isni' ? 'Enter the Country Code (ISO 2-letter code, e.g., "US", "GB", "KE")' : 'Enter the full country name (e.g., Kenya, South Africa)'}
+                      placeholder={type === 'isni' || type === 'ringgold' ? 'e.g., US, GB, KE' : 'e.g., Kenya, South Africa, United States'}
+                      helperText={type === 'isni' || type === 'ringgold' ? 'Enter the Country Code (ISO 2-letter code, e.g., "US", "GB", "KE")' : 'Enter the full country name (e.g., Kenya, South Africa)'}
                       required
                     />
                     <Button
@@ -697,11 +742,11 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                       disabled={isLoadingRor || !newOrganization.name || !newOrganization.country}
                       sx={{ minWidth: '150px' }}
                     >
-                      {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : t('assign_docid.organizations_form.search_ror'))}
+                      {isLoadingRor ? t('assign_docid.organizations_form.searching') : (type === 'isni' ? 'Search ISNI' : type === 'ringgold' ? 'Search Ringgold' : t('assign_docid.organizations_form.search_ror'))}
                     </Button>
                   </Box>
                   </Grid>
-                  {type !== 'isni' && (
+                  {type === 'ror' && (
                     <Grid item xs={12}>
                       <GetRorButton />
                     </Grid>
@@ -714,8 +759,10 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
           </Box>
         </Box>
       </Modal>
+
+   
     </Box>
   );
 };
 
-export default OrganizationsForm; 
+export default OrganizationsForm;
