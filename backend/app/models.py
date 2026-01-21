@@ -1237,3 +1237,206 @@ class DSpaceMapping(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+# ==============================================================================
+# Local Contexts Integration Models
+# Per DocID_Local_Contexts_Tech_Documentation.md Section 5
+# ==============================================================================
+
+class LocalContextType:
+    """Context type constants for Local Contexts labels and notices"""
+    TK_LABEL = 'TK_LABEL'      # Traditional Knowledge Label
+    BC_LABEL = 'BC_LABEL'      # Biocultural Label
+    NOTICE = 'NOTICE'          # Notice (e.g., Open to Collaborate, Attribution)
+    
+    VALID_TYPES = [TK_LABEL, BC_LABEL, NOTICE]
+    
+    @classmethod
+    def is_valid(cls, context_type):
+        return context_type in cls.VALID_TYPES
+
+
+class LocalContext(db.Model):
+    """
+    Cached Local Contexts labels and notices from Local Contexts Hub.
+    
+    DocID stores references + cached metadata only.
+    All authoritative label data remains external.
+    
+    Per Section 5.1: doc_local_contexts table
+    """
+    __tablename__ = 'local_contexts'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    external_id = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    context_type = db.Column(db.String(50), nullable=False)  # TK_LABEL, BC_LABEL, NOTICE
+    
+    # Cached metadata (verbatim from Local Contexts Hub)
+    title = db.Column(db.String(255), nullable=True)
+    summary = db.Column(db.Text, nullable=True)
+    community_name = db.Column(db.String(255), nullable=True)
+    source_url = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.Text, nullable=True)  # Label/Notice icon URL
+    
+    # Status tracking
+    is_active = db.Column(db.Boolean, default=True)  # False if deleted from Hub
+    is_authoritative = db.Column(db.Boolean, default=False)
+    needs_review = db.Column(db.Boolean, default=False)  # Flag for admin review on mismatch
+    
+    # Sync tracking
+    cached_at = db.Column(db.DateTime, nullable=True)
+    last_sync_attempt = db.Column(db.DateTime, nullable=True)
+    sync_error = db.Column(db.Text, nullable=True)
+    
+    # Audit
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    publication_contexts = db.relationship('PublicationLocalContext', back_populates='local_context', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<LocalContext {self.external_id} ({self.context_type})>'
+
+    def serialize(self):
+        """Serialize for JSON responses"""
+        return {
+            'id': self.id,
+            'external_id': self.external_id,
+            'context_type': self.context_type,
+            'title': self.title,
+            'summary': self.summary,
+            'community_name': self.community_name,
+            'source_url': self.source_url,
+            'image_url': self.image_url,
+            'is_active': self.is_active,
+            'is_authoritative': self.is_authoritative,
+            'needs_review': self.needs_review,
+            'cached_at': self.cached_at.isoformat() if self.cached_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    @classmethod
+    def get_by_external_id(cls, external_id):
+        """Get cached context by external ID"""
+        return cls.query.filter_by(external_id=external_id).first()
+
+    @classmethod
+    def get_or_create(cls, external_id, context_type, **kwargs):
+        """Get existing or create new cached context"""
+        context = cls.get_by_external_id(external_id)
+        if context:
+            return context, False
+        
+        if not LocalContextType.is_valid(context_type):
+            raise ValueError(f"Invalid context_type: {context_type}. Must be one of {LocalContextType.VALID_TYPES}")
+        
+        context = cls(external_id=external_id, context_type=context_type, **kwargs)
+        db.session.add(context)
+        return context, True
+
+
+class PublicationLocalContext(db.Model):
+    """
+    Links publications to Local Contexts labels/notices.
+    
+    Per Section 5.1: doc_documents_local_contexts table
+    """
+    __tablename__ = 'publication_local_contexts'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, index=True)
+    local_context_id = db.Column(db.Integer, db.ForeignKey('local_contexts.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    display_order = db.Column(db.Integer, default=0)
+    attached_at = db.Column(db.DateTime, default=datetime.utcnow)
+    attached_by = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'), nullable=True)
+
+    # Relationships
+    publication = db.relationship('Publications', backref=db.backref('local_contexts', cascade='all, delete-orphan'))
+    local_context = db.relationship('LocalContext', back_populates='publication_contexts')
+    user = db.relationship('UserAccount', foreign_keys=[attached_by])
+
+    # Unique constraint to prevent duplicate attachments
+    __table_args__ = (
+        db.UniqueConstraint('publication_id', 'local_context_id', name='uq_publication_local_context'),
+    )
+
+    def __repr__(self):
+        return f'<PublicationLocalContext pub={self.publication_id} context={self.local_context_id}>'
+
+    def serialize(self):
+        """Serialize for JSON responses"""
+        return {
+            'id': self.id,
+            'publication_id': self.publication_id,
+            'local_context': self.local_context.serialize() if self.local_context else None,
+            'display_order': self.display_order,
+            'attached_at': self.attached_at.isoformat() if self.attached_at else None,
+            'attached_by': self.attached_by
+        }
+
+
+class LocalContextAuditLog(db.Model):
+    """
+    Audit log for Local Contexts attach/detach operations.
+    
+    Per Section 11: Log all attach/detach operations
+    """
+    __tablename__ = 'local_context_audit_log'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # What happened
+    action = db.Column(db.String(50), nullable=False)  # ATTACH, DETACH, SYNC, MARK_INACTIVE
+    
+    # References
+    publication_id = db.Column(db.Integer, nullable=True, index=True)
+    local_context_id = db.Column(db.Integer, nullable=True, index=True)
+    external_id = db.Column(db.String(255), nullable=True)
+    
+    # Who did it
+    user_id = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'), nullable=True)
+    
+    # Details
+    details = db.Column(db.Text, nullable=True)  # JSON with additional info
+    ip_address = db.Column(db.String(45), nullable=True)
+    
+    # When
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    # Relationships
+    user = db.relationship('UserAccount', foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f'<LocalContextAuditLog {self.action} at {self.created_at}>'
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'action': self.action,
+            'publication_id': self.publication_id,
+            'local_context_id': self.local_context_id,
+            'external_id': self.external_id,
+            'user_id': self.user_id,
+            'details': self.details,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    @classmethod
+    def log(cls, action, publication_id=None, local_context_id=None, external_id=None, 
+            user_id=None, details=None, ip_address=None):
+        """Create an audit log entry"""
+        import json
+        log_entry = cls(
+            action=action,
+            publication_id=publication_id,
+            local_context_id=local_context_id,
+            external_id=external_id,
+            user_id=user_id,
+            details=json.dumps(details) if isinstance(details, dict) else details,
+            ip_address=ip_address
+        )
+        db.session.add(log_entry)
+        return log_entry

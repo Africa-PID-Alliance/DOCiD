@@ -30,13 +30,17 @@ CORDRA_PASSWORD = os.getenv("CORDRA_PASSWORD")
 
 class CordraService:
     
-    def __init__(self, base_url: str, username: str, password: str):
+    def __init__(self, base_url: str, username: str, password: str, lazy_init: bool = True):
         self.base_url = base_url
         self.username = username
         self.password = password
         self.access_token = None
-        self.authenticate(username, password)
-        logger.info("Initialized CordraService with base URL: %s", self.base_url)
+        self.token_acquired_at = None
+        self.token_lifetime = 3500  # Refresh before 1 hour expires
+        
+        if not lazy_init:
+            self.authenticate(username, password)
+        logger.info("Initialized CordraService with base URL: %s (lazy=%s)", self.base_url, lazy_init)
     
     def _generate_request_id(self) -> str:
         """Generate a unique request identifier."""
@@ -81,7 +85,8 @@ class CordraService:
                     return False
                 
                 self.access_token = access_token
-                logger.info(f"Request {request_id} completed in {duration:.2f}s: Authentication successful {access_token}")
+                self.token_acquired_at = time.time()  # Track when token was acquired
+                logger.info(f"Request {request_id} completed in {duration:.2f}s: Authentication successful")
                 return True
             else:
                 logger.error(
@@ -99,13 +104,21 @@ class CordraService:
             return False
 
     def _headers(self) -> Dict[str, str]:
-        """Headers for authenticated requests."""
-        # Re-authenticate for every request to get a fresh token
-        self.authenticate(self.username, self.password)
+        """Headers for authenticated requests with token reuse."""
+        # Only re-authenticate if token is missing or expired
+        if self.access_token is None or self._is_token_expired():
+            logger.info("Token missing or expired, authenticating...")
+            self.authenticate(self.username, self.password)
         return {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json"
         }
+
+    def _is_token_expired(self) -> bool:
+        """Check if the current token has expired."""
+        if self.token_acquired_at is None:
+            return True
+        return (time.time() - self.token_acquired_at) > self.token_lifetime
 
     def set_type_public(self, type_name: str) -> Dict[str, Any]:
         """
@@ -701,7 +714,8 @@ class CordraService:
             return {"success": False, "message": str(e)}
         
 # Singleton instance to use for all service functions
-cordra_service = CordraService(CORDRA_BASE_URL, CORDRA_USERNAME, CORDRA_PASSWORD)
+# Lazy singleton - won't authenticate until first actual API call
+cordra_service = CordraService(CORDRA_BASE_URL, CORDRA_USERNAME, CORDRA_PASSWORD, lazy_init=True)
 
 # Functions using the singleton instance
 # Functions to be imported and used in routes

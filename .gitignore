@@ -141,3 +141,9 @@ UBUNTU-ALLIANCE/
 backend/CLAUDE.md
 backend/CLAUDE.md
 backend/CLAUDE.md
+backend/ringgold_institutions.sql
+
+# AI agent instructions (contain sensitive deployment info)
+.github/copilot-instructions.md
+.claude/
+frontend/CLAUDE.md
