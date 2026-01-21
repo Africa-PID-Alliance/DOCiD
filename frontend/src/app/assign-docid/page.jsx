@@ -36,6 +36,7 @@ import CustomStepIcon from './components/CustomStepIcon';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 // Step components will be imported here
 import DocIDForm from './components/DocIDForm';
@@ -87,6 +88,8 @@ const AssignDocID = () => {
   const formDataRef = useRef(formData); // Use ref to store current formData
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   // Define steps using translations
   const steps = [
@@ -735,11 +738,27 @@ const AssignDocID = () => {
   };
 
   return (
-    <Box sx={{ width: '100%', py: 4,bgcolor: theme.palette.background.content, minHeight: '100vh'}}>
+    <Box sx={{ 
+      width: '100%', 
+      py: { xs: 2, sm: 3, md: 4 },
+      bgcolor: theme.palette.background.content, 
+      minHeight: '100vh'
+    }}>
 
       {/* Draft status indicator */}
-      <Box sx={{ width: '100%', px: 4, mb: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+      <Box sx={{ 
+        width: '100%', 
+        px: { xs: 2, sm: 3, md: 4 }, 
+        mb: 1 
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: { xs: 1, sm: 0 },
+          mb: 1 
+        }}>
           {/* Left side - Draft loaded indicator */}
           {draftLoaded && (
             <Box sx={{ display: 'flex', alignItems: 'center', color: 'info.main' }}>
@@ -750,16 +769,25 @@ const AssignDocID = () => {
           )}
           
           {/* Right side - Save status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: { xs: 1, sm: 2 }
+          }}>
             {/* Discard draft button */}
             {(draftLoaded || lastSaved) && (
               <Button
                 variant="outlined"
-                size="small"
+                size={isMobile ? 'medium' : 'small'}
                 color="error"
                 onClick={handleDiscardDraft}
                 disabled={draftStatus === 'saving'}
-                sx={{ minWidth: 'auto', px: 2 }}
+                sx={{ 
+                  minWidth: 'auto', 
+                  px: 2,
+                  width: { xs: '100%', sm: 'auto' }
+                }}
               >
                 Discard Draft
               </Button>
@@ -768,10 +796,14 @@ const AssignDocID = () => {
             {/* Manual save button (optional) */}
             <Button
               variant="outlined"
-              size="small"
+              size={isMobile ? 'medium' : 'small'}
               onClick={handleManualSave}
               disabled={draftStatus === 'saving'}
-              sx={{ minWidth: 'auto', px: 2 }}
+              sx={{ 
+                minWidth: 'auto', 
+                px: 2,
+                width: { xs: '100%', sm: 'auto' }
+              }}
             >
               {t('assign_docid.buttons.save_draft')}
             </Button>
@@ -802,15 +834,21 @@ const AssignDocID = () => {
       </Box>
 
       {/* Full width stepper */}
-      <Box sx={{ width: '100%', px: 4, mb: 3 }}>
+      <Box sx={{ 
+        width: '100%', 
+        px: { xs: 1, sm: 2, md: 4 }, 
+        mb: { xs: 2, sm: 3 },
+        overflowX: { xs: 'auto', md: 'visible' }
+      }}>
         <Stepper
           activeStep={activeStep}
-          alternativeLabel
+          alternativeLabel={!isMobile}
+          orientation={isMobile ? 'vertical' : 'horizontal'}
           nonLinear
           sx={{
             '& .MuiStepLabel-label': {
-              mt: 1,
-              fontSize: '0.9rem',
+              mt: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.85rem', md: '0.9rem' },
               fontWeight: 600,
               color: theme.palette.mode === 'dark' ? '#fff' : '#141a3b',
               cursor: 'pointer'
@@ -821,8 +859,8 @@ const AssignDocID = () => {
             '& .MuiStepLabel-iconContainer': {
               cursor: 'pointer',
               '& .MuiSvgIcon-root': {
-                width: '2rem',
-                height: '2rem',
+                width: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                height: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
                 color: theme.palette.mode === 'dark' ? '#fff' : '#141a3b'
               }
             },
@@ -855,13 +893,23 @@ const AssignDocID = () => {
       </Box>
 
       {/* Navigation buttons below stepper */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4, px: 4 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'center', 
+        gap: { xs: 1.5, sm: 2 }, 
+        mb: { xs: 2, sm: 3, md: 4 }, 
+        px: { xs: 2, sm: 3, md: 4 }
+      }}>
         <Button
           disabled={activeStep === 0}
           onClick={handleBack}
+          size={isMobile ? 'large' : 'medium'}
+          fullWidth={isMobile}
           sx={{
-            fontSize: '1rem',
-            fontWeight: 500
+            fontSize: { xs: '0.9rem', sm: '1rem' },
+            fontWeight: 500,
+            py: { xs: 1.5, sm: 1 }
           }}
         >
           {t('assign_docid.buttons.back')}
@@ -870,10 +918,13 @@ const AssignDocID = () => {
           variant="contained"
           onClick={activeStep === steps.length - 1 ? handleSubmitClick : handleNext}
           disabled={loading}
+          size={isMobile ? 'large' : 'medium'}
+          fullWidth={isMobile}
           sx={{
             bgcolor: '#1565c0',
-            fontSize: '1rem',
+            fontSize: { xs: '0.9rem', sm: '1rem' },
             fontWeight: 500,
+            py: { xs: 1.5, sm: 1 },
             '&:hover': {
               bgcolor: '#1976d2'
             }
@@ -891,7 +942,9 @@ const AssignDocID = () => {
         PaperProps={{
           sx: {
             borderRadius: 2,
-            minWidth: '400px'
+            minWidth: { xs: '90vw', sm: '400px' },
+            maxWidth: { xs: '95vw', sm: '600px' },
+            m: { xs: 2, sm: 3 }
           }
         }}
       >
@@ -904,13 +957,20 @@ const AssignDocID = () => {
             {t('assign_docid.confirm_modal.message')}
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, gap: 2 }}>
+        <DialogActions sx={{ 
+          px: { xs: 2, sm: 3 }, 
+          pb: { xs: 2, sm: 3 }, 
+          gap: { xs: 1, sm: 2 },
+          flexDirection: { xs: 'column', sm: 'row' }
+        }}>
           <Button
             onClick={handleCloseConfirmModal}
             variant="outlined"
+            fullWidth={isMobile}
             sx={{
               borderColor: '#1565c0',
               color: '#1565c0',
+              order: { xs: 2, sm: 1 },
               '&:hover': {
                 borderColor: '#0d47a1',
                 bgcolor: 'rgba(21, 101, 192, 0.04)'
@@ -922,8 +982,10 @@ const AssignDocID = () => {
           <Button
             onClick={handleConfirmSubmit}
             variant="contained"
+            fullWidth={isMobile}
             sx={{
               bgcolor: '#1565c0',
+              order: { xs: 1, sm: 2 },
               '&:hover': {
                 bgcolor: '#1976d2'
               }
@@ -967,13 +1029,16 @@ const AssignDocID = () => {
       </Snackbar>
 
       {/* Reduced width form container */}
-      <Container sx={{ px: 4, maxWidth: 90 }}>
+      <Container sx={{ 
+        px: { xs: 1, sm: 2, md: 4 }, 
+        maxWidth: { xs: '100%', sm: 'md', md: 'lg', xl: 90 }
+      }}>
         <Paper
           elevation={0}
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 3, md: 4 },
             bgcolor: 'white',
-            borderRadius: 2,
+            borderRadius: { xs: 1, sm: 2 },
             bgcolor: 'background.paper'
           }}
         >
@@ -985,10 +1050,13 @@ const AssignDocID = () => {
                   window.location.href = '/list-docids';
                 }}
                 variant="contained"
+                size={isMobile ? 'large' : 'medium'}
+                fullWidth={isMobile}
                 sx={{
                   mt: 2,
                   bgcolor: '#1565c0',
                   color: 'white',
+                  py: { xs: 1.5, sm: 1 },
                   '&:hover': {
                     bgcolor: '#1976d2'
                   }
