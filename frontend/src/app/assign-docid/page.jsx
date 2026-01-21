@@ -1029,10 +1029,12 @@ const AssignDocID = () => {
       </Snackbar>
 
       {/* Reduced width form container */}
-      <Container sx={{ 
-        px: { xs: 1, sm: 2, md: 4 }, 
-        maxWidth: { xs: '100%', sm: 'md', md: 'lg', xl: 90 }
-      }}>
+      <Container 
+        maxWidth={false}
+        sx={{ 
+          px: { xs: 1, sm: 2, md: 4 }, 
+          maxWidth: { xs: '100%', sm: '600px', md: '900px', lg: '1200px', xl: '1400px' }
+        }}>
         <Paper
           elevation={0}
           sx={{
