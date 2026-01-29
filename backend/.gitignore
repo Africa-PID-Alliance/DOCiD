@@ -125,6 +125,7 @@ cordra_credentials.json
 # Test data
 test_*.json
 test_*.xml
+test_*.py
 
 # Generated files
 sitemap.xml

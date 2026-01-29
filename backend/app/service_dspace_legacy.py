@@ -47,6 +47,10 @@ class DSpaceLegacyClient:
         """
         Authenticate with DSpace Legacy API
 
+        DSpace 6.x uses form-data for login and returns token via:
+        - Cookie (JSESSIONID) 
+        - Or response body as plain text
+        
         Returns:
             bool: True if authentication successful
         """
@@ -55,16 +59,29 @@ class DSpaceLegacyClient:
 
         try:
             url = f"{self.rest_url}/login"
-            response = self.session.post(url, json={
+            
+            # DSpace 6.x requires form-data with form content type
+            # Must NOT send Content-Type: application/json for form-data login
+            headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            response = self.session.post(url, data={
                 'email': self.email,
                 'password': self.password
-            })
+            }, headers=headers)
 
             if response.status_code == 200:
-                self.token = response.text  # Token is returned as plain text
-                self.session.headers.update({
-                    'rest-dspace-token': self.token
-                })
+                # Token may be in response body or stored in session cookies
+                self.token = response.text.strip() if response.text.strip() else 'session-cookie'
+                
+                # If token is in body, add it to headers for subsequent requests
+                if response.text.strip():
+                    self.session.headers.update({
+                        'rest-dspace-token': self.token
+                    })
+                
+                # Session cookies (JSESSIONID) are automatically handled by requests.Session
                 return True
             return False
         except Exception as e:
@@ -96,6 +113,32 @@ class DSpaceLegacyClient:
         except Exception as e:
             print(f"Connection test failed: {e}")
             return False
+
+    def get_communities(self, limit: int = 100, offset: int = 0) -> Optional[List[Dict]]:
+        """
+        Get communities from DSpace Legacy
+
+        Args:
+            limit: Number of communities to retrieve
+            offset: Offset for pagination
+
+        Returns:
+            List of community dictionaries or None
+        """
+        try:
+            url = f"{self.rest_url}/communities"
+            params = {
+                'limit': limit,
+                'offset': offset
+            }
+            response = self.session.get(url, params=params)
+
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except Exception as e:
+            print(f"Error fetching communities: {e}")
+            return None
 
     def get_items(self, limit: int = 20, offset: int = 0) -> Optional[List[Dict]]:
         """
