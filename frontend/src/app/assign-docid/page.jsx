@@ -238,18 +238,18 @@ const AssignDocID = () => {
     }
   }, [user?.email]);
 
-  // Load saved draft only on component mount
+  // Load saved draft only when explicitly navigated from my-account page
   useEffect(() => {
     if (user?.email) {
-      // Check for draft_resource_type URL param (from my-drafts page)
+      // Check for draft_resource_type URL param (from my-account page)
       const urlParams = new URLSearchParams(window.location.search);
       const draftResourceType = urlParams.get('draft_resource_type');
 
+      // Only load draft if explicitly requested via URL parameter
       if (draftResourceType) {
         loadSavedDraft(parseInt(draftResourceType, 10));
-      } else {
-        loadSavedDraft();
       }
+      // Do NOT auto-load drafts - form should be clean by default
     }
   }, [user?.email]); // Only depend on user email, run once when user is available
 

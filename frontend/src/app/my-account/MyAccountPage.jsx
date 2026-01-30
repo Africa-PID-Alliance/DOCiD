@@ -69,6 +69,9 @@ const MyAccountPage = () => {
   const [draftsLoading, setDraftsLoading] = useState(false);
   const [deleteDraftConfirmOpen, setDeleteDraftConfirmOpen] = useState(false);
   const [draftToDelete, setDraftToDelete] = useState(null);
+  const [publicationsPage, setPublicationsPage] = useState(1);
+  const [draftsPage, setDraftsPage] = useState(1);
+  const itemsPerPage = 5;
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
@@ -1797,8 +1800,9 @@ const MyAccountPage = () => {
             </Box>
           </Grid>
 
-          {/* Right Column - Table */}
+          {/* Right Column - Tables */}
           <Grid item xs={12} md={6}>
+            {/* Drafts Table - Now First */}
             <Paper
               elevation={0}
               sx={{
@@ -1806,202 +1810,7 @@ const MyAccountPage = () => {
                 borderRadius: 2,
                 backgroundColor: 'background.paper',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {t('my_account.table.my_publications')} ({userPublications.length})
-                </Typography>
-              </Box>
-              <Box sx={{ 
-                width: '100%',
-                backgroundColor: theme.palette.background.default,
-                borderRadius: 1,
-                overflow: 'auto'
-              }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell 
-                        sx={{ 
-                          fontWeight: 600, 
-                          backgroundColor: '#1565c0', 
-                          color: 'white', 
-                          width: '200px',
-                          borderBottom: `1px solid ${theme.palette.divider}`
-                        }}
-                      >
-                        {t('my_account.table.docid')}
-                      </TableCell>
-                      <TableCell 
-                        sx={{ 
-                          fontWeight: 600, 
-                          backgroundColor: '#1565c0', 
-                          color: 'white', 
-                          width: '60%',
-                          borderBottom: `1px solid ${theme.palette.divider}`
-                        }}
-                      >
-                        {t('my_account.table.title')}
-                      </TableCell>
-                      <TableCell 
-                        align="right" 
-                        sx={{ 
-                          fontWeight: 600, 
-                          backgroundColor: '#1565c0', 
-                          color: 'white', 
-                          width: '100px',
-                          borderBottom: `1px solid ${theme.palette.divider}`
-                        }}
-                      >
-                        {t('my_account.table.action')}
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {publicationsLoading ? (
-                      <TableRow>
-                        <TableCell 
-                          colSpan={3} 
-                          align="center"
-                          sx={{ py: 4 }}
-                        >
-                          <CircularProgress size={30} />
-                        </TableCell>
-                      </TableRow>
-                    ) : userPublications.length === 0 ? (
-                      <TableRow>
-                        <TableCell 
-                          colSpan={3} 
-                          align="center"
-                          sx={{ 
-                            py: 4,
-                            color: 'text.secondary',
-                            fontStyle: 'italic'
-                          }}
-                        >
-                          {t('my_account.table.no_publications_found')}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      userPublications.map((publication, index) => (
-                      <TableRow 
-                          key={publication.id} 
-                        sx={{ 
-                          '&:nth-of-type(odd)': { 
-                            backgroundColor: theme.palette.mode === 'dark' 
-                              ? alpha(theme.palette.background.paper, 0.05)
-                              : alpha(theme.palette.background.paper, 0.9)
-                          }, 
-                          '&:nth-of-type(even)': { 
-                            backgroundColor: theme.palette.background.paper 
-                          }, 
-                          '&:hover': { 
-                            backgroundColor: theme.palette.action.hover 
-                          },
-                          '& .MuiTableCell-root': {
-                            borderBottom: `1px solid ${theme.palette.divider}`,
-                            color: theme.palette.text.primary
-                          }
-                        }}
-                      >
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {publication.document_docid || publication.docid}
-                            <IconButton
-                              size="small"
-                                onClick={() => navigator.clipboard.writeText(publication.document_docid || publication.docid)}
-                              sx={{
-                                color: '#1565c0',
-                                '&:hover': {
-                                  backgroundColor: alpha('#1565c0', 0.1)
-                                }
-                              }}
-                            >
-                              <ContentCopyIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </TableCell>
-                          <TableCell>
-                            <Typography
-                              sx={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                lineHeight: 1.4
-                              }}
-                            >
-                              {publication.document_title || publication.title}
-                            </Typography>
-                          </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            size="small"
-                              onClick={() => router.push(`/docid/${encodeURIComponent(publication.document_docid || publication.docid)}`)}
-                            sx={{
-                              color: '#1565c0',
-                              '&:hover': {
-                                backgroundColor: alpha('#1565c0', 0.1)
-                              }
-                            }}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(publication)}
-                            sx={{
-                              color: theme.palette.error.main,
-                              '&:hover': {
-                                backgroundColor: alpha(theme.palette.error.main, 0.1)
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  p: 2,
-                  backgroundColor: theme.palette.background.paper
-                }}>
-                  <Pagination 
-                    count={2} 
-                    color="primary" 
-                    size="small"
-                    sx={{
-                      '& .MuiPaginationItem-root': {
-                        color: theme.palette.text.primary,
-                      },
-                      '& .Mui-selected': {
-                        backgroundColor: '#1565c0',
-                        color: 'white',
-                        '&:hover': {
-                          backgroundColor: alpha('#1565c0', 0.8),
-                        }
-                      }
-                    }} 
-                  />
-                </Box>
-              </Box>
-            </Paper>
-
-            {/* Drafts Table */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                backgroundColor: 'background.paper',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                mt: 3
+                mb: 3
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -2080,7 +1889,9 @@ const MyAccountPage = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      userDrafts.map((draft) => {
+                      userDrafts
+                        .slice((draftsPage - 1) * itemsPerPage, draftsPage * itemsPerPage)
+                        .map((draft) => {
                         let formData = draft.form_data;
                         if (typeof formData === 'string') {
                           try {
@@ -2171,8 +1982,234 @@ const MyAccountPage = () => {
                     )}
                   </TableBody>
                 </Table>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 2,
+                  backgroundColor: theme.palette.background.paper
+                }}>
+                  <Pagination 
+                    count={Math.ceil(userDrafts.length / itemsPerPage)} 
+                    page={draftsPage}
+                    onChange={(event, value) => setDraftsPage(value)}
+                    color="primary" 
+                    size="small"
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        color: theme.palette.text.primary,
+                      },
+                      '& .Mui-selected': {
+                        backgroundColor: '#1565c0',
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: alpha('#1565c0', 0.8),
+                        }
+                      }
+                    }} 
+                  />
+                </Box>
               </Box>
             </Paper>
+
+            {/* Publications Table - Now Second */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {t('my_account.table.my_publications')} ({userPublications.length})
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                width: '100%',
+                backgroundColor: theme.palette.background.default,
+                borderRadius: 1,
+                overflow: 'auto'
+              }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '200px',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        {t('my_account.table.docid')}
+                      </TableCell>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '60%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        {t('my_account.table.title')}
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '100px',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        {t('my_account.table.action')}
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {publicationsLoading ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ py: 4 }}
+                        >
+                          <CircularProgress size={30} />
+                        </TableCell>
+                      </TableRow>
+                    ) : userPublications.length === 0 ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ 
+                            py: 4,
+                            color: 'text.secondary',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          {t('my_account.table.no_publications_found')}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      userPublications
+                        .slice((publicationsPage - 1) * 5, publicationsPage * 5)
+                        .map((publication, index) => (
+                      <TableRow 
+                          key={publication.id} 
+                        sx={{ 
+                          '&:nth-of-type(odd)': { 
+                            backgroundColor: theme.palette.mode === 'dark' 
+                              ? alpha(theme.palette.background.paper, 0.05)
+                              : alpha(theme.palette.background.paper, 0.9)
+                          }, 
+                          '&:nth-of-type(even)': { 
+                            backgroundColor: theme.palette.background.paper 
+                          }, 
+                          '&:hover': { 
+                            backgroundColor: theme.palette.action.hover 
+                          },
+                          '& .MuiTableCell-root': {
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                            color: theme.palette.text.primary
+                          }
+                        }}
+                      >
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {publication.document_docid || publication.docid}
+                            <IconButton
+                              size="small"
+                                onClick={() => navigator.clipboard.writeText(publication.document_docid || publication.docid)}
+                              sx={{
+                                color: '#1565c0',
+                                '&:hover': {
+                                  backgroundColor: alpha('#1565c0', 0.1)
+                                }
+                              }}
+                            >
+                              <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                lineHeight: 1.4
+                              }}
+                            >
+                              {publication.document_title || publication.title}
+                            </Typography>
+                          </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            size="small"
+                              onClick={() => router.push(`/docid/${encodeURIComponent(publication.document_docid || publication.docid)}`)}
+                            sx={{
+                              color: '#1565c0',
+                              '&:hover': {
+                                backgroundColor: alpha('#1565c0', 0.1)
+                              }
+                            }}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick(publication)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.error.main, 0.1)
+                              }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  p: 2,
+                  backgroundColor: theme.palette.background.paper
+                }}>
+                  <Pagination 
+                    count={Math.ceil(userPublications.length / 5)} 
+                    page={publicationsPage}
+                    onChange={(event, value) => setPublicationsPage(value)}
+                    color="primary" 
+                    size="small"
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        color: theme.palette.text.primary,
+                      },
+                      '& .Mui-selected': {
+                        backgroundColor: '#1565c0',
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: alpha('#1565c0', 0.8),
+                        }
+                      }
+                    }} 
+                  />
+                </Box>
+              </Box>
+            </Paper>
+
           </Grid>
         </Grid>
         {EditProfileModal}
