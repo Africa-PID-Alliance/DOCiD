@@ -27,7 +27,7 @@ jobs:
             git clone --depth 1 https://github.com/Africa-PID-Alliance/DOCiD.git "$REPO_DIR"
 
             echo "=== Deploying Backend ==="
-            rsync -av --delete --no-group --no-owner \
+            rsync -rlptD --delete --no-group --no-owner --omit-dir-times \
               --exclude='venv' \
               --exclude='.env' \
               --exclude='logs' \
@@ -46,7 +46,7 @@ jobs:
             pkill -HUP -f 'gunicorn.*backend-v2.*wsgi:app' || echo "Warning: Could not reload gunicorn"
 
             echo "=== Deploying Frontend ==="
-            rsync -av --delete --no-group --no-owner \
+            rsync -rlptD --delete --no-group --no-owner --omit-dir-times \
               --exclude='node_modules' \
               --exclude='.next' \
               --exclude='.env.production' \
