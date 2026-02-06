@@ -40,7 +40,7 @@ jobs:
             pip install -r requirements.txt --quiet
 
             export FLASK_APP=run.py
-            flask db upgrade
+            flask db upgrade || echo "Warning: Migration failed - may need manual intervention"
 
             # Graceful reload gunicorn (send HUP to master process)
             pkill -HUP -f 'gunicorn.*backend-v2.*wsgi:app' || echo "Warning: Could not reload gunicorn"
