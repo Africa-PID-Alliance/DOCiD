@@ -2,6 +2,7 @@
 
 # DOCiD Frontend Production Deployment Script
 # This script creates a production-ready zip file for server deployment
+# Note: CI/CD via GitHub Actions is now the preferred deployment method
 
 set -e  # Exit on any error
 
@@ -21,6 +22,7 @@ echo "📦 Creating deployment package: ${DEPLOYMENT_ZIP}"
 # Create deployment zip with essential production files
 zip -r "${DEPLOYMENT_ZIP}" \
     .next \
+    src \
     public \
     package.json \
     package-lock.json \
@@ -29,13 +31,16 @@ zip -r "${DEPLOYMENT_ZIP}" \
     ecosystem.config.js \
     next-i18next.config.js \
     jsconfig.json \
+    deploy-server.sh \
     -x "*.DS_Store" "*/.DS_Store" "*.log" "*/__pycache__/*" "*/node_modules/*" 2>/dev/null || \
 zip -r "${DEPLOYMENT_ZIP}" \
     .next \
+    src \
     public \
     package.json \
     package-lock.json \
     .env.production \
+    deploy-server.sh \
     -x "*.DS_Store" "*/.DS_Store" "*.log" "*/__pycache__/*" "*/node_modules/*"
 
 echo "✅ Deployment package created successfully: ${DEPLOYMENT_ZIP}"
