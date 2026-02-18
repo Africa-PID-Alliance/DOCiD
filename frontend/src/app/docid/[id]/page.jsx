@@ -822,7 +822,7 @@ const DocIDPage = ({ params }) => {
                 <img
                   src={docData.publication_poster_url
                     ? `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${docData.publication_poster_url}`
-                    : '/assets/images/Logo2.png'}
+                    : '/assets/images/logo2.png'}
                   alt="DOCiD"
                   style={{
                     width: '100%',

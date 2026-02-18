@@ -110,7 +110,7 @@ const AboutDocid = () => {
               }}
             >
               <Image
-                src="/assets/images/Logo2.png"
+                src="/assets/images/logo2.png"
                 alt="DOCiD Logo"
                 fill
                 style={{

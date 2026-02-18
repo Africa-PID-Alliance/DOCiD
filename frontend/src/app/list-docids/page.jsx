@@ -651,7 +651,7 @@ const ListDocIds = () => {
                               gap: 2
                             }}>
                               <Avatar
-                                src={doc.avatar || '/assets/images/Logo2.png'}
+                                src={doc.avatar || '/assets/images/logo2.png'}
                                 alt={doc.owner || 'System'}
                                 sx={{
                                   width: 44,
@@ -698,7 +698,7 @@ const ListDocIds = () => {
                               component="img"
                               image={doc.publication_poster_url ?
                                 `${doc.publication_poster_url}` :
-                                `/assets/images/Logo2.png`}
+                                `/assets/images/logo2.png`}
                               alt={doc.title || 'DOCiD Logo'}
                               className="card-media"
                               sx={{
@@ -915,7 +915,7 @@ const ListDocIds = () => {
                       >
                         <ListItemAvatar>
                           <Avatar
-                            src={doc.avatar || '/assets/images/Logo2.png'}
+                            src={doc.avatar || '/assets/images/logo2.png'}
                             alt={doc.owner || 'System'}
                             sx={{
                               width: 48,

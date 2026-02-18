@@ -416,7 +416,7 @@ const MyDrafts = () => {
                           gap: 2
                         }}>
                           <Avatar
-                            src={user?.picture || '/assets/images/Logo2.png'}
+                            src={user?.picture || '/assets/images/logo2.png'}
                             alt={user?.name}
                             sx={{
                               width: 44,
@@ -460,7 +460,7 @@ const MyDrafts = () => {
                       }}>
                         <CardMedia
                           component="img"
-                          image="/assets/images/Logo2.png"
+                          image="/assets/images/logo2.png"
                           alt="Draft"
                           sx={{
                             width: '100%',

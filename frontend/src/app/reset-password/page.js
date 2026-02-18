@@ -12,7 +12,7 @@ export const metadata = {
     locale: 'en_US',
     images: [
       {
-        url: '/assets/images/Logo2.png',
+        url: '/assets/images/logo2.png',
         width: 220,
         height: 88,
         alt: 'DOCiD Logo',

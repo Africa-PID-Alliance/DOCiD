@@ -139,7 +139,7 @@ const Navbar = () => {
         }}
         >
           <Image 
-            src="/assets/images/Logo2.png"
+            src="/assets/images/logo2.png"
             alt="Logo"
             width={120}
             height={40}
@@ -409,7 +409,7 @@ const Navbar = () => {
             }}
           >
             <Image 
-              src="/assets/images/Logo2.png"
+              src="/assets/images/logo2.png"
               alt="Logo"
               width={150}
               height={50}
