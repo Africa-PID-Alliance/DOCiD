@@ -90,5 +90,5 @@ jobs:
 
             echo "=== Health Checks ==="
             sleep 5
-            curl -sf http://localhost:6000/api/v1/health > /dev/null && echo "Backend: OK" || echo "Backend: FAILED"
+            curl -sf http://localhost:5001/api/v1/health > /dev/null && echo "Backend: OK" || echo "Backend: FAILED"
             curl -sf http://localhost:3000 > /dev/null && echo "Frontend: OK" || echo "Frontend: FAILED"
