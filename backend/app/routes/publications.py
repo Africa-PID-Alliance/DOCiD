@@ -5,7 +5,7 @@ import os
 from flask import Blueprint, jsonify, request, Response, abort
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from app import db
-from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects
+from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
 # from app.service_codra import push_apa_metadata
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
@@ -2595,6 +2595,21 @@ def delete_publication(publication_id):
         try:
             # Delete publication creators
             PublicationCreators.query.filter_by(publication_id=publication_id).delete()
+
+            # Delete attached RRIDs for this publication
+            DocidRrid.query.filter_by(entity_type='publication', entity_id=publication_id).delete()
+
+            # Delete attached RRIDs for this publication's organizations
+            publication_organization_ids = [
+                org.id for org in PublicationOrganization.query.filter_by(
+                    publication_id=publication_id
+                ).all()
+            ]
+            if publication_organization_ids:
+                DocidRrid.query.filter(
+                    DocidRrid.entity_type == 'organization',
+                    DocidRrid.entity_id.in_(publication_organization_ids)
+                ).delete(synchronize_session='fetch')
 
             # Delete publication organizations
             PublicationOrganization.query.filter_by(publication_id=publication_id).delete()
