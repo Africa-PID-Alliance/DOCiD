@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-02-24)
 
 Phase: 3 of 8 (Flask Blueprint — Search & Resolve)
 Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-24 — Completed 02-02-PLAN.md (RRID resolver with DB cache)
+Status: Context gathered, ready to plan
+Last activity: 2026-02-24 — Phase 3 context discussion complete
 
 Progress: [███░░░░░░░] 27%
 
@@ -67,8 +67,21 @@ None yet.
 
 None yet.
 
+### Phase 3 Decisions
+
+- [03]: Flat JSON array response for search, no wrapper/metadata
+- [03]: Empty search → 200 with `[]`, not 204
+- [03]: Resolve response includes `last_resolved_at` + `stale` flag alongside 7 canonical fields
+- [03]: Hard cap 20 results, no pagination
+- [03]: SciCrunch failures → HTTP 502 with generic error messages
+- [03]: RRID not found → 404, invalid format → 400, missing `q` → 400
+- [03]: Strict `@jwt_required()` on both endpoints, any authenticated user
+- [03]: entity_type/entity_id optional on resolve, rejected if partial (both or neither)
+- [03]: Entity type allowlist imported from DocidRrid model (single source of truth)
+- [03]: Search does NOT accept entity params — only `q` and `type`
+
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 02-02-PLAN.md (Phase 2 complete)
-Resume file: .planning/phases/02-service-layer/02-02-SUMMARY.md
+Stopped at: Phase 3 context discussion complete
+Resume file: .planning/phases/03-flask-blueprint-search-resolve/03-CONTEXT.md
