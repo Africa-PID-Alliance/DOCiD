@@ -556,28 +556,29 @@ def preview_article_metadata(article_id):
 
 # ==================== Sync/Import Endpoints ====================
 
-def save_figshare_creators(publication_id: int, creators_data: list):
+def save_figshare_creators(publication_id: int, creators_data: list, author_role_id: int = None):
     """
-    Save creators from Figshare article to publication_creators table
+    Save creators from Figshare article to publication_creators table.
+    Accepts a pre-resolved author_role_id to avoid per-creator DB lookups.
 
     Args:
         publication_id: Publication ID
         creators_data: List of creator dictionaries from FigshareMetadataMapper
+        author_role_id: Pre-resolved role_id for 'Author' role (avoids N+1 queries)
     """
     if not creators_data:
         return
 
+    # Resolve author role once if not provided
+    if author_role_id is None:
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
+
+    if author_role_id is None:
+        logger.warning("No 'Author' role found in CreatorsRoles table, skipping creators")
+        return
+
     for creator_data in creators_data:
-        # Get role_id for the creator role
-        role_name = creator_data.get('creator_role', 'Author')
-        role = CreatorsRoles.query.filter_by(role_name=role_name).first()
-
-        if not role:
-            role = CreatorsRoles.query.filter_by(role_name='Author').first()
-
-        if not role:
-            continue
-
         # Parse full name into family_name and given_name
         full_name = creator_data.get('creator_name', '')
         name_parts = full_name.split(',', 1) if ',' in full_name else full_name.rsplit(' ', 1)
@@ -604,9 +605,52 @@ def save_figshare_creators(publication_id: int, creators_data: list):
             given_name=given_name,
             identifier=identifier_value,
             identifier_type=identifier_type_value,
-            role_id=role.role_id
+            role_id=author_role_id
         )
         db.session.add(creator)
+
+
+def _apply_figshare_data_to_publication(publication, pub_data, resource_type_id, article_id):
+    """
+    Apply mapped Figshare metadata to a Publication object.
+    Handles DOI-based identifier assignment and Cordra mint-skip logic.
+
+    Returns:
+        minting_status: str - one of 'skipped_doi_exists', 'queued', 'already_minted', 'already_pending'
+    """
+    publication.document_title = pub_data['document_title']
+    publication.document_description = pub_data.get('document_description', '')
+    publication.resource_type_id = resource_type_id
+    publication.figshare_article_id = str(article_id)
+    publication.figshare_url = pub_data.get('figshare_url', '')
+    publication.owner = 'Figshare Repository'
+
+    figshare_doi = (pub_data.get('doi') or '').strip()
+
+    if figshare_doi:
+        # DOI exists: use it as primary identifier, skip Cordra minting
+        publication.doi = figshare_doi
+        publication.document_docid = figshare_doi
+        publication.cordra_synced = True
+        publication.cordra_status = 'SKIPPED'
+        return 'skipped_doi_exists'
+    else:
+        # No DOI: leave document_docid null (nullable), queue Cordra minting
+        publication.doi = None
+        publication.document_docid = None
+        publication.cordra_synced = False
+        publication.cordra_status = 'PENDING'
+        return 'queued'
+
+
+def _queue_cordra_minting(publication_id):
+    """Queue Cordra minting task for a publication without DOI."""
+    try:
+        from app.tasks import push_to_cordra_async
+        push_to_cordra_async.apply_async(args=[publication_id], countdown=60)
+        logger.info(f"Scheduled CORDRA mint for publication {publication_id}")
+    except ImportError:
+        logger.warning(f"Celery not configured. CORDRA mint for publication {publication_id} will need manual run")
 
 
 @figshare_bp.route('/sync/article/<int:article_id>', methods=['POST'])
@@ -614,7 +658,9 @@ def save_figshare_creators(publication_id: int, creators_data: list):
 @cross_origin()
 def sync_single_article(article_id):
     """
-    Import a single Figshare article to DOCiD publications table
+    Import a single Figshare article to DOCiD publications table.
+    Supports update_existing query param to update metadata on re-import.
+    Skips Cordra minting when Figshare DOI exists.
     ---
     tags:
       - Figshare Integration
@@ -627,6 +673,11 @@ def sync_single_article(article_id):
         required: true
         description: Figshare article ID to import
         example: 12345678
+      - name: update_existing
+        in: query
+        type: boolean
+        default: false
+        description: If true, update metadata for already-imported articles
     responses:
       201:
         description: Article imported successfully
@@ -635,28 +686,20 @@ def sync_single_article(article_id):
           properties:
             success:
               type: boolean
+            status:
+              type: string
+              enum: [created, updated, skipped, error]
             publication_id:
               type: integer
-              description: Created publication ID in DOCiD
             docid:
               type: string
-              description: Generated DOCiD identifier
+            minting:
+              type: string
+              enum: [skipped_doi_exists, queued, already_minted, already_pending]
             figshare_id:
               type: integer
-              description: Original Figshare article ID
-            message:
-              type: string
       200:
-        description: Article already imported
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-            publication_id:
-              type: integer
-            docid:
-              type: string
+        description: Article already imported (skipped or updated)
       404:
         description: Article not found on Figshare
       401:
@@ -666,14 +709,20 @@ def sync_single_article(article_id):
     """
     try:
         current_user_id = get_jwt_identity()
+        update_existing = request.args.get('update_existing', 'false').lower() == 'true'
 
         # Check if already imported
         existing = Publications.query.filter_by(figshare_article_id=str(article_id)).first()
-        if existing:
+
+        if existing and not update_existing:
             return jsonify({
-                'message': 'Article already imported',
+                'success': True,
+                'status': 'skipped',
                 'publication_id': existing.id,
                 'docid': existing.document_docid,
+                'minting': 'already_minted' if existing.cordra_status == 'MINTED' else (
+                    'skipped_doi_exists' if existing.cordra_status == 'SKIPPED' else 'already_pending'
+                ),
                 'figshare_id': article_id
             }), 200
 
@@ -693,46 +742,63 @@ def sync_single_article(article_id):
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
-        # Generate DOCiD using Figshare DOI or create one
-        figshare_doi = pub_data.get('doi', '')
-        document_docid = figshare_doi if figshare_doi else f"figshare:{article_id}"
+        # Resolve author role once
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
 
-        # Create publication
-        publication = Publications(
-            user_id=current_user_id,
-            document_title=pub_data['document_title'],
-            document_description=pub_data.get('document_description', ''),
-            resource_type_id=resource_type_id,
-            doi=figshare_doi,
-            document_docid=document_docid,
-            figshare_article_id=str(article_id),
-            figshare_url=pub_data.get('figshare_url', ''),
-            owner='Figshare Repository',
-        )
+        if existing and update_existing:
+            # Update existing publication
+            publication = existing
+            publication.user_id = current_user_id
+            minting_status = _apply_figshare_data_to_publication(
+                publication, pub_data, resource_type_id, article_id
+            )
 
-        db.session.add(publication)
-        db.session.flush()  # Get publication ID
+            # Replace creators: delete old, insert new
+            PublicationCreators.query.filter_by(publication_id=publication.id).delete()
+            save_figshare_creators(publication.id, mapped_data.get('creators', []), author_role_id)
 
-        # Save creators
-        save_figshare_creators(publication.id, mapped_data.get('creators', []))
+            db.session.commit()
+            record_status = 'updated'
+        else:
+            # Create new publication
+            publication = Publications(user_id=current_user_id)
+            minting_status = _apply_figshare_data_to_publication(
+                publication, pub_data, resource_type_id, article_id
+            )
 
-        db.session.commit()
+            db.session.add(publication)
+            db.session.flush()  # Get publication ID
 
-        logger.info(f"Imported Figshare article {article_id} as publication {publication.id}")
+            save_figshare_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+            db.session.commit()
+            record_status = 'created'
+
+        # Queue Cordra minting only when no DOI
+        if minting_status == 'queued':
+            _queue_cordra_minting(publication.id)
+
+        logger.info(f"Figshare article {article_id} {record_status} as publication {publication.id} (minting: {minting_status})")
 
         return jsonify({
             'success': True,
+            'status': record_status,
             'publication_id': publication.id,
             'docid': publication.document_docid,
+            'minting': minting_status,
             'figshare_id': article_id,
-            'figshare_url': publication.figshare_url,
-            'message': 'Article imported successfully'
-        }), 201
+            'figshare_url': publication.figshare_url
+        }), 201 if record_status == 'created' else 200
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error importing Figshare article {article_id}: {str(e)}")
-        return jsonify({'error': f'Failed to import article: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'figshare_id': article_id,
+            'error': str(e)
+        }), 500
 
 
 @figshare_bp.route('/sync/batch', methods=['POST'])
@@ -740,7 +806,10 @@ def sync_single_article(article_id):
 @cross_origin()
 def sync_batch():
     """
-    Batch import Figshare articles to DOCiD publications table
+    Batch import Figshare articles to DOCiD publications table.
+    Prefetches existing publications to avoid N+1 queries.
+    Uses per-item savepoints so partial failures don't break the batch.
+    Skips Cordra minting when Figshare DOI exists.
     ---
     tags:
       - Figshare Integration
@@ -771,10 +840,10 @@ def sync_batch():
               type: integer
               default: 50
               description: Number of articles to import (max 100)
-            skip_existing:
+            update_existing:
               type: boolean
-              default: true
-              description: Skip articles that are already imported
+              default: false
+              description: If true, update metadata for already-imported articles
             item_type:
               type: integer
               description: Filter by Figshare item type (3=dataset, 9=software, etc.)
@@ -786,19 +855,17 @@ def sync_batch():
           properties:
             total:
               type: integer
-              description: Total articles processed
             created:
               type: integer
-              description: Successfully imported count
+            updated:
+              type: integer
             skipped:
               type: integer
-              description: Skipped count (already exist)
             errors:
               type: integer
-              description: Failed count
             items:
               type: array
-              description: Detailed results per article
+              description: Per-item results with status, publication_id, docid, minting
       401:
         description: Unauthorized - JWT token required
       400:
@@ -814,7 +881,7 @@ def sync_batch():
         article_ids = data.get('article_ids', [])
         page = data.get('page', 1)
         page_size = min(data.get('page_size', 50), 100)
-        skip_existing = data.get('skip_existing', True)
+        update_existing = data.get('update_existing', False)
         item_type = data.get('item_type')
 
         if not query and not article_ids:
@@ -838,83 +905,119 @@ def sync_batch():
             )
             articles_to_import = search_results.get('articles', [])
 
+        # --- Prefetch existing publications to avoid N+1 DB queries ---
+        incoming_figshare_ids = [str(a.get('id')) for a in articles_to_import if a.get('id')]
+        existing_publications_map = {}
+        if incoming_figshare_ids:
+            existing_publications = Publications.query.filter(
+                Publications.figshare_article_id.in_(incoming_figshare_ids)
+            ).all()
+            existing_publications_map = {
+                pub.figshare_article_id: pub for pub in existing_publications
+            }
+
+        # --- Cache resource types and author role once ---
+        resource_types_cache = {rt.resource_type: rt.id for rt in ResourceTypes.query.all()}
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
+
         results = {
             'total': len(articles_to_import),
             'created': 0,
+            'updated': 0,
             'skipped': 0,
             'errors': 0,
             'items': []
         }
 
+        cordra_queue_publication_ids = []
+
         for article in articles_to_import:
             article_id = article.get('id')
+            figshare_id_str = str(article_id)
 
             try:
-                # Check if exists
-                if skip_existing:
-                    existing = Publications.query.filter_by(figshare_article_id=str(article_id)).first()
-                    if existing:
-                        results['skipped'] += 1
-                        results['items'].append({
-                            'figshare_id': article_id,
-                            'status': 'skipped',
-                            'reason': 'already_exists',
-                            'publication_id': existing.id
-                        })
-                        continue
+                # Use per-item savepoint so failures don't break the batch
+                savepoint = db.session.begin_nested()
+
+                existing_publication = existing_publications_map.get(figshare_id_str)
+
+                if existing_publication and not update_existing:
+                    savepoint.rollback()
+                    results['skipped'] += 1
+                    results['items'].append({
+                        'figshare_id': article_id,
+                        'status': 'skipped',
+                        'publication_id': existing_publication.id,
+                        'docid': existing_publication.document_docid,
+                        'minting': 'skipped_doi_exists' if existing_publication.cordra_status == 'SKIPPED' else (
+                            'already_minted' if existing_publication.cordra_status == 'MINTED' else 'already_pending'
+                        )
+                    })
+                    continue
 
                 # Get full article details if we only have summary
                 if 'description' not in article:
                     article = client.get_article(article_id)
                     if not article:
+                        savepoint.rollback()
                         results['errors'] += 1
                         results['items'].append({
                             'figshare_id': article_id,
                             'status': 'error',
-                            'reason': 'failed_to_fetch_details'
+                            'error': 'failed_to_fetch_details'
                         })
                         continue
 
-                # Map and create
+                # Map metadata
                 mapped_data = FigshareMetadataMapper.figshare_to_docid(article, current_user_id)
                 pub_data = mapped_data['publication']
 
-                # Get resource type ID
+                # Resolve resource type from cache
                 resource_type_name = pub_data.get('resource_type', 'Dataset')
-                resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
-                resource_type_id = resource_type.id if resource_type else 1
+                resource_type_id = resource_types_cache.get(resource_type_name, 1)
 
-                # Generate DOCiD
-                figshare_doi = pub_data.get('doi', '')
-                document_docid = figshare_doi if figshare_doi else f"figshare:{article_id}"
+                if existing_publication and update_existing:
+                    # Update existing
+                    publication = existing_publication
+                    publication.user_id = current_user_id
+                    minting_status = _apply_figshare_data_to_publication(
+                        publication, pub_data, resource_type_id, article_id
+                    )
 
-                publication = Publications(
-                    user_id=current_user_id,
-                    document_title=pub_data['document_title'],
-                    document_description=pub_data.get('document_description', ''),
-                    resource_type_id=resource_type_id,
-                    doi=figshare_doi,
-                    document_docid=document_docid,
-                    figshare_article_id=str(article_id),
-                    figshare_url=pub_data.get('figshare_url', ''),
-                    owner='Figshare Repository',
-                )
+                    # Replace creators
+                    PublicationCreators.query.filter_by(publication_id=publication.id).delete()
+                    save_figshare_creators(publication.id, mapped_data.get('creators', []), author_role_id)
 
-                db.session.add(publication)
-                db.session.flush()
+                    savepoint.commit()
+                    record_status = 'updated'
+                    results['updated'] += 1
+                else:
+                    # Create new
+                    publication = Publications(user_id=current_user_id)
+                    minting_status = _apply_figshare_data_to_publication(
+                        publication, pub_data, resource_type_id, article_id
+                    )
 
-                # Save creators
-                save_figshare_creators(publication.id, mapped_data.get('creators', []))
+                    db.session.add(publication)
+                    db.session.flush()
 
-                db.session.commit()
+                    save_figshare_creators(publication.id, mapped_data.get('creators', []), author_role_id)
 
-                results['created'] += 1
+                    savepoint.commit()
+                    record_status = 'created'
+                    results['created'] += 1
+
+                # Collect publications that need Cordra minting
+                if minting_status == 'queued':
+                    cordra_queue_publication_ids.append(publication.id)
+
                 results['items'].append({
                     'figshare_id': article_id,
+                    'status': record_status,
                     'publication_id': publication.id,
                     'docid': publication.document_docid,
-                    'title': publication.document_title,
-                    'status': 'created'
+                    'minting': minting_status
                 })
 
             except Exception as e:
@@ -923,14 +1026,25 @@ def sync_batch():
                 results['items'].append({
                     'figshare_id': article_id,
                     'status': 'error',
-                    'reason': str(e)
+                    'error': str(e)
                 })
 
-        logger.info(f"Batch import completed: {results['created']} created, {results['skipped']} skipped, {results['errors']} errors")
+        # Single final commit for all items
+        db.session.commit()
+
+        # Queue Cordra minting for publications without DOI
+        for publication_id in cordra_queue_publication_ids:
+            _queue_cordra_minting(publication_id)
+
+        logger.info(
+            f"Batch import: {results['created']} created, {results['updated']} updated, "
+            f"{results['skipped']} skipped, {results['errors']} errors"
+        )
 
         return jsonify(results), 200
 
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error in batch import: {str(e)}")
         return jsonify({'error': str(e)}), 500
 

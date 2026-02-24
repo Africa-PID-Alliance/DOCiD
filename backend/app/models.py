@@ -451,7 +451,7 @@ class Publications(db.Model):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=False, index=True)
-    document_docid = Column(String(255), nullable=False, unique=True, index=True)  # Unique identifier, indexed for O(1) lookups
+    document_docid = Column(String(255), nullable=True, unique=True, index=True)  # Primary resolvable identifier (DOI or minted DOCiD handle)
     document_title = Column(String(255), nullable=False)
     document_description = Column(Text)
     avatar = Column(String(255))
@@ -459,14 +459,14 @@ class Publications(db.Model):
     timestamp = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()))  # Use UNIX timestamp as default
     resource_type_id = Column(Integer, ForeignKey('resource_types.id'), nullable=False, index=True)
     publication_poster_url = Column(String(255))
-    doi = Column(String(50), nullable=False)
+    doi = Column(String(50), nullable=True)
     handle_url = Column(String(500), nullable=True)  # Full resolvable URL for DSpace/repository handles
     published = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
 
     # External repository links
-    figshare_article_id = Column(String(50), nullable=True, index=True)  # Figshare article ID
+    figshare_article_id = Column(String(50), nullable=True, unique=True, index=True)  # Figshare article ID (unique for idempotent imports)
     figshare_url = Column(String(500), nullable=True)  # Full Figshare URL
     ojs_submission_id = Column(String(50), nullable=True, index=True)  # OJS submission ID
     ojs_url = Column(String(500), nullable=True)  # Full OJS article URL
@@ -474,6 +474,9 @@ class Publications(db.Model):
     # CORDRA sync tracking
     cordra_synced = Column(Boolean, default=False)  # Track if pushed to CORDRA
     cordra_synced_at = Column(DateTime, nullable=True)  # When it was synced
+    cordra_status = Column(String(20), nullable=False, default='PENDING', index=True)  # SKIPPED|PENDING|MINTED|FAILED
+    cordra_error = Column(Text, nullable=True)  # Error message if minting failed
+    cordra_object_id = Column(String(128), nullable=True, index=True)  # Cordra object ID after minting
 
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
