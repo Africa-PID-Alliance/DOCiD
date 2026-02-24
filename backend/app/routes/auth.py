@@ -6,7 +6,7 @@ from flask import Blueprint, g, redirect, request, session, url_for, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
-from app.models import UserAccount, PasswordResets, RegistrationTokens   
+from app.models import UserAccount, PasswordResets, RegistrationTokens, AccountTypes
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -23,6 +23,40 @@ logger.addHandler(handler)
 jwt = JWTManager()
 
 auth_bp = Blueprint('auth', __name__, url_prefix="/api/v1/auth")
+
+@auth_bp.route("/get-list-account-types", methods=["GET"])
+def get_account_types():
+    """
+    Fetches all account types for registration dropdown.
+    ---
+    tags:
+      - Authentication
+    responses:
+      200:
+        description: List of all account types
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              account_type_name:
+                type: string
+      404:
+        description: No account types found
+      500:
+        description: Internal server error
+    """
+    try:
+        data = AccountTypes.query.all()
+        if len(data) == 0:
+            return jsonify({'message': 'No account types found'}), 404
+        data_list = [{'id': row.id, 'account_type_name': row.account_type_name} for row in data]
+        return jsonify(data_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @auth_bp.route("/store-registration-token", methods=["POST"])
 def store_registration_token():

@@ -33,9 +33,11 @@ class UserAccount(db.Model):
     location = db.Column(db.String(100), nullable=True)  # Custom location string
     date_joined = db.Column(DateTime, default=datetime.utcnow, nullable=False)  # Join date
     password = db.Column(db.String(255), nullable=True)  # Hashed password
+    account_type_id = db.Column(db.Integer, db.ForeignKey('account_types.id'), nullable=True, index=True)
 
     # Define relationships
     publications = relationship('Publications', back_populates='user_account', cascade="all, delete-orphan", foreign_keys='Publications.user_id')
+    account_type = relationship('AccountTypes', backref='users')
 
     def validate_user_id(user_id):
         """
@@ -275,7 +277,17 @@ class ResourceTypes(db.Model):
      
     def __repr__(self):
      return f"<ResourceTypes(id={self.id}, resource_type='{self.resource_type}')>"
-    
+
+
+class AccountTypes(db.Model):
+    __tablename__ = 'account_types'
+
+    id = db.Column(db.Integer, primary_key=True)
+    account_type_name = db.Column(db.String(50), nullable=False, unique=True)
+
+    def __repr__(self):
+        return f"<AccountTypes(id={self.id}, account_type_name='{self.account_type_name}')>"
+
 
 class CreatorsRoles(db.Model):
     __tablename__ = 'creators_roles'
@@ -1197,18 +1209,18 @@ class DSpaceMapping(db.Model):
 
     # DSpace identifiers
     dspace_handle = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    dspace_uuid = db.Column(db.String(36), nullable=False, index=True)
+    dspace_uuid = db.Column(db.String(36), nullable=False, unique=True, index=True)
     dspace_url = db.Column(db.String(500))  # Full DSpace instance URL
 
     # DOCiD reference
-    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, index=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
 
     # Sync tracking
     sync_status = db.Column(db.String(50), default='synced')  # synced, pending, error, conflict
     last_sync_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Change detection (for future bidirectional sync)
-    dspace_metadata_hash = db.Column(db.String(64))  # MD5 hash of DSpace metadata
+    # Change detection (for incremental sync - skip unchanged items)
+    dspace_metadata_hash = db.Column(db.String(64), index=True)  # MD5 hash of DSpace metadata
     docid_metadata_hash = db.Column(db.String(64))   # MD5 hash of DOCiD metadata
 
     # Error tracking

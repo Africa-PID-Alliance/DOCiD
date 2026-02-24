@@ -1,20 +1,31 @@
 """
-DSpace Integration API Endpoints
+DSpace Integration API Endpoints (DSpace 7/8/9)
 """
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Publications, DSpaceMapping, UserAccount, PublicationCreators, CreatorsRoles
+from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 dspace_bp = Blueprint('dspace', __name__, url_prefix='/api/v1/dspace')
 
 # DSpace configuration
 DSPACE_BASE_URL = os.getenv('DSPACE_BASE_URL', 'https://demo.dspace.org/server')
+DSPACE_UI_BASE_URL = os.getenv('DSPACE_UI_BASE_URL', '')  # e.g. https://demo.dspace.org
 DSPACE_USERNAME = os.getenv('DSPACE_USERNAME', 'dspacedemo+admin@gmail.com')
 DSPACE_PASSWORD = os.getenv('DSPACE_PASSWORD', 'dspace')
+
+
+def _get_dspace_ui_base_url():
+    """Get UI base URL from config, falling back to stripping /server from API URL."""
+    if DSPACE_UI_BASE_URL:
+        return DSPACE_UI_BASE_URL.rstrip('/')
+    return DSPACE_BASE_URL.replace('/server', '').rstrip('/')
 
 
 def get_dspace_client():
@@ -24,31 +35,23 @@ def get_dspace_client():
     return client
 
 
-def save_publication_creators(publication_id, creators_data):
+def save_publication_creators(publication_id, creators_data, author_role_id=None):
     """
-    Save creators to publication_creators table
-
-    Args:
-        publication_id: Publication ID
-        creators_data: List of creator dictionaries from DSpaceMetadataMapper
+    Save creators to publication_creators table.
+    Accepts pre-resolved author_role_id to avoid per-creator DB lookups.
     """
     if not creators_data:
         return
 
+    if author_role_id is None:
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
+
+    if author_role_id is None:
+        return
+
     creators = []
     for creator_data in creators_data:
-        # Get role_id for the creator role
-        role_name = creator_data.get('creator_role', 'Author')
-        role = CreatorsRoles.query.filter_by(role_name=role_name).first()
-
-        if not role:
-            # Default to "Author" role if not found
-            role = CreatorsRoles.query.filter_by(role_name='Author').first()
-
-        if not role:
-            continue  # Skip if no role found
-
-        # Parse full name into family_name and given_name
         full_name = creator_data.get('creator_name', '')
         name_parts = full_name.split(',', 1) if ',' in full_name else full_name.rsplit(' ', 1)
 
@@ -59,7 +62,6 @@ def save_publication_creators(publication_id, creators_data):
             family_name = full_name.strip()
             given_name = ''
 
-        # Only set identifier and identifier_type if there's an actual identifier value
         identifier_value = creator_data.get('orcid_id', '') or ''
         identifier_type_value = 'orcid' if identifier_value else ''
 
@@ -69,11 +71,56 @@ def save_publication_creators(publication_id, creators_data):
             given_name=given_name,
             identifier=identifier_value,
             identifier_type=identifier_type_value,
-            role_id=role.role_id
+            role_id=author_role_id
         ))
 
     if creators:
         db.session.bulk_save_objects(creators)
+
+
+def _extract_doi_from_metadata(metadata):
+    """
+    Extract actual DOI from DSpace metadata.
+    DSpace stores DOI in various fields; handle is NOT a DOI.
+    """
+    if not metadata:
+        return None
+
+    # Check common DOI metadata fields
+    doi_fields = ['dc.identifier.doi', 'dc.identifier.issn', 'dcterms.identifier']
+    for field in doi_fields:
+        values = metadata.get(field, [])
+        for val in values:
+            v = (val.get('value') or '').strip()
+            if v and ('10.' in v):
+                # Looks like a DOI
+                if v.startswith('https://doi.org/'):
+                    return v[len('https://doi.org/'):]
+                if v.startswith('http://doi.org/'):
+                    return v[len('http://doi.org/'):]
+                if v.startswith('doi:'):
+                    return v[4:]
+                if v.startswith('10.'):
+                    return v
+    return None
+
+
+def _build_handle_url(handle):
+    """Build full resolvable URL for a DSpace handle."""
+    if not handle:
+        return None
+    return f"{_get_dspace_ui_base_url()}/handle/{handle}"
+
+
+def _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id, handle, uuid, doi):
+    """Apply mapped DSpace metadata to a Publication object."""
+    publication.document_title = mapped_data['publication']['document_title']
+    publication.document_description = mapped_data['publication'].get('document_description', '')
+    publication.resource_type_id = resource_type_id
+    publication.doi = doi
+    publication.document_docid = handle if handle else f"DSpaceUUID:{uuid}"
+    publication.handle_url = _build_handle_url(handle)
+    publication.owner = 'DSpace Repository'
 
 
 @dspace_bp.route('/config', methods=['GET'])
@@ -193,10 +240,9 @@ def get_dspace_items():
 @jwt_required()
 def sync_single_item(uuid):
     """
-    Sync single DSpace item to DOCiD publications table
-
-    Imports a DSpace item and creates a corresponding publication record in DOCiD database.
-    Extracts metadata including title, description, authors, dates, identifiers, and language.
+    Sync single DSpace item to DOCiD publications table.
+    Supports update_existing to update metadata on re-import.
+    Extracts actual DOI from metadata (handle is NOT used as DOI).
     ---
     tags:
       - DSpace Integration
@@ -209,59 +255,32 @@ def sync_single_item(uuid):
         required: true
         description: DSpace item UUID to sync
         example: 017138d0-9ced-4c49-9be1-5eebe816c528
+      - name: update_existing
+        in: query
+        type: boolean
+        default: false
+        description: If true, update metadata for already-synced items
     responses:
       201:
-        description: Item synced successfully to publications table
+        description: Item synced successfully
         schema:
           type: object
           properties:
             success:
               type: boolean
-              description: Sync operation success status
-              example: true
+            status:
+              type: string
+              enum: [created, updated, skipped, unchanged, error]
             publication_id:
               type: integer
-              description: Created publication ID in DOCiD database
-              example: 123
             docid:
               type: string
-              description: Generated DOCiD identifier
-              example: "20.500.DSPACE/017138d0-9ced-4c49-9be1-5eebe816c528"
-            doi:
+            handle:
               type: string
-              description: DSpace handle saved as DOI
-              example: "123456789/131"
-            dspace_handle:
-              type: string
-              description: DSpace handle identifier
-              example: "123456789/131"
-            message:
-              type: string
-              description: Success message
-              example: "Item synced successfully"
       200:
-        description: Item already synced (existing record found)
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              description: Status message
-              example: "Item already synced"
-            publication_id:
-              type: integer
-              description: Existing publication ID
-            docid:
-              type: string
-              description: Existing DOCiD identifier
+        description: Item already synced (skipped, unchanged, or updated)
       404:
         description: Item not found in DSpace
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: "Item 017138d0-9ced-4c49-9be1-5eebe816c528 not found in DSpace"
       401:
         description: Unauthorized - Invalid or missing JWT token
       500:
@@ -269,96 +288,116 @@ def sync_single_item(uuid):
     """
     try:
         current_user_id = get_jwt_identity()
+        update_existing = request.args.get('update_existing', 'false').lower() == 'true'
 
         # Get DSpace item
         client = get_dspace_client()
         dspace_item = client.get_item(uuid)
 
         if not dspace_item:
-            return jsonify({'error': f'Item {uuid} not found in DSpace'}), 404
+            return jsonify({'success': False, 'status': 'error', 'error': f'Item {uuid} not found in DSpace'}), 404
 
         handle = dspace_item.get('handle')
+        metadata = dspace_item.get('metadata', {})
+        new_metadata_hash = client.calculate_metadata_hash(metadata)
 
         # Check if already synced
-        existing = DSpaceMapping.query.filter_by(dspace_uuid=uuid).first()
-        if existing:
+        existing_mapping = DSpaceMapping.query.filter_by(dspace_uuid=uuid).first()
+
+        if existing_mapping and not update_existing:
             return jsonify({
-                'message': 'Item already synced',
-                'publication_id': existing.publication_id,
-                'docid': existing.publication.document_docid
+                'success': True,
+                'status': 'skipped',
+                'publication_id': existing_mapping.publication_id,
+                'docid': existing_mapping.publication.document_docid,
+                'handle': handle
             }), 200
 
         # Transform metadata
         mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id)
+        doi = _extract_doi_from_metadata(metadata)
 
-        # Get resource type ID
-        from app.models import ResourceTypes
+        # Resolve resource type
         resource_type_name = mapped_data['publication'].get('resource_type', 'Text')
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
-        # Use DSpace handle as document_docid
-        document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
+        # Resolve author role once
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
 
-        # Construct full resolvable URL for handle_url
-        handle_url = None
-        if handle:
-            base_url = DSPACE_BASE_URL.replace('/server', '')
-            handle_url = f"{base_url}/handle/{handle}"
+        if existing_mapping and update_existing:
+            # Check if metadata actually changed
+            if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+                return jsonify({
+                    'success': True,
+                    'status': 'unchanged',
+                    'publication_id': existing_mapping.publication_id,
+                    'docid': existing_mapping.publication.document_docid,
+                    'handle': handle
+                }), 200
 
-        # Create publication
-        publication = Publications(
-            user_id=current_user_id,
-            document_title=mapped_data['publication']['document_title'],
-            document_description=mapped_data['publication'].get('document_description', ''),
-            resource_type_id=resource_type_id,
-            doi=handle if handle else '',  # Use DSpace handle as DOI
-            document_docid=document_docid,  # DSpace handle (not full URL)
-            handle_url=handle_url,  # Full resolvable URL for DSpace item
-            owner='DSpace Repository',  # Temporary - will be linked to university ID later
-        )
+            # Update existing publication
+            publication = existing_mapping.publication
+            _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id, handle, uuid, doi)
 
-        db.session.add(publication)
-        db.session.flush()  # Get publication ID
+            # Replace creators
+            PublicationCreators.query.filter_by(publication_id=publication.id).delete()
+            save_publication_creators(publication.id, mapped_data.get('creators', []), author_role_id)
 
-        # Save creators
-        save_publication_creators(publication.id, mapped_data.get('creators', []))
+            # Update mapping
+            existing_mapping.dspace_metadata_hash = new_metadata_hash
+            existing_mapping.sync_status = 'synced'
+            existing_mapping.error_message = None
 
-        # Create mapping
-        mapping = DSpaceMapping(
-            dspace_handle=handle,
-            dspace_uuid=uuid,
-            dspace_url=DSPACE_BASE_URL,
-            publication_id=publication.id,
-            sync_status='synced',
-            dspace_metadata_hash=client.calculate_metadata_hash(dspace_item.get('metadata', {}))
-        )
+            db.session.commit()
+            record_status = 'updated'
+        else:
+            # Create new publication
+            publication = Publications(user_id=current_user_id)
+            _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id, handle, uuid, doi)
 
-        db.session.add(mapping)
-        db.session.commit()
+            db.session.add(publication)
+            db.session.flush()
+
+            save_publication_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+
+            # Create mapping
+            mapping = DSpaceMapping(
+                dspace_handle=handle,
+                dspace_uuid=uuid,
+                dspace_url=DSPACE_BASE_URL,
+                publication_id=publication.id,
+                sync_status='synced',
+                dspace_metadata_hash=new_metadata_hash
+            )
+            db.session.add(mapping)
+            db.session.commit()
+            record_status = 'created'
+
+        logger.info(f"DSpace item {uuid} {record_status} as publication {publication.id}")
 
         return jsonify({
             'success': True,
+            'status': record_status,
             'publication_id': publication.id,
             'docid': publication.document_docid,
-            'doi': publication.doi,
-            'dspace_handle': handle,
-            'message': 'Item synced successfully'
-        }), 201
+            'handle': handle
+        }), 201 if record_status == 'created' else 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error syncing DSpace item {uuid}: {str(e)}")
+        return jsonify({'success': False, 'status': 'error', 'error': str(e)}), 500
 
 
 @dspace_bp.route('/sync/batch', methods=['POST'])
 @jwt_required()
 def sync_batch():
     """
-    Batch sync multiple DSpace items to DOCiD publications table
-
-    Imports multiple items from DSpace in one operation. Useful for bulk importing
-    repository content into DOCiD.
+    Batch sync DSpace items to DOCiD.
+    Prefetches existing mappings to avoid N+1. Uses per-item savepoints.
+    Supports update_existing and incremental skip via metadata hash.
     ---
     tags:
       - DSpace Integration
@@ -375,17 +414,14 @@ def sync_batch():
               type: integer
               default: 0
               description: Page number to fetch from DSpace
-              example: 0
             size:
               type: integer
               default: 50
-              description: Number of items to sync
-              example: 50
-            skip_existing:
+              description: Number of items to sync (max 200)
+            update_existing:
               type: boolean
-              default: true
-              description: Skip items that are already synced
-              example: true
+              default: false
+              description: Update metadata for already-synced items
     responses:
       200:
         description: Batch sync completed
@@ -394,159 +430,180 @@ def sync_batch():
           properties:
             total:
               type: integer
-              description: Total items processed
             created:
               type: integer
-              description: Number of items successfully synced
+            updated:
+              type: integer
+            unchanged:
+              type: integer
             skipped:
               type: integer
-              description: Number of items skipped (already exist)
             errors:
               type: integer
-              description: Number of items that failed to sync
             items:
               type: array
-              description: Detailed results for each item
-              items:
-                type: object
-                properties:
-                  uuid:
-                    type: string
-                  handle:
-                    type: string
-                  status:
-                    type: string
-                    enum: [created, skipped, error]
-                  publication_id:
-                    type: integer
-                  docid:
-                    type: string
       401:
-        description: Unauthorized - Invalid or missing JWT token
+        description: Unauthorized
       500:
-        description: Server error during batch sync
+        description: Server error
     """
     try:
         current_user_id = get_jwt_identity()
         data = request.get_json() or {}
 
         page = data.get('page', 0)
-        size = data.get('size', 50)
-        skip_existing = data.get('skip_existing', True)
+        size = min(data.get('size', 50), 200)
+        update_existing = data.get('update_existing', False)
 
         # Get items from DSpace
         client = get_dspace_client()
         items_data = client.get_items(page=page, size=size)
-
         items = items_data.get('_embedded', {}).get('items', [])
+
+        # --- Prefetch existing mappings to avoid N+1 ---
+        incoming_uuids = [item.get('uuid') for item in items if item.get('uuid')]
+        existing_mappings_map = {}
+        if incoming_uuids:
+            existing_mappings = DSpaceMapping.query.filter(
+                DSpaceMapping.dspace_uuid.in_(incoming_uuids)
+            ).all()
+            existing_mappings_map = {m.dspace_uuid: m for m in existing_mappings}
+
+        # --- Cache resource types and author role once ---
+        resource_type_cache = {rt.resource_type: rt.id for rt in ResourceTypes.query.all()}
+        author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
+        author_role_id = author_role.role_id if author_role else None
 
         results = {
             'total': len(items),
             'created': 0,
+            'updated': 0,
+            'unchanged': 0,
             'skipped': 0,
             'errors': 0,
             'items': []
         }
 
         for item in items:
-            uuid = item.get('uuid')
+            item_uuid = item.get('uuid')
             handle = item.get('handle')
 
             try:
-                # Check if exists
-                if skip_existing:
-                    existing = DSpaceMapping.query.filter_by(dspace_uuid=uuid).first()
-                    if existing:
-                        results['skipped'] += 1
-                        results['items'].append({
-                            'uuid': uuid,
-                            'handle': handle,
-                            'status': 'skipped',
-                            'reason': 'already_exists'
-                        })
-                        continue
+                savepoint = db.session.begin_nested()
 
-                # Get full item data
-                full_item = client.get_item(uuid)
-                if not full_item:
-                    results['errors'] += 1
+                existing_mapping = existing_mappings_map.get(item_uuid)
+
+                if existing_mapping and not update_existing:
+                    savepoint.rollback()
+                    results['skipped'] += 1
                     results['items'].append({
-                        'uuid': uuid,
+                        'uuid': item_uuid,
                         'handle': handle,
-                        'status': 'error',
-                        'reason': 'failed_to_fetch'
+                        'status': 'skipped',
+                        'publication_id': existing_mapping.publication_id,
+                        'docid': existing_mapping.publication.document_docid
                     })
                     continue
 
-                # Map and create
+                # Get full item data
+                full_item = client.get_item(item_uuid)
+                if not full_item:
+                    savepoint.rollback()
+                    results['errors'] += 1
+                    results['items'].append({
+                        'uuid': item_uuid, 'handle': handle,
+                        'status': 'error', 'error': 'failed_to_fetch'
+                    })
+                    continue
+
+                metadata = full_item.get('metadata', {})
+                new_metadata_hash = client.calculate_metadata_hash(metadata)
                 mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, current_user_id)
-
-                # Get resource type ID
-                from app.models import ResourceTypes
-                resource_type_name = mapped_data['publication'].get('resource_type', 'Text')
-                resource_type_obj = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
-                resource_type_id = resource_type_obj.id if resource_type_obj else 1
-
-                # Use DSpace handle as document_docid
-                document_docid = handle if handle else f"20.500.DSPACE/{uuid}"
-
-                # Construct full resolvable URL for handle_url
-                handle_url = None
-                if handle:
-                    base_url = DSPACE_BASE_URL.replace('/server', '')
-                    handle_url = f"{base_url}/handle/{handle}"
-
-                publication = Publications(
-                    user_id=current_user_id,
-                    document_title=mapped_data['publication']['document_title'],
-                    document_description=mapped_data['publication'].get('document_description', ''),
-                    resource_type_id=resource_type_id,
-                    doi=handle if handle else '',  # Use DSpace handle as DOI
-                    document_docid=document_docid,  # DSpace handle (not full URL)
-                    handle_url=handle_url,  # Full resolvable URL for DSpace item
-                    owner='DSpace Repository',  # Temporary - will be linked to university ID later
+                doi = _extract_doi_from_metadata(metadata)
+                resource_type_id = resource_type_cache.get(
+                    mapped_data['publication'].get('resource_type', 'Text'), 1
                 )
 
-                db.session.add(publication)
-                db.session.flush()
+                if existing_mapping and update_existing:
+                    # Check if metadata changed
+                    if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+                        savepoint.rollback()
+                        results['unchanged'] += 1
+                        results['items'].append({
+                            'uuid': item_uuid, 'handle': handle,
+                            'status': 'unchanged',
+                            'publication_id': existing_mapping.publication_id,
+                            'docid': existing_mapping.publication.document_docid
+                        })
+                        continue
 
-                # Save creators
-                save_publication_creators(publication.id, mapped_data.get('creators', []))
+                    # Update
+                    publication = existing_mapping.publication
+                    _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id, handle, item_uuid, doi)
+                    PublicationCreators.query.filter_by(publication_id=publication.id).delete()
+                    save_publication_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+                    existing_mapping.dspace_metadata_hash = new_metadata_hash
+                    existing_mapping.sync_status = 'synced'
+                    existing_mapping.error_message = None
 
-                mapping = DSpaceMapping(
-                    dspace_handle=handle,
-                    dspace_uuid=uuid,
-                    dspace_url=DSPACE_BASE_URL,
-                    publication_id=publication.id,
-                    sync_status='synced',
-                    dspace_metadata_hash=client.calculate_metadata_hash(full_item.get('metadata', {}))
-                )
+                    savepoint.commit()
+                    results['updated'] += 1
+                    results['items'].append({
+                        'uuid': item_uuid, 'handle': handle,
+                        'status': 'updated',
+                        'publication_id': publication.id,
+                        'docid': publication.document_docid
+                    })
+                else:
+                    # Create new
+                    publication = Publications(user_id=current_user_id)
+                    _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id, handle, item_uuid, doi)
 
-                db.session.add(mapping)
-                db.session.commit()
+                    db.session.add(publication)
+                    db.session.flush()
 
-                results['created'] += 1
-                results['items'].append({
-                    'uuid': uuid,
-                    'handle': handle,
-                    'publication_id': publication.id,
-                    'docid': publication.document_docid,
-                    'status': 'created'
-                })
+                    save_publication_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+
+                    mapping = DSpaceMapping(
+                        dspace_handle=handle,
+                        dspace_uuid=item_uuid,
+                        dspace_url=DSPACE_BASE_URL,
+                        publication_id=publication.id,
+                        sync_status='synced',
+                        dspace_metadata_hash=new_metadata_hash
+                    )
+                    db.session.add(mapping)
+
+                    savepoint.commit()
+                    results['created'] += 1
+                    results['items'].append({
+                        'uuid': item_uuid, 'handle': handle,
+                        'status': 'created',
+                        'publication_id': publication.id,
+                        'docid': publication.document_docid
+                    })
 
             except Exception as e:
                 db.session.rollback()
                 results['errors'] += 1
                 results['items'].append({
-                    'uuid': uuid,
-                    'handle': handle,
-                    'status': 'error',
-                    'reason': str(e)
+                    'uuid': item_uuid, 'handle': handle,
+                    'status': 'error', 'error': str(e)
                 })
+
+        # Single final commit
+        db.session.commit()
+
+        logger.info(
+            f"DSpace batch sync: {results['created']} created, {results['updated']} updated, "
+            f"{results['unchanged']} unchanged, {results['skipped']} skipped, {results['errors']} errors"
+        )
 
         return jsonify(results), 200
 
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error in DSpace batch sync: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 

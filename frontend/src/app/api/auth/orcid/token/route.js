@@ -67,7 +67,7 @@ export async function GET(request) {
         // Log all environment variables (without values for security)
         const envCheck = {
             hasClientId: !!process.env.NEXT_PUBLIC_ORCID_CLIENT_ID,
-            hasClientSecret: !!process.env.NEXT_PUBLIC_ORCID_CLIENT_SECRET,
+            hasClientSecret: !!process.env.ORCID_CLIENT_SECRET,
             hasTokenUrl: !!process.env.NEXT_PUBLIC_ORCID_TOKEN_URL,
             hasRedirectLoginUri: !!process.env.NEXT_PUBLIC_ORCID_REDIRECT_LOGIN_URI,
             hasRedirectUri: !!process.env.NEXT_PUBLIC_ORCID_REDIRECT_URI,
@@ -83,7 +83,7 @@ export async function GET(request) {
 
         //Orcid Sandbox Configuratio
         const clientId = process.env.NEXT_PUBLIC_ORCID_CLIENT_ID;
-        const clientSecret = process.env.NEXT_PUBLIC_ORCID_CLIENT_SECRET;
+        const clientSecret = process.env.ORCID_CLIENT_SECRET;
         const tokenUrl = process.env.NEXT_PUBLIC_ORCID_TOKEN_URL;
 
         console.log('\n=== STEP 4: Fetching ORCID token ===');
