@@ -42,9 +42,9 @@ Requirements for milestone v1.0 RRID Integration. Each maps to roadmap phases.
 
 ### Caching
 
-- [ ] **CACHE-01**: Resolver metadata cached in `resolved_json` JSONB column on `docid_rrids` after first resolve
-- [ ] **CACHE-02**: Cached resolver data reused if `last_resolved_at` is less than 30 days old
-- [ ] **CACHE-03**: `resolved_json` stores normalized subset (`name`, `rrid`, `description`, `url`, `resource_type`, `properCitation`, `mentions`) not raw blob
+- [x] **CACHE-01**: Resolver metadata cached in `resolved_json` JSONB column on `docid_rrids` after first resolve
+- [x] **CACHE-02**: Cached resolver data reused if `last_resolved_at` is less than 30 days old
+- [x] **CACHE-03**: `resolved_json` stores normalized subset (`name`, `rrid`, `description`, `url`, `resource_type`, `properCitation`, `mentions`) not raw blob
 
 ### Frontend Proxy
 
@@ -148,9 +148,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ATTACH-06 | Phase 4 | Pending |
 | ATTACH-07 | Phase 4 | Pending |
 | ATTACH-08 | Phase 4 | Pending |
-| CACHE-01 | Phase 2 | Pending |
-| CACHE-02 | Phase 2 | Pending |
-| CACHE-03 | Phase 2 | Pending |
+| CACHE-01 | Phase 2 | Complete |
+| CACHE-02 | Phase 2 | Complete |
+| CACHE-03 | Phase 2 | Complete |
 | PROXY-01 | Phase 6 | Pending |
 | PROXY-02 | Phase 6 | Pending |
 | PROXY-03 | Phase 6 | Pending |
