@@ -30,7 +30,9 @@ This milestone integrates RRID (Research Resource Identifier) from SciCrunch int
   2. Attempting to insert two rows with identical (entity_type, entity_id, rrid) raises a database-level UniqueConstraint violation
   3. A query plan for `SELECT * FROM docid_rrids WHERE entity_type = 'publication' AND entity_id = 1` uses the composite index (visible via `EXPLAIN`)
   4. `DocidRrid.serialize()` returns a Python dict with all model fields accessible from application code
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — DocidRrid model + Alembic migration with constraints, indexes, and seed data
 
 ### Phase 2: Service Layer
 **Goal**: A self-contained Python module isolates all SciCrunch HTTP calls, RRID validation, and resolver cache logic behind a clean API — with the SciCrunch API key never leaving the server
