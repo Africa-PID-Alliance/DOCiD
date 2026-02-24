@@ -19,6 +19,9 @@ class Config:
     APPLICATION_BASE_URL = os.getenv('APPLICATION_BASE_URL', 'http://localhost:5000')
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 
+    # SciCrunch Configuration
+    SCICRUNCH_API_KEY = os.getenv('SCICRUNCH_API_KEY')
+
     # CORDRA Configuration
     CORDRA_BASE_URL = os.getenv('CORDRA_BASE_URL', 'https://cordra.kenet.or.ke/cordra')
     CORDRA_USERNAME = os.getenv('CORDRA_USERNAME')
