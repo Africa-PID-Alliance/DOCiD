@@ -77,7 +77,11 @@ Plans:
   4. `DELETE /api/v1/rrid/<rrid_id>` removes the row and returns HTTP 200; a subsequent GET for that entity no longer includes the deleted RRID
   5. Deleting a publication record from the database results in zero orphaned `docid_rrids` rows for that publication's entity_id
   6. Deleting a publication_organizations row cascades to remove its associated `docid_rrids` rows
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 04-01-PLAN.md — Attach, list, detach endpoints + cascade deletion in publication delete flow
 
 ### Phase 5: Backend Test Suite
 **Goal**: An automated pytest suite validates every Phase 1–4 behavior with mocked SciCrunch HTTP responses, catching the non-obvious API pitfalls (colon escaping, resolver domain split, orphan rows) before any frontend code is written
@@ -135,7 +139,7 @@ Plans:
 | 1. Database Foundation | 1/1 | Complete | 2026-02-24 |
 | 2. Service Layer | 2/2 | Complete | 2026-02-24 |
 | 3. Flask Blueprint — Search & Resolve | 1/1 | Complete   | 2026-02-24 |
-| 4. Flask Blueprint — Attach, List, Detach | 0/TBD | Not started | - |
+| 4. Flask Blueprint — Attach, List, Detach | 0/1 | Planned | - |
 | 5. Backend Test Suite | 0/TBD | Not started | - |
 | 6. Frontend Proxy Routes | 0/TBD | Not started | - |
 | 7. Frontend Search Modal | 0/TBD | Not started | - |
