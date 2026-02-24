@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app import db
  
@@ -1440,7 +1441,7 @@ class LocalContextAuditLog(db.Model):
         }
 
     @classmethod
-    def log(cls, action, publication_id=None, local_context_id=None, external_id=None, 
+    def log(cls, action, publication_id=None, local_context_id=None, external_id=None,
             user_id=None, details=None, ip_address=None):
         """Create an audit log entry"""
         import json
@@ -1455,3 +1456,87 @@ class LocalContextAuditLog(db.Model):
         )
         db.session.add(log_entry)
         return log_entry
+
+
+# ==============================================================================
+# RRID (Research Resource Identifier) Integration Model
+# Dedicated association table for RRID attachments to publications and organizations
+# ==============================================================================
+
+class DocidRrid(db.Model):
+    """
+    RRID (Research Resource Identifier) attachment model.
+
+    Links RRIDs to publications and organizations via polymorphic entity_type/entity_id.
+    No SQLAlchemy relationship() declarations — polymorphic entity_id prevents clean FK
+    relationships. Query by ID using class methods instead.
+    """
+    __tablename__ = 'docid_rrids'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    entity_type = db.Column(db.String(50), nullable=False)  # 'publication' or 'organization'
+    entity_id = db.Column(db.Integer, nullable=False)  # matches publications.id or publication_organizations.id
+    rrid = db.Column(db.String(50), nullable=False)  # RRID curie format e.g. RRID:SCR_012345
+    rrid_name = db.Column(db.String(500), nullable=True)  # facility/resource name from SciCrunch
+    rrid_description = db.Column(db.Text, nullable=True)  # resource description
+    rrid_resource_type = db.Column(db.String(100), nullable=True)  # e.g. 'core facility', 'software'
+    rrid_url = db.Column(db.String(500), nullable=True)  # resource URL
+    resolved_json = db.Column(JSONB, nullable=True)  # cached resolver metadata (normalized subset only)
+    last_resolved_at = db.Column(db.DateTime, nullable=True)  # when resolver cache was last refreshed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('entity_type', 'entity_id', 'rrid', name='uq_docid_rrids_entity_rrid'),
+        db.Index('ix_docid_rrids_entity_lookup', 'entity_type', 'entity_id'),
+    )
+
+    def __repr__(self):
+        return f"<DocidRrid(id={self.id}, entity={self.entity_type}:{self.entity_id}, rrid='{self.rrid}')>"
+
+    def serialize(self):
+        """Serialize RRID record for JSON responses"""
+        return {
+            'id': self.id,
+            'entity_type': self.entity_type,
+            'entity_id': self.entity_id,
+            'rrid': self.rrid,
+            'rrid_name': self.rrid_name,
+            'rrid_description': self.rrid_description,
+            'rrid_resource_type': self.rrid_resource_type,
+            'rrid_url': self.rrid_url,
+            'resolved_json': self.resolved_json,
+            'last_resolved_at': self.last_resolved_at.isoformat() if self.last_resolved_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    @classmethod
+    def get_rrids_for_entity(cls, entity_type, entity_id):
+        """
+        Get all RRIDs attached to a specific entity.
+
+        Args:
+            entity_type (str): 'publication' or 'organization'
+            entity_id (int): ID of the entity
+
+        Returns:
+            list: List of DocidRrid instances ordered by created_at descending
+        """
+        return cls.query.filter_by(
+            entity_type=entity_type,
+            entity_id=entity_id
+        ).order_by(cls.created_at.desc()).all()
+
+    @classmethod
+    def get_by_rrid(cls, rrid_value):
+        """
+        Look up a record by RRID curie value.
+
+        Args:
+            rrid_value (str): RRID curie e.g. 'RRID:SCR_012345'
+
+        Returns:
+            DocidRrid or None: First matching record
+        """
+        return cls.query.filter_by(rrid=rrid_value).first()
