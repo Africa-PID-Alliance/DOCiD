@@ -301,7 +301,17 @@ class DSpaceLegacyClient:
 
 
 class DSpaceLegacyMetadataMapper:
-    """Maps DSpace Legacy metadata to DOCiD format"""
+    """
+    Maps DSpace Legacy metadata to DOCiD format.
+
+    lastModified Field Across DSpace Versions:
+        DSpace 6.x:   "2015-01-12 15:44:12.978"          (space-separated, no timezone)
+        DSpace 7/8/9: "2017-06-24T00:40:54.970+0000"     (ISO 8601 with timezone)
+
+    The lastModified field is a top-level item property (not inside metadata).
+    DSpace 6.x does NOT support Solr search by lastModified, so re-sync requires
+    fetching items and comparing timestamps locally.
+    """
 
     @classmethod
     def dspace_to_docid(cls, dspace_item: Dict, user_id: int) -> Dict:
@@ -362,12 +372,18 @@ class DSpaceLegacyMetadataMapper:
         project_refs = cls._get_metadata_values(metadata, 'dc.relation.project')
         projects.extend(project_names + project_refs)
 
+        # Extract lastModified (top-level field, not inside metadata)
+        # DSpace 6.x format: "2015-01-12 15:44:12.978" (space-separated, no timezone)
+        last_modified_raw = dspace_item.get('lastModified')
+        last_modified = cls._parse_last_modified(last_modified_raw)
+
         # Extended metadata
         extended_metadata = {
             'dates': {
                 'issued': cls._get_metadata_value(metadata, 'dc.date.issued'),
                 'accessioned': cls._get_metadata_value(metadata, 'dc.date.accessioned'),
                 'available': cls._get_metadata_value(metadata, 'dc.date.available'),
+                'last_modified': last_modified_raw,
             },
             'identifiers': {
                 'uri': cls._get_metadata_value(metadata, 'dc.identifier.uri'),
@@ -391,7 +407,8 @@ class DSpaceLegacyMetadataMapper:
             'organizations': organizations,
             'funders': funders,
             'projects': projects,
-            'extended_metadata': extended_metadata
+            'extended_metadata': extended_metadata,
+            'last_modified': last_modified
         }
 
     @staticmethod
@@ -482,6 +499,42 @@ class DSpaceLegacyMetadataMapper:
             return language
 
         return 'en'  # Default to English
+
+    @staticmethod
+    def _parse_last_modified(last_modified_str: Optional[str]) -> Optional[datetime]:
+        """
+        Parse DSpace lastModified timestamp to Python datetime.
+
+        DSpace 6.x format: "2015-01-12 15:44:12.978" (space-separated, no timezone)
+        DSpace 7/8/9 format: "2017-06-24T00:40:54.970+0000" (ISO 8601 with timezone)
+
+        Both formats are handled for forward compatibility if a repository upgrades.
+
+        Args:
+            last_modified_str: Raw lastModified string from DSpace item
+
+        Returns:
+            datetime object or None if parsing fails
+        """
+        if not last_modified_str:
+            return None
+
+        formats = [
+            '%Y-%m-%d %H:%M:%S.%f',      # DSpace 6.x: 2015-01-12 15:44:12.978
+            '%Y-%m-%d %H:%M:%S',          # DSpace 6.x without millis
+            '%Y-%m-%dT%H:%M:%S.%f%z',     # DSpace 7/8/9: 2017-06-24T00:40:54.970+0000
+            '%Y-%m-%dT%H:%M:%S%z',        # DSpace 7/8/9 without millis
+            '%Y-%m-%dT%H:%M:%S.%fZ',      # UTC variant
+            '%Y-%m-%dT%H:%M:%SZ',         # UTC variant without millis
+        ]
+
+        for fmt in formats:
+            try:
+                return datetime.strptime(last_modified_str, fmt)
+            except ValueError:
+                continue
+
+        return None
 
     @staticmethod
     def _map_dc_type_to_resource_type(dc_type: Optional[str]) -> str:

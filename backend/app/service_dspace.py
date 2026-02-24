@@ -198,6 +198,14 @@ class DSpaceClient:
 class DSpaceMetadataMapper:
     """
     Maps DSpace Dublin Core metadata to DOCiD publication format
+
+    lastModified Field Across DSpace Versions:
+        DSpace 6.x:   "2015-01-12 15:44:12.978"          (space-separated, no timezone)
+        DSpace 7/8/9: "2017-06-24T00:40:54.970+0000"     (ISO 8601 with timezone)
+
+    The lastModified field is a top-level item property (not inside metadata).
+    DSpace 7+ also supports Solr-based search by lastModified for incremental sync:
+        /api/discover/search/objects?query=lastModified:[2024-01-01T00:00:00Z TO *]
     """
 
     # DSpace type to DOCiD ResourceType mapping
@@ -309,12 +317,18 @@ class DSpaceMetadataMapper:
         project_refs = cls._get_metadata_values(metadata, 'dc.relation.project')
         projects.extend(project_refs)
 
+        # Extract lastModified (top-level field, not inside metadata)
+        # DSpace 7/8/9 format: "2017-06-24T00:40:54.970+0000" (ISO 8601)
+        last_modified_raw = dspace_item.get('lastModified')
+        last_modified = cls._parse_last_modified(last_modified_raw)
+
         # Build comprehensive metadata object
         extended_metadata = {
             'dates': {
                 'issued': date_issued,
                 'accessioned': date_accessioned,
-                'available': date_available
+                'available': date_available,
+                'last_modified': last_modified_raw
             },
             'identifiers': {
                 'uri': identifier_uri,
@@ -340,7 +354,8 @@ class DSpaceMetadataMapper:
             'organizations': organizations,
             'funders': funders,
             'projects': projects,
-            'extended_metadata': extended_metadata
+            'extended_metadata': extended_metadata,
+            'last_modified': last_modified
         }
 
     @staticmethod
@@ -389,6 +404,37 @@ class DSpaceMetadataMapper:
                 })
 
         return creators
+
+    @staticmethod
+    def _parse_last_modified(last_modified_str: Optional[str]) -> Optional[datetime]:
+        """
+        Parse DSpace lastModified timestamp to Python datetime.
+
+        DSpace 7/8/9 format: "2017-06-24T00:40:54.970+0000" (ISO 8601 with timezone)
+
+        Args:
+            last_modified_str: Raw lastModified string from DSpace item
+
+        Returns:
+            datetime object or None if parsing fails
+        """
+        if not last_modified_str:
+            return None
+
+        formats = [
+            '%Y-%m-%dT%H:%M:%S.%f%z',   # 2017-06-24T00:40:54.970+0000
+            '%Y-%m-%dT%H:%M:%S%z',       # 2017-06-24T00:40:54+0000
+            '%Y-%m-%dT%H:%M:%S.%fZ',     # 2017-06-24T00:40:54.970Z
+            '%Y-%m-%dT%H:%M:%SZ',         # 2017-06-24T00:40:54Z
+        ]
+
+        for fmt in formats:
+            try:
+                return datetime.strptime(last_modified_str, fmt)
+            except ValueError:
+                continue
+
+        return None
 
     @staticmethod
     def _parse_date(date_str: Optional[str]) -> Optional[str]:

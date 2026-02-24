@@ -117,8 +117,8 @@ test_*.jpg
 # All Markdown documentation files
 *.md
 
-# Database query utility (contains sensitive queries/credentials)
-backend/db_query.py
+# Utility/import/sync scripts (contain credentials, local paths, test data)
+backend/scripts/
 
 # Planning/overview documents
 FIGSHARE-OJS/
@@ -147,3 +147,6 @@ backend/ringgold_institutions.sql
 .github/copilot-instructions.md
 .claude/
 frontend/CLAUDE.md
+
+# Integration response documents (sensitive/internal)
+docs/stellenbosch_integration_response.txt
