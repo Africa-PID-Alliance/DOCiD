@@ -61,7 +61,10 @@ Plans:
   3. `GET /api/v1/rrid/resolve?rrid=RRID:SCR_012345` returns `properCitation`, `mentions`, `name`, `description`, `url`, and `resource_type` extracted from the SciCrunch resolver
   4. Passing `entity_type=user_account` to any endpoint that accepts the parameter returns HTTP 400; only `publication` and `organization` are accepted
   5. The blueprint is registered in `app/__init__.py` so all `/api/v1/rrid/*` routes respond without 404
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md — RRID blueprint with search and resolve endpoints, entity type allowlist, blueprint registration
 
 ### Phase 4: Flask Blueprint — Attach, List, Detach
 **Goal**: Three endpoints complete the RRID lifecycle — attaching an RRID to a publication or organization, listing attached RRIDs for any entity, and removing a specific RRID — with data integrity enforced at every step
