@@ -67,6 +67,25 @@ const CompleteRegistrationPage = () => {
     fetchAccountTypes();
   }, []);
 
+  useEffect(() => {
+    const fetchEmailFromToken = async () => {
+      try {
+        const response = await fetch(`/api/auth/verify-registration-token?token=${token}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.email) {
+            setFormData(prev => ({ ...prev, email: data.email }));
+          }
+        }
+      } catch (error) {
+        console.error('Error verifying token:', error);
+      }
+    };
+    if (token) {
+      fetchEmailFromToken();
+    }
+  }, [token]);
+
   const validateForm = () => {
     if (!formData.fullName) {
       setError('Full name is required');
@@ -280,6 +299,7 @@ const CompleteRegistrationPage = () => {
                   error={!!error && error.includes('Email')}
                   helperText={error && error.includes('Email') ? error : ''}
                   InputProps={{
+                    readOnly: !!formData.email,
                     startAdornment: (
                       <InputAdornment position="start">
                         <EmailIcon color={error && error.includes('Email') ? "error" : "primary"} />

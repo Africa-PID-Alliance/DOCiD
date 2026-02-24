@@ -58,6 +58,21 @@ def get_account_types():
         return jsonify({'error': str(e)}), 500
 
 
+@auth_bp.route("/verify-registration-token/<string:token>", methods=["GET"])
+def verify_registration_token(token):
+    """Looks up a registration token and returns the associated email."""
+    try:
+        token_entry = RegistrationTokens.query.filter_by(token=token).first()
+        if not token_entry:
+            return jsonify({"status": False, "message": "Invalid or expired token"}), 404
+        from datetime import datetime
+        if token_entry.expires_at < datetime.utcnow():
+            return jsonify({"status": False, "message": "Token has expired"}), 400
+        return jsonify({"status": True, "email": token_entry.email})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @auth_bp.route("/store-registration-token", methods=["POST"])
 def store_registration_token():
     """
