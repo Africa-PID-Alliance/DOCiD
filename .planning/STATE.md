@@ -10,24 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-24)
 ## Current Position
 
 Phase: 2 of 8 (Service Layer)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-24 — Completed 01-01-PLAN.md (DocidRrid model and migration)
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-02-24 — Completed 02-01-PLAN.md (SciCrunch RRID validation and search service)
 
-Progress: [█░░░░░░░░░] 12%
+Progress: [██░░░░░░░░] 18%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4min
-- Total execution time: 4min
+- Total plans completed: 2
+- Average duration: 3min
+- Total execution time: 6min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-database-foundation | 1 | 4min | 4min |
+| 02-service-layer | 1 | 2min | 2min |
 
 *Updated after each plan completion*
 
@@ -41,6 +42,9 @@ Progress: [█░░░░░░░░░] 12%
 - [Roadmap]: DB-level JSONB cache for resolver results (not Redis), normalized subset only
 - [Infra]: Backend port is 5001 (macOS AirPlay conflict on 5000)
 - [Pattern]: ROR integration (`routes/ror.py`) is the closest pattern to follow for RRID
+- [02-01]: Use `term` queries for exact RRID lookups, `query_string` only for keyword searches
+- [02-01]: Module-level `requests.Session` with Retry(total=3, backoff_factor=0.5) for SciCrunch HTTP calls
+- [02-01]: (data, error) tuple pattern for all service function return values
 
 ### Critical Pitfalls
 
@@ -61,5 +65,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-service-layer/02-CONTEXT.md
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-service-layer/02-01-SUMMARY.md

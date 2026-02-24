@@ -13,8 +13,8 @@ Requirements for milestone v1.0 RRID Integration. Each maps to roadmap phases.
 - [x] **INFRA-02**: `docid_rrids` table has `UniqueConstraint` on `(entity_type, entity_id, rrid)` to prevent duplicate attachments
 - [x] **INFRA-03**: `docid_rrids` table has composite index on `(entity_type, entity_id)` for fast lookups
 - [x] **INFRA-04**: `DocidRrid` SQLAlchemy model added to `backend/app/models.py` with `serialize()` method
-- [ ] **INFRA-05**: `SCICRUNCH_API_KEY` environment variable configured server-side only (never exposed via `NEXT_PUBLIC_*` prefix)
-- [ ] **INFRA-06**: `service_scicrunch.py` service module created with separate URL constants for search (`api.scicrunch.io`) and resolver (`scicrunch.org`)
+- [x] **INFRA-05**: `SCICRUNCH_API_KEY` environment variable configured server-side only (never exposed via `NEXT_PUBLIC_*` prefix)
+- [x] **INFRA-06**: `service_scicrunch.py` service module created with separate URL constants for search (`api.scicrunch.io`) and resolver (`scicrunch.org`)
 - [ ] **INFRA-07**: Flask blueprint `rrid.py` registered in `app/__init__.py` under `/api/v1/rrid` prefix
 - [ ] **INFRA-08**: `entity_type` parameter validated against allowlist `{"publication", "organization"}` on all endpoints that accept it
 
@@ -26,8 +26,8 @@ Requirements for milestone v1.0 RRID Integration. Each maps to roadmap phases.
 - [ ] **SEARCH-04**: Search results return normalized JSON with fields: `scicrunch_id`, `name`, `description`, `url`, `types`, `rrid` (curie format)
 - [ ] **SEARCH-05**: User can resolve a known RRID to canonical metadata through backend proxy endpoint `GET /api/v1/rrid/resolve`
 - [ ] **SEARCH-06**: Resolver endpoint returns `properCitation`, `mentions` count, `name`, `description`, `url`, and `resource_type` from SciCrunch resolver JSON
-- [ ] **SEARCH-07**: RRID format validated server-side using regex covering `SCR_`, `AB_`, `CVCL_` prefixes; auto-prepends `RRID:` prefix if absent
-- [ ] **SEARCH-08**: Elasticsearch queries use `term` queries for exact RRID lookups (not `query_string`) to avoid colon-escaping issues
+- [x] **SEARCH-07**: RRID format validated server-side using regex covering `SCR_`, `AB_`, `CVCL_` prefixes; auto-prepends `RRID:` prefix if absent
+- [x] **SEARCH-08**: Elasticsearch queries use `term` queries for exact RRID lookups (not `query_string`) to avoid colon-escaping issues
 
 ### RRID Attachment
 
@@ -128,8 +128,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
-| INFRA-05 | Phase 2 | Pending |
-| INFRA-06 | Phase 2 | Pending |
+| INFRA-05 | Phase 2 | Complete |
+| INFRA-06 | Phase 2 | Complete |
 | INFRA-07 | Phase 3 | Pending |
 | INFRA-08 | Phase 3 | Pending |
 | SEARCH-01 | Phase 3 | Pending |
@@ -138,8 +138,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEARCH-04 | Phase 3 | Pending |
 | SEARCH-05 | Phase 3 | Pending |
 | SEARCH-06 | Phase 3 | Pending |
-| SEARCH-07 | Phase 2 | Pending |
-| SEARCH-08 | Phase 2 | Pending |
+| SEARCH-07 | Phase 2 | Complete |
+| SEARCH-08 | Phase 2 | Complete |
 | ATTACH-01 | Phase 4 | Pending |
 | ATTACH-02 | Phase 4 | Pending |
 | ATTACH-03 | Phase 4 | Pending |
