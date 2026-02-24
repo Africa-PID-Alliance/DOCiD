@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-02-24)
 
 **Core value:** Researchers and institutions can search, resolve, and attach Research Resource Identifiers (RRIDs) to publications and organizations through DOCiD's unified PID platform.
-**Current focus:** Phase 2 — Service Layer
+**Current focus:** Phase 3 — Flask Blueprint: Search & Resolve
 
 ## Current Position
 
-Phase: 2 of 8 (Service Layer) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
+Phase: 3 of 8 (Flask Blueprint — Search & Resolve)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
 Last activity: 2026-02-24 — Completed 02-02-PLAN.md (RRID resolver with DB cache)
 
 Progress: [███░░░░░░░] 27%
