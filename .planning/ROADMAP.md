@@ -44,7 +44,12 @@ Plans:
   3. The RRID validator accepts `RRID:SCR_012345`, `RRID:AB_123456789`, `RRID:CVCL_0001` and auto-prepends `RRID:` when the prefix is absent; it rejects strings that do not match the known patterns
   4. Elasticsearch queries for exact RRID lookups use `term` queries (not `query_string`), preventing silent colon-escaping failures
   5. After a resolve call, `resolved_json` stores only the normalized subset (name, rrid, description, url, resource_type, properCitation, mentions) — not the raw ES blob
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 02-01-PLAN.md — Config + RRID validation + SciCrunch search function
+- [ ] 02-02-PLAN.md — RRID resolver with 30-day DB cache and stale fallback
 
 ### Phase 3: Flask Blueprint — Search & Resolve
 **Goal**: Two working Flask endpoints let authenticated code search SciCrunch by keyword/type and resolve any known RRID to canonical metadata — all routed through the `/api/v1/rrid` blueprint
@@ -125,7 +130,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Database Foundation | 1/1 | Complete | 2026-02-24 |
-| 2. Service Layer | 0/TBD | Not started | - |
+| 2. Service Layer | 0/2 | Planned | - |
 | 3. Flask Blueprint — Search & Resolve | 0/TBD | Not started | - |
 | 4. Flask Blueprint — Attach, List, Detach | 0/TBD | Not started | - |
 | 5. Backend Test Suite | 0/TBD | Not started | - |
