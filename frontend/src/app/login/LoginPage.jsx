@@ -140,7 +140,7 @@ const LoginPage = () => {
         affiliation: data.affiliation,
         email: data.email,
         social_id: userDataSocial.social_id || null,
-
+        account_type_name: data.account_type_name || null,
       };
 
       // Store user data in localStorage

@@ -765,7 +765,9 @@ def register():
                 'first_time': existing_user.first_time,
                 'email': existing_user.email,
                 'avator': existing_user.avator,
-                'affiliation': existing_user.affiliation
+                'affiliation': existing_user.affiliation,
+                'account_type_id': existing_user.account_type_id,
+                'account_type_name': existing_user.account_type.account_type_name if existing_user.account_type else None
             }), 200
 
         hashed_password = generate_password_hash(password) if password else None
@@ -800,7 +802,8 @@ def register():
             'email': new_user.email,
             'avator': new_user.avator,
             'affiliation': new_user.affiliation,
-            'account_type_id': new_user.account_type_id
+            'account_type_id': new_user.account_type_id,
+            'account_type_name': new_user.account_type.account_type_name if new_user.account_type else None
         }), 201
 
     except IntegrityError as e:
@@ -1371,7 +1374,9 @@ def login():
                 'user_name': user.user_name,
                 'full_name': user.full_name,
                 'email': user.email,
-                'avator': user.avator
+                'avator': user.avator,
+                'account_type_id': user.account_type_id,
+                'account_type_name': user.account_type.account_type_name if user.account_type else None
             }), 200
 
         else:

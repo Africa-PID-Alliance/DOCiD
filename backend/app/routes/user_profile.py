@@ -159,7 +159,9 @@ def get_user_profile(user_id):
             'instagram_profile_link': user.instagram_profile_link,
             'github_profile_link': user.github_profile_link,
             'date_joined': user.date_joined.isoformat() if user.date_joined else None,
-            'first_time': user.first_time
+            'first_time': user.first_time,
+            'account_type_id': user.account_type_id,
+            'account_type_name': user.account_type.account_type_name if user.account_type else None
         }
 
         logger.info(f"User profile retrieved successfully for user_id: {user_id}")

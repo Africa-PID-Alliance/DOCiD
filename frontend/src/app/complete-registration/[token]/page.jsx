@@ -23,7 +23,7 @@ import {
   Email as EmailIcon,
   Lock as LockIcon,
   Business as BusinessIcon,
-  CancelOutlined,
+  WarningAmberRounded,
   CheckCircleOutline,
   AccountCircle as AccountCircleIcon
 } from '@mui/icons-material';
@@ -484,10 +484,10 @@ const CompleteRegistrationPage = () => {
               mb: 2
             }}
           >
-            <CancelOutlined
+            <WarningAmberRounded
               sx={{
                 fontSize: 60,
-                color: 'error.main'
+                color: 'warning.main'
               }}
             />
           </Box>
@@ -497,10 +497,10 @@ const CompleteRegistrationPage = () => {
             sx={{
               fontWeight: 600,
               mb: 1,
-              color: 'error.main'
+              color: 'warning.dark'
             }}
           >
-            Registration Error
+            Please Check Your Input
           </Typography>
           <Typography
             variant="body1"
@@ -509,7 +509,7 @@ const CompleteRegistrationPage = () => {
               mb: 3
             }}
           >
-            {error || 'An error occurred during registration'}
+            {error || 'Please review the form and try again'}
           </Typography>
           <Button
             variant="contained"
@@ -519,13 +519,14 @@ const CompleteRegistrationPage = () => {
               py: 1,
               px: 3,
               borderRadius: 2,
-              backgroundColor: theme.palette.primary.main,
+              backgroundColor: theme.palette.warning.main,
+              color: '#fff',
               '&:hover': {
-                backgroundColor: theme.palette.primary.dark,
+                backgroundColor: theme.palette.warning.dark,
               }
             }}
           >
-            OK
+            Got It
           </Button>
         </Paper>
       </Modal>

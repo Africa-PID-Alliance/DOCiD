@@ -11,7 +11,8 @@ const initialState = {
     username: "",
     type: "",
     affiliation: "",
-    email: ""
+    email: "",
+    account_type_name: ""
   },
   isAuthenticated: false,
   loading: false,
@@ -55,7 +56,8 @@ const authSlice = createSlice({
         username: action.payload.user_name,
         type: action.payload.type,
         affiliation: action.payload.affiliation,
-        email: action.payload.email
+        email: action.payload.email,
+        account_type_name: action.payload.account_type_name || ""
       };
       state.error = null;
 
@@ -78,7 +80,8 @@ const authSlice = createSlice({
         username: "",
         type: "",
         affiliation: "",
-        email: ""
+        email: "",
+        account_type_name: ""
       };
       state.isAuthenticated = false;
       state.loading = false;

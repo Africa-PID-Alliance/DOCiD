@@ -400,8 +400,13 @@ const MyAccountPage = () => {
       value: orcidData?.emails?.email?.[0]?.email?.value || user?.email || t('my_account.common.n_a'),
       loading: loadingOrcid 
     },
-    { 
-      label: t('my_account.fields.affiliation'), 
+    {
+      label: 'Account Type',
+      value: user?.account_type_name || t('my_account.common.n_a'),
+      loading: false
+    },
+    {
+      label: t('my_account.fields.affiliation'),
       value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.name?.value || user?.affiliation || t('my_account.common.n_a'),
       loading: loadingOrcid
     },
