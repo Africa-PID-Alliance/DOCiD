@@ -116,6 +116,7 @@ test_*.jpg
 
 # All Markdown documentation files
 *.md
+!.planning/**/*.md
 
 # Utility/import/sync scripts (contain credentials, local paths, test data)
 backend/scripts/
