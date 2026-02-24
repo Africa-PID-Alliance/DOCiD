@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-02-24)
 
 **Core value:** Researchers and institutions can search, resolve, and attach Research Resource Identifiers (RRIDs) to publications and organizations through DOCiD's unified PID platform.
-**Current focus:** Phase 1 — Database Foundation
+**Current focus:** Phase 2 — Service Layer
 
 ## Current Position
 
-Phase: 1 of 8 (Database Foundation)
-Plan: 1 of 1 in current phase
-Status: Phase 1 complete
+Phase: 2 of 8 (Service Layer)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
 Last activity: 2026-02-24 — Completed 01-01-PLAN.md (DocidRrid model and migration)
 
 Progress: [█░░░░░░░░░] 12%

@@ -10,7 +10,7 @@ This milestone integrates RRID (Research Resource Identifier) from SciCrunch int
 - Integer phases (1–8): Planned v1.0 milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions, created via `/gsd:insert-phase`
 
-- [ ] **Phase 1: Database Foundation** - Alembic migration, DocidRrid SQLAlchemy model, unique constraint, composite index
+- [x] **Phase 1: Database Foundation** - Alembic migration, DocidRrid SQLAlchemy model, unique constraint, composite index *(completed 2026-02-24)*
 - [ ] **Phase 2: Service Layer** - `service_scicrunch.py` module, API key env var, RRID validation, ES query logic, resolver cache schema
 - [ ] **Phase 3: Flask Blueprint — Search & Resolve** - Blueprint registration, search endpoint, resolve endpoint, entity allowlist
 - [ ] **Phase 4: Flask Blueprint — Attach, List, Detach** - attach/list/detach endpoints, duplicate prevention, cascade deletion
@@ -124,7 +124,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Database Foundation | 0/TBD | Not started | - |
+| 1. Database Foundation | 1/1 | Complete | 2026-02-24 |
 | 2. Service Layer | 0/TBD | Not started | - |
 | 3. Flask Blueprint — Search & Resolve | 0/TBD | Not started | - |
 | 4. Flask Blueprint — Attach, List, Detach | 0/TBD | Not started | - |
