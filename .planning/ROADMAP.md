@@ -14,10 +14,10 @@ This milestone integrates RRID (Research Resource Identifier) from SciCrunch int
 - [x] **Phase 2: Service Layer** - `service_scicrunch.py` module, API key env var, RRID validation, ES query logic, resolver cache schema *(completed 2026-02-24)*
 - [x] **Phase 3: Flask Blueprint — Search & Resolve** - Blueprint registration, search endpoint, resolve endpoint, entity allowlist (completed 2026-02-24)
 - [x] **Phase 4: Flask Blueprint — Attach, List, Detach** - attach/list/detach endpoints, duplicate prevention, cascade deletion (completed 2026-02-24)
-- [ ] **Phase 5: Backend Test Suite** - pytest/responses dependency upgrade, 9 test cases covering all endpoint behaviors
-- [ ] **Phase 6: Frontend Proxy Routes** - 5 Next.js proxy routes forwarding to Flask, no SciCrunch keys in frontend
-- [ ] **Phase 7: Frontend Search Modal** - RridSearchModal component, dual-tab layout, debounced search, AJAX interactions
-- [ ] **Phase 8: Frontend Integration & Display** - Attach modal to publication detail page and organization rows, RRID chip display
+- [x] **Phase 5: Backend Test Suite** - pytest/responses dependency upgrade, 23 test cases covering all endpoint behaviors *(completed 2026-02-25)*
+- [x] **Phase 6: Frontend Proxy Routes** - 5 Next.js proxy routes forwarding to Flask, no SciCrunch keys in frontend *(completed 2026-02-25)*
+- [x] **Phase 7: Frontend Search Modal** - RridSearchModal component, dual-tab layout, debounced search, AJAX interactions *(completed 2026-02-25)*
+- [x] **Phase 8: Frontend Integration & Display** - Attach modal to publication detail page, RRID chip display with type-colored badges *(completed 2026-02-25)*
 
 ## Phase Details
 
@@ -140,7 +140,7 @@ Plans:
 | 2. Service Layer | 2/2 | Complete | 2026-02-24 |
 | 3. Flask Blueprint — Search & Resolve | 1/1 | Complete   | 2026-02-24 |
 | 4. Flask Blueprint — Attach, List, Detach | 1/1 | Complete   | 2026-02-24 |
-| 5. Backend Test Suite | 0/TBD | Not started | - |
-| 6. Frontend Proxy Routes | 0/TBD | Not started | - |
-| 7. Frontend Search Modal | 0/TBD | Not started | - |
-| 8. Frontend Integration & Display | 0/TBD | Not started | - |
+| 5. Backend Test Suite | 1/1 | Complete | 2026-02-25 |
+| 6. Frontend Proxy Routes | 1/1 | Complete | 2026-02-25 |
+| 7. Frontend Search Modal | 1/1 | Complete | 2026-02-25 |
+| 8. Frontend Integration & Display | 1/1 | Complete | 2026-02-25 |
