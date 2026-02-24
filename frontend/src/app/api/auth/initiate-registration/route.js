@@ -5,19 +5,15 @@ import nodemailer from 'nodemailer';
 //import smtpTransport from 'nodemailer-smtp-transport';
 
 //define the transporter
-const transporter = nodemailer.createTransport(
-  {
-    
-host: 'send.one.com',
-  port: 465,
-  secure: true, // true for port 465 with SSL/TLS
-    auth: {
-      user: process.env.NEXT_PUBLIC_SMTP_USER,
-      pass: process.env.NEXT_PUBLIC_SMTP_PASS,
-    },
-    
-  }
-);
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'send.one.com',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: process.env.SMTP_SECURE === 'false' ? false : true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 export async function POST(request) {
   try {
