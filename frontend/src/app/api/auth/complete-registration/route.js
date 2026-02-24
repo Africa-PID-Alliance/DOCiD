@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export async function POST(request) {
   try {
-    const { email, name, password, picture, username, affiliation, token } = await request.json();
+    const { email, name, password, picture, username, affiliation, token, account_type_id } = await request.json();
 
     try {
       // First, verify the registration token
@@ -26,6 +26,7 @@ export async function POST(request) {
             user_name: username,
             affiliation: affiliation,
             password: password,
+            account_type_id: account_type_id,
           }
         );
 

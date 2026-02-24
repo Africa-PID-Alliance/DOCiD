@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request, Response, abort
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects
-from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail
+from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
 # from app.service_codra import push_apa_metadata
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
 # from app.service_codra import update_object
@@ -419,7 +419,8 @@ def get_all_publications():
                 'owner': pub.owner,
                 'avatar': pub.avatar,
                 'published_isoformat': pub.published.isoformat() if pub.published else None,
-                'published': int(pub.published.timestamp()) if pub.published else None  # Converted to Unix timestamp
+                'published': int(pub.published.timestamp()) if pub.published else None,  # Converted to Unix timestamp
+                'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None
             }
             for pub in publications
         ]

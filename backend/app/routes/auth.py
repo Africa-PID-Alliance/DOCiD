@@ -723,6 +723,7 @@ def register():
         affiliation = data.get("affiliation", None)
         avator = data.get("avator", None)
         password = data.get("password", None)
+        account_type_id = data.get("account_type_id", None)
 
         logger.info(f"Received registration request - Type: {account_type}, Email: {email}, Social ID: {social_id}, Username: {username}")
 
@@ -762,7 +763,8 @@ def register():
             type=account_type,
             affiliation=affiliation,
             avator=avator,
-            password=hashed_password
+            password=hashed_password,
+            account_type_id=int(account_type_id) if account_type_id else None
         )
 
         db.session.add(new_user)
@@ -782,7 +784,8 @@ def register():
             'first_time': new_user.first_time,
             'email': new_user.email,
             'avator': new_user.avator,
-            'affiliation': new_user.affiliation
+            'affiliation': new_user.affiliation,
+            'account_type_id': new_user.account_type_id
         }), 201
 
     except IntegrityError as e:

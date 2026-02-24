@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -12,7 +12,11 @@ import {
   useTheme,
   CircularProgress,
   Modal,
-  Paper
+  Paper,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -20,7 +24,8 @@ import {
   Lock as LockIcon,
   Business as BusinessIcon,
   CancelOutlined,
-  CheckCircleOutline
+  CheckCircleOutline,
+  AccountCircle as AccountCircleIcon
 } from '@mui/icons-material';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -35,14 +40,31 @@ const CompleteRegistrationPage = () => {
     email: '',
     affiliation: '',
     password: '',
+    accountTypeId: '',
   });
   const [error, setError] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [accountTypesList, setAccountTypesList] = useState([]);
 
   React.useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchAccountTypes = async () => {
+      try {
+        const response = await fetch('/api/auth/get-list-account-types');
+        if (response.ok) {
+          const data = await response.json();
+          setAccountTypesList(data);
+        }
+      } catch (error) {
+        console.error('Error fetching account types:', error);
+      }
+    };
+    fetchAccountTypes();
   }, []);
 
   const validateForm = () => {
@@ -62,6 +84,10 @@ const CompleteRegistrationPage = () => {
       setError('Please enter a valid email address');
       return false;
     }
+    if (!formData.accountTypeId) {
+      setError('Account type is required');
+      return false;
+    }
     if (!formData.password) {
       setError('Password is required');
       return false;
@@ -70,7 +96,7 @@ const CompleteRegistrationPage = () => {
       setError('Password must be at least 8 characters long');
       return false;
     }
-   
+
     return true;
   };
 
@@ -113,7 +139,8 @@ const CompleteRegistrationPage = () => {
           picture: "https://www.shutterstock.com/image-illustration/default-avatar-profile-icon-social-260nw-2221359783.jpg",
           affiliation: formData.affiliation,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          account_type_id: formData.accountTypeId
         }),
       });
 
@@ -279,6 +306,39 @@ const CompleteRegistrationPage = () => {
                   }}
                   sx={{ mb: 2 }}
                 />
+
+                <FormControl
+                  fullWidth
+                  required
+                  error={!!error && error.includes('Account type')}
+                  sx={{ mb: 2, mt: 1 }}
+                >
+                  <InputLabel id="accountType-label">Account Type</InputLabel>
+                  <Select
+                    labelId="accountType-label"
+                    id="accountTypeId"
+                    name="accountTypeId"
+                    value={formData.accountTypeId}
+                    label="Account Type"
+                    onChange={handleChange}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <AccountCircleIcon color={error && error.includes('Account type') ? "error" : "primary"} />
+                      </InputAdornment>
+                    }
+                  >
+                    {accountTypesList.map((accountType) => (
+                      <MenuItem key={accountType.id} value={accountType.id}>
+                        {accountType.account_type_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {error && error.includes('Account type') && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                      {error}
+                    </Typography>
+                  )}
+                </FormControl>
 
                 <TextField
                   margin="normal"

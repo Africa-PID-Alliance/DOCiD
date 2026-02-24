@@ -664,15 +664,34 @@ const ListDocIds = () => {
                                 {!doc.avatar && doc.owner && doc.owner[0] ? doc.owner[0].toUpperCase() : 'S'}
                               </Avatar>
                               <Box>
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    fontWeight: 600,
-                                    color: theme.palette.text.primary
-                                  }}
-                                >
-                                  {doc.owner || 'System'}
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography
+                                    variant="subtitle1"
+                                    sx={{
+                                      fontWeight: 600,
+                                      color: theme.palette.text.primary
+                                    }}
+                                  >
+                                    {doc.owner || 'System'}
+                                  </Typography>
+                                  {doc.account_type_name && (
+                                    <Chip
+                                      label={doc.account_type_name}
+                                      size="small"
+                                      sx={{
+                                        height: 20,
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        bgcolor: doc.account_type_name === 'Institutional'
+                                          ? `${theme.palette.info.main}18`
+                                          : `${theme.palette.success.main}18`,
+                                        color: doc.account_type_name === 'Institutional'
+                                          ? theme.palette.info.main
+                                          : theme.palette.success.main,
+                                      }}
+                                    />
+                                  )}
+                                </Box>
                                 <Typography
                                   variant="caption"
                                   sx={{
