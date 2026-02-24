@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-24)
 
 **Core value:** Researchers and institutions can search, resolve, and attach Research Resource Identifiers (RRIDs) to publications and organizations through DOCiD's unified PID platform.
-**Current focus:** Phase 4 — Flask Blueprint: Attach, List, Detach
+**Current focus:** Phase 5 — Integration Tests
 
 ## Current Position
 
 Phase: 4 of 8 (Flask Blueprint — Attach, List, Detach)
-Plan: 0 of TBD in current phase
-Status: Context gathered, ready to plan
-Last activity: 2026-02-25 — Phase 4 context discussion complete
+Plan: 1 of 1 in current phase
+Status: Phase 4 complete — all RRID lifecycle endpoints live
+Last activity: 2026-02-24 — 04-01-PLAN.md executed
 
-Progress: [████░░░░░░] 38%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: [████░░░░░░] 38%
 | 01-database-foundation | 1 | 4min | 4min |
 | 02-service-layer | 2 | 4min | 2min |
 | 03-flask-blueprint-search-resolve | 1 | 2min | 2min |
+| 04-flask-blueprint-attach-list-detach | 1 | 2min | 2min |
 
 *Updated after each plan completion*
 
@@ -53,6 +54,9 @@ Progress: [████░░░░░░] 38%
 - [Phase 03-01]: DocidRrid.ALLOWED_ENTITY_TYPES as single source of truth for entity type validation, matching DB-level CHECK constraint
 - [Phase 03-01]: Resolve endpoint flattens nested service response using dict spread operator into single-level JSON
 - [Phase 03-01]: Generic 502 error messages for all SciCrunch failures — internals never exposed to API consumers
+- [Phase 04-01]: attach endpoint calls resolve_rrid() without entity context — fresh resolve only, 502 if SciCrunch unavailable
+- [Phase 04-01]: Duplicate attach detected via IntegrityError from DB unique constraint — returns 409 with human-readable entity-aware message
+- [Phase 04-01]: Publication cascade deletes RRID rows for both publication and organization entity types before deleting PublicationOrganization rows
 
 ### Critical Pitfalls
 

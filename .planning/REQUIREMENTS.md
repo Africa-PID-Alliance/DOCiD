@@ -31,14 +31,14 @@ Requirements for milestone v1.0 RRID Integration. Each maps to roadmap phases.
 
 ### RRID Attachment
 
-- [ ] **ATTACH-01**: User can attach an RRID to a publication via `POST /api/v1/rrid/attach` with `entity_type=publication` and `entity_id`
-- [ ] **ATTACH-02**: User can attach an RRID to an organization (publication_organizations row) via `POST /api/v1/rrid/attach` with `entity_type=organization` and `entity_id`
-- [ ] **ATTACH-03**: Attach endpoint stores RRID value, name, description, resource type, URL, and resolver metadata in `docid_rrids`
-- [ ] **ATTACH-04**: Duplicate RRID attachment to the same entity returns HTTP 409 Conflict with a readable error message
-- [ ] **ATTACH-05**: User can list all RRIDs attached to an entity via `GET /api/v1/rrid/entity` with `entity_type` and `entity_id` query params
-- [ ] **ATTACH-06**: User can detach/remove an RRID from an entity via `DELETE /api/v1/rrid/<rrid_id>`
-- [ ] **ATTACH-07**: Deleting a publication cascades to remove associated `docid_rrids` rows (application-level cascade)
-- [ ] **ATTACH-08**: Deleting a publication_organization row cascades to remove associated `docid_rrids` rows (application-level cascade)
+- [x] **ATTACH-01**: User can attach an RRID to a publication via `POST /api/v1/rrid/attach` with `entity_type=publication` and `entity_id`
+- [x] **ATTACH-02**: User can attach an RRID to an organization (publication_organizations row) via `POST /api/v1/rrid/attach` with `entity_type=organization` and `entity_id`
+- [x] **ATTACH-03**: Attach endpoint stores RRID value, name, description, resource type, URL, and resolver metadata in `docid_rrids`
+- [x] **ATTACH-04**: Duplicate RRID attachment to the same entity returns HTTP 409 Conflict with a readable error message
+- [x] **ATTACH-05**: User can list all RRIDs attached to an entity via `GET /api/v1/rrid/entity` with `entity_type` and `entity_id` query params
+- [x] **ATTACH-06**: User can detach/remove an RRID from an entity via `DELETE /api/v1/rrid/<rrid_id>`
+- [x] **ATTACH-07**: Deleting a publication cascades to remove associated `docid_rrids` rows (application-level cascade)
+- [x] **ATTACH-08**: Deleting a publication_organization row cascades to remove associated `docid_rrids` rows (application-level cascade)
 
 ### Caching
 
@@ -140,14 +140,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEARCH-06 | Phase 3 | Complete |
 | SEARCH-07 | Phase 2 | Complete |
 | SEARCH-08 | Phase 2 | Complete |
-| ATTACH-01 | Phase 4 | Pending |
-| ATTACH-02 | Phase 4 | Pending |
-| ATTACH-03 | Phase 4 | Pending |
-| ATTACH-04 | Phase 4 | Pending |
-| ATTACH-05 | Phase 4 | Pending |
-| ATTACH-06 | Phase 4 | Pending |
-| ATTACH-07 | Phase 4 | Pending |
-| ATTACH-08 | Phase 4 | Pending |
+| ATTACH-01 | Phase 4 | Complete |
+| ATTACH-02 | Phase 4 | Complete |
+| ATTACH-03 | Phase 4 | Complete |
+| ATTACH-04 | Phase 4 | Complete |
+| ATTACH-05 | Phase 4 | Complete |
+| ATTACH-06 | Phase 4 | Complete |
+| ATTACH-07 | Phase 4 | Complete |
+| ATTACH-08 | Phase 4 | Complete |
 | CACHE-01 | Phase 2 | Complete |
 | CACHE-02 | Phase 2 | Complete |
 | CACHE-03 | Phase 2 | Complete |

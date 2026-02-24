@@ -13,7 +13,7 @@ This milestone integrates RRID (Research Resource Identifier) from SciCrunch int
 - [x] **Phase 1: Database Foundation** - Alembic migration, DocidRrid SQLAlchemy model, unique constraint, composite index *(completed 2026-02-24)*
 - [x] **Phase 2: Service Layer** - `service_scicrunch.py` module, API key env var, RRID validation, ES query logic, resolver cache schema *(completed 2026-02-24)*
 - [x] **Phase 3: Flask Blueprint — Search & Resolve** - Blueprint registration, search endpoint, resolve endpoint, entity allowlist (completed 2026-02-24)
-- [ ] **Phase 4: Flask Blueprint — Attach, List, Detach** - attach/list/detach endpoints, duplicate prevention, cascade deletion
+- [x] **Phase 4: Flask Blueprint — Attach, List, Detach** - attach/list/detach endpoints, duplicate prevention, cascade deletion (completed 2026-02-24)
 - [ ] **Phase 5: Backend Test Suite** - pytest/responses dependency upgrade, 9 test cases covering all endpoint behaviors
 - [ ] **Phase 6: Frontend Proxy Routes** - 5 Next.js proxy routes forwarding to Flask, no SciCrunch keys in frontend
 - [ ] **Phase 7: Frontend Search Modal** - RridSearchModal component, dual-tab layout, debounced search, AJAX interactions
@@ -77,7 +77,7 @@ Plans:
   4. `DELETE /api/v1/rrid/<rrid_id>` removes the row and returns HTTP 200; a subsequent GET for that entity no longer includes the deleted RRID
   5. Deleting a publication record from the database results in zero orphaned `docid_rrids` rows for that publication's entity_id
   6. Deleting a publication_organizations row cascades to remove its associated `docid_rrids` rows
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 
@@ -139,7 +139,7 @@ Plans:
 | 1. Database Foundation | 1/1 | Complete | 2026-02-24 |
 | 2. Service Layer | 2/2 | Complete | 2026-02-24 |
 | 3. Flask Blueprint — Search & Resolve | 1/1 | Complete   | 2026-02-24 |
-| 4. Flask Blueprint — Attach, List, Detach | 0/1 | Planned | - |
+| 4. Flask Blueprint — Attach, List, Detach | 1/1 | Complete   | 2026-02-24 |
 | 5. Backend Test Suite | 0/TBD | Not started | - |
 | 6. Frontend Proxy Routes | 0/TBD | Not started | - |
 | 7. Frontend Search Modal | 0/TBD | Not started | - |
