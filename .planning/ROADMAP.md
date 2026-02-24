@@ -12,7 +12,7 @@ This milestone integrates RRID (Research Resource Identifier) from SciCrunch int
 
 - [x] **Phase 1: Database Foundation** - Alembic migration, DocidRrid SQLAlchemy model, unique constraint, composite index *(completed 2026-02-24)*
 - [x] **Phase 2: Service Layer** - `service_scicrunch.py` module, API key env var, RRID validation, ES query logic, resolver cache schema *(completed 2026-02-24)*
-- [ ] **Phase 3: Flask Blueprint — Search & Resolve** - Blueprint registration, search endpoint, resolve endpoint, entity allowlist
+- [x] **Phase 3: Flask Blueprint — Search & Resolve** - Blueprint registration, search endpoint, resolve endpoint, entity allowlist (completed 2026-02-24)
 - [ ] **Phase 4: Flask Blueprint — Attach, List, Detach** - attach/list/detach endpoints, duplicate prevention, cascade deletion
 - [ ] **Phase 5: Backend Test Suite** - pytest/responses dependency upgrade, 9 test cases covering all endpoint behaviors
 - [ ] **Phase 6: Frontend Proxy Routes** - 5 Next.js proxy routes forwarding to Flask, no SciCrunch keys in frontend
@@ -61,7 +61,7 @@ Plans:
   3. `GET /api/v1/rrid/resolve?rrid=RRID:SCR_012345` returns `properCitation`, `mentions`, `name`, `description`, `url`, and `resource_type` extracted from the SciCrunch resolver
   4. Passing `entity_type=user_account` to any endpoint that accepts the parameter returns HTTP 400; only `publication` and `organization` are accepted
   5. The blueprint is registered in `app/__init__.py` so all `/api/v1/rrid/*` routes respond without 404
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 03-01-PLAN.md — RRID blueprint with search and resolve endpoints, entity type allowlist, blueprint registration
@@ -134,7 +134,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Database Foundation | 1/1 | Complete | 2026-02-24 |
 | 2. Service Layer | 2/2 | Complete | 2026-02-24 |
-| 3. Flask Blueprint — Search & Resolve | 0/TBD | Not started | - |
+| 3. Flask Blueprint — Search & Resolve | 1/1 | Complete   | 2026-02-24 |
 | 4. Flask Blueprint — Attach, List, Detach | 0/TBD | Not started | - |
 | 5. Backend Test Suite | 0/TBD | Not started | - |
 | 6. Frontend Proxy Routes | 0/TBD | Not started | - |

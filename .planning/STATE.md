@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-24)
 ## Current Position
 
 Phase: 3 of 8 (Flask Blueprint — Search & Resolve)
-Plan: 0 of TBD in current phase
-Status: Context gathered, ready to plan
-Last activity: 2026-02-24 — Phase 3 context discussion complete
+Plan: 1 of 1 in current phase
+Status: Plan 03-01 complete
+Last activity: 2026-02-25 — Completed 03-01-PLAN.md
 
-Progress: [███░░░░░░░] 27%
+Progress: [████░░░░░░] 36%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3min
-- Total execution time: 8min
+- Total execution time: 10min
 
 **By Phase:**
 
@@ -29,6 +29,7 @@ Progress: [███░░░░░░░] 27%
 |-------|-------|-------|----------|
 | 01-database-foundation | 1 | 4min | 4min |
 | 02-service-layer | 2 | 4min | 2min |
+| 03-flask-blueprint-search-resolve | 1 | 2min | 2min |
 
 *Updated after each plan completion*
 
@@ -49,6 +50,9 @@ Progress: [███░░░░░░░] 27%
 - [02-02]: DB operations in try/except so resolver data returned even if cache write fails
 - [02-02]: Stale cache returned with `stale: True` flag for caller awareness
 - [02-02]: resolved_json stores only 7 normalized fields (name, rrid, description, url, resource_type, properCitation, mentions)
+- [Phase 03-01]: DocidRrid.ALLOWED_ENTITY_TYPES as single source of truth for entity type validation, matching DB-level CHECK constraint
+- [Phase 03-01]: Resolve endpoint flattens nested service response using dict spread operator into single-level JSON
+- [Phase 03-01]: Generic 502 error messages for all SciCrunch failures — internals never exposed to API consumers
 
 ### Critical Pitfalls
 
