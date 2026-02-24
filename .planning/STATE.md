@@ -61,5 +61,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-database-foundation/01-01-SUMMARY.md
+Stopped at: Phase 2 context gathered
+Resume file: .planning/phases/02-service-layer/02-CONTEXT.md
