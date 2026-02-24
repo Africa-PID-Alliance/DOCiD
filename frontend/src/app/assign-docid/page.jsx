@@ -46,6 +46,7 @@ import CreatorsForm from './components/CreatorsForm';
 import OrganizationsForm from './components/OrganizationsForm';
 import FundersForm from './components/FundersForm';
 import ProjectForm from './components/ProjectForm';
+import RridForm from './components/RridForm';
 
 const AssignDocID = () => {
   const { t } = useTranslation();
@@ -71,6 +72,7 @@ const AssignDocID = () => {
     creators: { creators: [] },
     organizationsRor: { organizations: [] },
     organizationsIsni: { organizations: [] },
+    researchResources: { resources: [] },
     funders: { funders: [] },
     project: {
       projects: []
@@ -317,6 +319,7 @@ const AssignDocID = () => {
         creators: { creators: [] },
         organizationsRor: { organizations: [] },
         organizationsIsni: { organizations: [] },
+        researchResources: { resources: [] },
         funders: { funders: [] },
         project: {
           projects: []
@@ -429,6 +432,20 @@ const AssignDocID = () => {
                 updateFormData={(data) => updateFormData('organizationsRinggold', data)}
                 type="ringgold"
                 label="Ringgold"
+              />
+            </Paper>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <RridForm
+                formData={formData.researchResources || { resources: [] }}
+                updateFormData={(data) => updateFormData('researchResources', data)}
               />
             </Paper>
           </Box>
@@ -647,6 +664,18 @@ const AssignDocID = () => {
           submitData.append(`projects[${index}][title]`, project.title);
           submitData.append(`projects[${index}][raid_id]`, project.raidId);
           submitData.append(`projects[${index}][description]`, project.type);
+        });
+      }
+
+      // 8. Research Resources (RRIDs)
+      if (formData.researchResources?.resources?.length > 0) {
+        formData.researchResources.resources.forEach((resource, index) => {
+          submitData.append(`researchResources[${index}][rrid]`, resource.rrid);
+          submitData.append(`researchResources[${index}][rrid_name]`, resource.rridName || '');
+          submitData.append(`researchResources[${index}][rrid_description]`, resource.rridDescription || '');
+          submitData.append(`researchResources[${index}][rrid_resource_type]`, resource.rridResourceType || '');
+          submitData.append(`researchResources[${index}][rrid_url]`, resource.rridUrl || '');
+          submitData.append(`researchResources[${index}][resolved_json]`, JSON.stringify(resource.resolvedJson || {}));
         });
       }
 

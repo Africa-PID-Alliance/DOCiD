@@ -22,6 +22,21 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Request interceptor to attach JWT token to outgoing requests
+axios.interceptors.request.use(
+  (config) => {
+    if (store) {
+      const state = store.getState();
+      const accessToken = state.auth?.user?.accessToken;
+      if (accessToken && !config.headers['Authorization']) {
+        config.headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Response interceptor for handling 401 errors and refreshing tokens
 axios.interceptors.response.use(
   (response) => {

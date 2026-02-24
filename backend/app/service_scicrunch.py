@@ -43,10 +43,10 @@ RRID_PATTERN = re.compile(
 # Resource type mapping -- user-friendly keys to SciCrunch type filter values
 # ---------------------------------------------------------------------------
 RESOURCE_TYPE_MAP = {
-    "core_facility": "Resource:CoreFacility",
-    "software": "Resource:Software",
-    "antibody": "Resource:Antibody",
-    "cell_line": "Resource:CellLine",
+    "core_facility": "core facility",
+    "software": "software resource",
+    "antibody": "antibody",
+    "cell_line": "cell line",
 }
 
 DEFAULT_RESOURCE_TYPE = "core_facility"
@@ -188,7 +188,7 @@ def search_rrid_resources(query, resource_type=None):
                         {"term": {"item.curie": rrid_identifier}},
                     ],
                     "filter": [
-                        {"term": {"item.types.curie": resource_type_filter_value}},
+                        {"match_phrase": {"item.types.name": resource_type_filter_value}},
                     ],
                 }
             },
@@ -203,7 +203,7 @@ def search_rrid_resources(query, resource_type=None):
                         {"query_string": {"query": query}},
                     ],
                     "filter": [
-                        {"term": {"item.types.curie": resource_type_filter_value}},
+                        {"match_phrase": {"item.types.name": resource_type_filter_value}},
                     ],
                 }
             },

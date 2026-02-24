@@ -54,6 +54,8 @@ const RridSearchModal = ({
   entityType,
   entityId,
   onAttachSuccess,
+  collectOnly = false,
+  onSelectRrid,
 }) => {
   // Search tab state
   const [activeTab, setActiveTab] = useState(0);
@@ -170,8 +172,32 @@ const RridSearchModal = ({
     }
   };
 
-  // Attach RRID to entity
-  const handleAttachRrid = async (rridValue) => {
+  // Attach RRID to entity (or collect for wizard)
+  const handleAttachRrid = async (rridValue, searchResultData = null) => {
+    if (collectOnly) {
+      const resourceMetadata = searchResultData || resolvedMetadata;
+      if (!resourceMetadata) {
+        setAttachError('Please resolve the RRID first');
+        return;
+      }
+
+      const normalizedRrid = rridValue.startsWith('RRID:') ? rridValue : `RRID:${rridValue}`;
+      const selectedRridData = {
+        rrid: normalizedRrid,
+        rridName: resourceMetadata.name || '',
+        rridDescription: resourceMetadata.description || '',
+        rridResourceType: resourceMetadata.resource_type || resourceType || '',
+        rridUrl: resourceMetadata.url || '',
+        resolvedJson: resourceMetadata,
+      };
+
+      if (onSelectRrid) {
+        onSelectRrid(selectedRridData);
+      }
+      handleClose();
+      return;
+    }
+
     setAttachLoading(rridValue);
     setAttachError('');
 
@@ -277,13 +303,13 @@ const RridSearchModal = ({
                         size="small"
                         variant="contained"
                         disabled={attachLoading === result.rrid}
-                        onClick={() => handleAttachRrid(result.rrid)}
+                        onClick={() => handleAttachRrid(result.rrid, result)}
                         sx={{ mt: 1 }}
                       >
                         {attachLoading === result.rrid ? (
                           <CircularProgress size={18} />
                         ) : (
-                          'Attach'
+                          collectOnly ? 'Add' : 'Attach'
                         )}
                       </Button>
                     }
@@ -379,9 +405,9 @@ const RridSearchModal = ({
                   variant="contained"
                   size="small"
                   disabled={attachLoading !== null}
-                  onClick={() => handleAttachRrid(rridInput.trim())}
+                  onClick={() => handleAttachRrid(rridInput.trim(), resolvedMetadata)}
                 >
-                  {attachLoading ? <CircularProgress size={18} /> : 'Attach RRID'}
+                  {attachLoading ? <CircularProgress size={18} /> : (collectOnly ? 'Add RRID' : 'Attach RRID')}
                 </Button>
               </Box>
             </Paper>

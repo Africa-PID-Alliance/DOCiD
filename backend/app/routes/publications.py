@@ -1765,9 +1765,53 @@ def create_publication():
             db.session.bulk_save_objects(projects)
             logger.info(f"Saved {len(projects)} PublicationProjects")
 
+        # Save DocidRrid records (Research Resources)
+        logger.info("Processing Research Resources (RRIDs)...")
+        rrid_records = []
+        index = 0
+        while True:
+            rrid_value = request.form.get(f'researchResources[{index}][rrid]')
+            if rrid_value is None:
+                break
+
+            rrid_name = request.form.get(f'researchResources[{index}][rrid_name]')
+            rrid_description = clean_undefined_string(request.form.get(f'researchResources[{index}][rrid_description]'))
+            rrid_resource_type = request.form.get(f'researchResources[{index}][rrid_resource_type]')
+            rrid_url = request.form.get(f'researchResources[{index}][rrid_url]')
+            resolved_json_str = request.form.get(f'researchResources[{index}][resolved_json]')
+
+            resolved_json = None
+            if resolved_json_str:
+                try:
+                    resolved_json = json.loads(resolved_json_str)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(f"Could not parse resolved_json for RRID at index {index}")
+
+            logger.info(f"ResearchResource [{index}]:")
+            logger.info(f"  rrid: {rrid_value}")
+            logger.info(f"  rrid_name: {rrid_name}")
+            logger.info(f"  rrid_resource_type: {rrid_resource_type}")
+
+            rrid_records.append(DocidRrid(
+                entity_type='publication',
+                entity_id=publication_id,
+                rrid=rrid_value,
+                rrid_name=rrid_name,
+                rrid_description=rrid_description,
+                rrid_resource_type=rrid_resource_type,
+                rrid_url=rrid_url,
+                resolved_json=resolved_json,
+                last_resolved_at=datetime.utcnow(),
+            ))
+            index += 1
+
+        if rrid_records:
+            db.session.bulk_save_objects(rrid_records)
+            logger.info(f"Saved {len(rrid_records)} DocidRrid records")
+
         # Commit all changes
         db.session.commit()
-        
+
         logger.info(f"=== SUCCESS: Publication created successfully with ID: {publication_id} ===")
 
         # Prepare full publication data to return
