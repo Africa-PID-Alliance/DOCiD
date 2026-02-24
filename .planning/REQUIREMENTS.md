@@ -9,10 +9,10 @@ Requirements for milestone v1.0 RRID Integration. Each maps to roadmap phases.
 
 ### Backend Infrastructure
 
-- [ ] **INFRA-01**: Alembic migration creates `docid_rrids` table with columns: `id` (integer PK), `entity_type` (varchar), `entity_id` (integer), `rrid` (varchar), `rrid_name` (varchar), `rrid_description` (text), `rrid_resource_type` (varchar), `rrid_url` (varchar), `resolved_json` (JSONB), `last_resolved_at` (datetime), `created_at` (datetime), `updated_at` (datetime)
-- [ ] **INFRA-02**: `docid_rrids` table has `UniqueConstraint` on `(entity_type, entity_id, rrid)` to prevent duplicate attachments
-- [ ] **INFRA-03**: `docid_rrids` table has composite index on `(entity_type, entity_id)` for fast lookups
-- [ ] **INFRA-04**: `DocidRrid` SQLAlchemy model added to `backend/app/models.py` with `serialize()` method
+- [x] **INFRA-01**: Alembic migration creates `docid_rrids` table with columns: `id` (integer PK), `entity_type` (varchar), `entity_id` (integer), `rrid` (varchar), `rrid_name` (varchar), `rrid_description` (text), `rrid_resource_type` (varchar), `rrid_url` (varchar), `resolved_json` (JSONB), `last_resolved_at` (datetime), `created_at` (datetime), `updated_at` (datetime)
+- [x] **INFRA-02**: `docid_rrids` table has `UniqueConstraint` on `(entity_type, entity_id, rrid)` to prevent duplicate attachments
+- [x] **INFRA-03**: `docid_rrids` table has composite index on `(entity_type, entity_id)` for fast lookups
+- [x] **INFRA-04**: `DocidRrid` SQLAlchemy model added to `backend/app/models.py` with `serialize()` method
 - [ ] **INFRA-05**: `SCICRUNCH_API_KEY` environment variable configured server-side only (never exposed via `NEXT_PUBLIC_*` prefix)
 - [ ] **INFRA-06**: `service_scicrunch.py` service module created with separate URL constants for search (`api.scicrunch.io`) and resolver (`scicrunch.org`)
 - [ ] **INFRA-07**: Flask blueprint `rrid.py` registered in `app/__init__.py` under `/api/v1/rrid` prefix
@@ -124,10 +124,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
+| INFRA-03 | Phase 1 | Complete |
+| INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 2 | Pending |
 | INFRA-06 | Phase 2 | Pending |
 | INFRA-07 | Phase 3 | Pending |
