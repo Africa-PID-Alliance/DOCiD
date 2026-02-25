@@ -50,8 +50,7 @@ venv.bak/
 *.db
 *.sqlite
 *.sqlite3
-migrations/versions/*.py
-!migrations/versions/.gitkeep
+migrations/versions/__pycache__/
 
 # Logs
 *.log
@@ -141,6 +140,20 @@ robots.txt
 *.md
 !README.md
 !CLAUDE.md
+
+# Data/spreadsheet files
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.json.bak
+
+# Document files
+*.docx
+*.pdf
+*.odt
+*.pptx
+*.ppt
 
 # Archive files
 *.zip

@@ -79,8 +79,16 @@ logs/
 # Documentation files (optional - remove if you want to track)
 *.docx
 *.xlsx
+*.xls
 *.pdf
 *.odt
+*.pptx
+*.ppt
+
+# Data/spreadsheet files
+*.csv
+*.tsv
+*.json.bak
 
 # Deployment packages
 docid-frontend-*.zip
@@ -101,7 +109,6 @@ htmlcov/
 # Database
 *.db
 *.sqlite3
-migrations/versions/
 
 # Temporary files
 *.tmp
@@ -109,6 +116,11 @@ migrations/versions/
 *.swp
 *~
 .~lock.*
+
+# Database dumps
+*.sql
+*.sql.gz
+*.dump
 
 # Test files
 test_*.png
