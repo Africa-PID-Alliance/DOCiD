@@ -78,6 +78,7 @@ const ListDocIds = () => {
 
   const searchTimeout = useRef(null);
   const [allPublications, setAllPublications] = useState([]);
+  const [userAccountType, setUserAccountType] = useState('');
 
   // Wait for Redux Persist to rehydrate before checking authentication
   useEffect(() => {
@@ -86,6 +87,17 @@ const ListDocIds = () => {
       const persistedAuth = localStorage.getItem('persist:root');
       if (persistedAuth) {
         setIsRehydrated(true);
+        // Extract account_type_name from auth object
+        try {
+          const parsedData = JSON.parse(persistedAuth);
+          if (parsedData.auth) {
+            const authData = JSON.parse(parsedData.auth);
+            const accountTypeName = authData?.user?.account_type_name || '';
+            setUserAccountType(accountTypeName);
+          }
+        } catch (error) {
+          console.error('Error parsing auth data:', error);
+        }
       } else {
         // If no persisted data, mark as rehydrated (user is not logged in)
         setTimeout(() => setIsRehydrated(true), 100);
@@ -642,6 +654,29 @@ const ListDocIds = () => {
                             router.push(getDocIdUrl(doc.docid));
                           }}
                         >
+                          {/* Account Type Badge */}
+                          <Chip
+                            label={userAccountType === 'Individual' ? 'Individual' : 'Institutional'}
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 12,
+                              right: 12,
+                              zIndex: 1,
+                              bgcolor: userAccountType === 'Individual'
+                                ? (theme.palette.mode === 'dark' ? '#1b5e20' : '#4caf50')
+                                : (theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0'),
+                              color: 'white',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                              '& .MuiChip-label': {
+                                px: 1.5
+                              }
+                            }}
+                          />
+
                           {/* Creator Info Section */}
                           <CardContent sx={{ pb: 1 }}>
                             <Box sx={{

@@ -72,6 +72,7 @@ const MyAccountPage = () => {
   const [publicationsPage, setPublicationsPage] = useState(1);
   const [draftsPage, setDraftsPage] = useState(1);
   const itemsPerPage = 5;
+  const [userAccountType, setUserAccountType] = useState('');
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
@@ -321,8 +322,24 @@ const MyAccountPage = () => {
     }
   };
 
-  // Fetch ORCID data when component mounts (optional)
+  // Fetch account type from localStorage and ORCID data when component mounts
   useEffect(() => {
+    // Extract account_type_name from localStorage
+    const persistedAuth = localStorage.getItem('persist:root');
+    if (persistedAuth) {
+      try {
+        const parsedData = JSON.parse(persistedAuth);
+        if (parsedData.auth) {
+          const authData = JSON.parse(parsedData.auth);
+          const accountTypeName = authData?.user?.account_type_name || '';
+          setUserAccountType(accountTypeName);
+        }
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
+    }
+
+    // Fetch ORCID data
     const orcidId = getOrcidId();
     console.log("Orcid ID", orcidId);
     if (orcidId) {
@@ -402,7 +419,7 @@ const MyAccountPage = () => {
     },
     {
       label: 'Account Type',
-      value: user?.account_type_name || t('my_account.common.n_a'),
+      value: userAccountType === 'Individual' ? 'Individual' : 'Institutional',
       loading: false
     },
     {
