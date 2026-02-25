@@ -40,10 +40,6 @@ jobs:
             pip install -r requirements.txt --quiet
 
             export FLASK_APP=run.py
-
-            # Fix Alembic migration state (idempotent — safe to run repeatedly)
-            python3 fix_alembic_state.py || echo "Warning: Schema fix script failed"
-
             flask db upgrade || echo "Warning: Migration failed - may need manual intervention"
 
             # Graceful reload gunicorn (send HUP to master process)
