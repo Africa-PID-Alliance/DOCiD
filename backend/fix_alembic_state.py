@@ -78,7 +78,37 @@ def main():
     else:
         print("account_type_id column: already exists")
 
-    # 4. Stamp alembic_version to current head
+    # 4. Add Cordra columns to publications if missing
+    cordra_columns = {
+        "cordra_status": "VARCHAR(20) NOT NULL DEFAULT 'PENDING'",
+        "cordra_error": "TEXT",
+        "cordra_object_id": "VARCHAR(128)",
+    }
+    for column_name, column_definition in cordra_columns.items():
+        cursor.execute("""
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'publications' AND column_name = %s
+        """, (column_name,))
+        if cursor.fetchone() is None:
+            cursor.execute(
+                f"ALTER TABLE publications ADD COLUMN {column_name} {column_definition}"
+            )
+            print(f"publications.{column_name}: ADDED")
+        else:
+            print(f"publications.{column_name}: already exists")
+
+    # Create indexes for cordra columns if missing
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS ix_publications_cordra_status
+        ON publications(cordra_status)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS ix_publications_cordra_object_id
+        ON publications(cordra_object_id)
+    """)
+    print("Cordra indexes: OK")
+
+    # 5. Stamp alembic_version to current head
     cursor.execute("SELECT version_num FROM alembic_version LIMIT 1")
     current_version = cursor.fetchone()
     if current_version:
