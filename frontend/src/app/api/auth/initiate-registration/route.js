@@ -105,7 +105,7 @@ export async function POST(request) {
           <tr>
             <td style="background: linear-gradient(135deg, #1565c0 0%, #141a3b 100%); padding:32px 40px; text-align:center;">
               <h1 style="margin:0; color:#ffffff; font-size:24px; font-weight:700; letter-spacing:0.5px;">DOCiD™</h1>
-              <p style="margin:8px 0 0; color:rgba(255,255,255,0.85); font-size:14px;">Digital Object Citation Identifier</p>
+              <p style="margin:8px 0 0; color:rgba(255,255,255,0.85); font-size:14px;">Digital Object Identifiers (DOIs)</p>
             </td>
           </tr>
           <!-- Body -->
