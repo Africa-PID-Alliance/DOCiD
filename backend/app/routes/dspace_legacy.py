@@ -73,18 +73,15 @@ def _extract_legacy_doi(metadata_list):
     """Extract actual DOI from DSpace 6.x metadata list format."""
     if not metadata_list:
         return None
+    from app.routes.dspace import _parse_doi_from_string
+    doi_keys = ('dc.identifier.doi', 'dc.identifier.other', 'dc.identifier', 'dcterms.identifier')
     for entry in metadata_list:
         key = entry.get('key', '')
         value = (entry.get('value') or '').strip()
-        if key in ('dc.identifier.doi', 'dc.identifier') and value and '10.' in value:
-            if value.startswith('https://doi.org/'):
-                return value[len('https://doi.org/'):]
-            if value.startswith('http://doi.org/'):
-                return value[len('http://doi.org/'):]
-            if value.startswith('doi:'):
-                return value[4:]
-            if value.startswith('10.'):
-                return value
+        if key in doi_keys and value and '10.' in value:
+            doi = _parse_doi_from_string(value)
+            if doi:
+                return doi
     return None
 
 

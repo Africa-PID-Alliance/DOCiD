@@ -78,30 +78,43 @@ def save_publication_creators(publication_id, creators_data, author_role_id=None
         db.session.bulk_save_objects(creators)
 
 
+def _parse_doi_from_string(value):
+    """
+    Extract a clean DOI (10.xxxx/yyyy) from a messy string.
+    Handles real-world university metadata formats:
+      'doi: 10.3389/fped.2019.00008.'
+      'DOI: http://dx.doi.org/10.20961/carakatani.v38i1.57446'
+      'https://doi.org/10.1007/s40204-021-00164-5'
+      '. https://doi.org/10.1371/journal.pone.0248281'
+      'doi.org/10.1007/s42250-022-00553-8'
+      'DOI:  10.1080/23311932.2021.1917834'
+    """
+    if not value or '10.' not in value:
+        return None
+    import re
+    match = re.search(r'(10\.\d{4,9}/[^\s]+)', value)
+    if match:
+        return match.group(1).rstrip('.,;:)')
+    return None
+
+
 def _extract_doi_from_metadata(metadata):
     """
     Extract actual DOI from DSpace metadata.
     DSpace stores DOI in various fields; handle is NOT a DOI.
+    Checks dc.identifier.doi, dc.identifier.other, and dcterms.identifier.
     """
     if not metadata:
         return None
 
-    # Check common DOI metadata fields
-    doi_fields = ['dc.identifier.doi', 'dc.identifier.issn', 'dcterms.identifier']
+    doi_fields = ['dc.identifier.doi', 'dc.identifier.other', 'dcterms.identifier']
     for field in doi_fields:
         values = metadata.get(field, [])
         for val in values:
-            v = (val.get('value') or '').strip()
-            if v and ('10.' in v):
-                # Looks like a DOI
-                if v.startswith('https://doi.org/'):
-                    return v[len('https://doi.org/'):]
-                if v.startswith('http://doi.org/'):
-                    return v[len('http://doi.org/'):]
-                if v.startswith('doi:'):
-                    return v[4:]
-                if v.startswith('10.'):
-                    return v
+            raw_value = (val.get('value') or '').strip()
+            doi = _parse_doi_from_string(raw_value)
+            if doi:
+                return doi
     return None
 
 
