@@ -3,20 +3,18 @@ import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
-// Define the transporter
-const transporter = nodemailer.createTransport(
-  {
-    
-host: 'send.one.com',
-  port: 465,
-  secure: true, // true for port 465 with SSL/TLS
+// Create transporter per-request to ensure env vars are loaded
+function createTransporter() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
-      user: process.env.NEXT_PUBLIC_SMTP_USER,
-      pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-    
-  }
-);
+  });
+}
 
 export async function POST(request) {
   try {
@@ -87,12 +85,13 @@ DOCID Team
 
         // Send the email
         const mailOptions = {
-          from: "DOCID Password Reset <docid@africapidalliance.org>",
+          from: "AFRICA PID Alliance <info@africapidalliance.org>",
           to: email,
           subject: "Password Reset Request",
           text: text,
         };
 
+        const transporter = createTransporter();
         await transporter.sendMail(mailOptions);
         console.log("Password reset email sent successfully to:", email);
 

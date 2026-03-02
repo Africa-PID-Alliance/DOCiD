@@ -7,9 +7,9 @@ import nodemailer from 'nodemailer';
 //create transporter per-request to ensure env vars are loaded
 function createTransporter() {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'send.one.com',
-    port: parseInt(process.env.SMTP_PORT || '465'),
-    secure: process.env.SMTP_SECURE === 'false' ? false : true,
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -153,7 +153,7 @@ export async function POST(request) {
 
     console.log("Preparing to send email...");
     const mailOptions = {
-        from: "DOCID Registration <docid@africapidalliance.org>",
+        from: "AFRICA PID Alliance <info@africapidalliance.org>",
         to: email,
         subject: "Complete Your Registration for DOCiD™ APP",
         text: text,
