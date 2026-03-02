@@ -325,19 +325,22 @@ const MyAccountPage = () => {
   // Fetch account type from localStorage and ORCID data when component mounts
   useEffect(() => {
     // Extract account_type_name from localStorage
-    const persistedAuth = localStorage.getItem('persist:root');
-    if (persistedAuth) {
-      try {
-        const parsedData = JSON.parse(persistedAuth);
-        if (parsedData.auth) {
-          const authData = JSON.parse(parsedData.auth);
-          const accountTypeName = authData?.user?.account_type_name || '';
-          setUserAccountType(accountTypeName);
-        }
-      } catch (error) {
-        console.error('Error parsing auth data:', error);
-      }
+   try {
+    const storedUser = localStorage.getItem('user');
+    console.log('Raw user:', storedUser);
+
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      console.log('Parsed user:', parsedUser);
+
+      const accountTypeName = parsedUser?.account_type_name || '';
+      console.log('account_type_name:', accountTypeName);
+
+      setUserAccountType(accountTypeName);
     }
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+  }
 
     // Fetch ORCID data
     const orcidId = getOrcidId();
