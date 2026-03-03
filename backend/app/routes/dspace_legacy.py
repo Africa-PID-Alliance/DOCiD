@@ -90,7 +90,7 @@ def _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id
     publication.document_title = mapped_data['publication']['document_title']
     publication.document_description = mapped_data['publication'].get('document_description', '')
     publication.resource_type_id = resource_type_id
-    publication.doi = doi
+    publication.doi = doi or ''
     publication.document_docid = handle if handle else f"LegacyItem:{item_id}"
     publication.handle_url = f"{DSPACE_LEGACY_URL}/handle/{handle}" if handle else None
     publication.owner = os.environ.get('DSPACE_LEGACY_INSTANCE_NAME', 'DSpace Legacy Repository')
