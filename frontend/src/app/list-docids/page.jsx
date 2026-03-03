@@ -654,18 +654,16 @@ const ListDocIds = () => {
                             router.push(getDocIdUrl(doc.docid));
                           }}
                         >
-                          {/* Account Type Badge */}
+                          {/* Source Institution Badge */}
                           <Chip
-                            label={userAccountType === 'Individual' ? 'Individual' : 'Institutional'}
+                            label={doc.owner || 'DOCiD'}
                             size="small"
                             sx={{
                               position: 'absolute',
                               top: 12,
                               right: 12,
                               zIndex: 1,
-                              bgcolor: userAccountType === 'Individual'
-                                ? (theme.palette.mode === 'dark' ? '#1b5e20' : '#4caf50')
-                                : (theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0'),
+                              bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
                               color: 'white',
                               fontWeight: 600,
                               fontSize: '0.75rem',
@@ -677,67 +675,35 @@ const ListDocIds = () => {
                             }}
                           />
 
-                          {/* Creator Info Section */}
+                          {/* Title & Date Section */}
                           <CardContent sx={{ pb: 1 }}>
-                            <Box sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              mb: 2,
-                              gap: 2
-                            }}>
-                              <Avatar
-                                src={doc.avatar || '/assets/images/logo2.png'}
-                                alt={doc.owner || 'System'}
-                                sx={{
-                                  width: 44,
-                                  height: 44,
-                                  bgcolor: theme.palette.primary.main,
-                                  border: `2px solid ${theme.palette.primary.light}`,
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                }}
-                              >
-                                {!doc.avatar && doc.owner && doc.owner[0] ? doc.owner[0].toUpperCase() : 'S'}
-                              </Avatar>
-                              <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography
-                                    variant="subtitle1"
-                                    sx={{
-                                      fontWeight: 600,
-                                      color: theme.palette.text.primary
-                                    }}
-                                  >
-                                    {doc.owner || 'System'}
-                                  </Typography>
-                                  {doc.account_type_name && (
-                                    <Chip
-                                      label={doc.account_type_name}
-                                      size="small"
-                                      sx={{
-                                        height: 20,
-                                        fontSize: '0.7rem',
-                                        fontWeight: 600,
-                                        bgcolor: doc.account_type_name === 'Institutional'
-                                          ? `${theme.palette.info.main}18`
-                                          : `${theme.palette.success.main}18`,
-                                        color: doc.account_type_name === 'Institutional'
-                                          ? theme.palette.info.main
-                                          : theme.palette.success.main,
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: theme.palette.text.secondary,
-                                    display: 'block'
-                                  }}
-                                >
-                                  {formatDate(doc.published_isoformat)}
-                                </Typography>
-                              </Box>
-                            </Box>
+                            <Typography
+                              variant="h6"
+                              component="h2"
+                              sx={{
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                color: theme.palette.text.primary,
+                                mb: 0.5,
+                                pr: 10,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {doc.title}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: theme.palette.text.secondary,
+                                display: 'block'
+                              }}
+                            >
+                              {formatDate(doc.published_isoformat)}
+                            </Typography>
                           </CardContent>
 
                           {/* Image Section */}
@@ -825,10 +791,9 @@ const ListDocIds = () => {
                             </Box>
                           </Box>
 
-                          {/* Content Section */}
+                          {/* Resource Type Section */}
                           <CardContent sx={{ flexGrow: 1, pt: 2 }}>
                             <Box sx={{
-                              mb: 2,
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
@@ -849,27 +814,6 @@ const ListDocIds = () => {
                                 }}
                               />
                             </Box>
-
-                            <Typography
-                              variant="h6"
-                              component="h2"
-                              sx={{
-                                fontSize: '1.2rem',
-                                fontWeight: 600,
-                                lineHeight: 1.4,
-                                color: theme.palette.text.primary,
-                                mb: '5px',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                minHeight: '3rem',
-                                textAlign: 'center',
-                                textTransform: 'capitalize'
-                              }}
-                            >
-                              {doc.title}
-                            </Typography>
                           </CardContent>
                         </Card>
                       </Grid>

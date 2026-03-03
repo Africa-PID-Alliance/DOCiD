@@ -167,12 +167,12 @@ class DSpaceLegacyClient:
             print(f"Error fetching items: {e}")
             return None
 
-    def get_item(self, item_id: int) -> Optional[Dict]:
+    def get_item(self, item_id) -> Optional[Dict]:
         """
-        Get single item by ID
+        Get single item by ID or UUID
 
         Args:
-            item_id: Item ID (not UUID - Legacy uses numeric IDs)
+            item_id: Item numeric ID or UUID string
 
         Returns:
             Item dictionary or None
@@ -235,7 +235,7 @@ class DSpaceLegacyClient:
             print(f"Error fetching collections: {e}")
             return None
 
-    def get_collection_items(self, collection_id: int, limit: int = 20, offset: int = 0) -> Optional[List[Dict]]:
+    def get_collection_items(self, collection_id, limit: int = 20, offset: int = 0) -> Optional[List[Dict]]:
         """Get items from a specific collection"""
         try:
             url = f"{self.rest_url}/collections/{collection_id}/items"

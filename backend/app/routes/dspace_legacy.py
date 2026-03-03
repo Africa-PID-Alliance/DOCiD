@@ -93,7 +93,7 @@ def _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id
     publication.doi = doi
     publication.document_docid = handle if handle else f"LegacyItem:{item_id}"
     publication.handle_url = f"{DSPACE_LEGACY_URL}/handle/{handle}" if handle else None
-    publication.owner = 'DSpace Legacy Repository'
+    publication.owner = os.environ.get('DSPACE_LEGACY_INSTANCE_NAME', 'DSpace Legacy Repository')
 
 
 @dspace_legacy_bp.route('/config', methods=['GET'])
@@ -235,7 +235,7 @@ def list_items():
     return jsonify(items), 200
 
 
-@dspace_legacy_bp.route('/items/<int:item_id>', methods=['GET'])
+@dspace_legacy_bp.route('/items/<item_id>', methods=['GET'])
 @jwt_required()
 def get_item(item_id):
     """
@@ -250,10 +250,10 @@ def get_item(item_id):
     parameters:
       - name: item_id
         in: path
-        type: integer
+        type: string
         required: true
-        description: DSpace item ID (numeric, not UUID)
-        example: 12345
+        description: DSpace item ID (numeric or UUID)
+        example: bba163d4-a372-4e27-a796-fe01bd1ff5f1
     responses:
       200:
         description: Item retrieved successfully
@@ -309,7 +309,7 @@ def get_by_handle(handle):
     return jsonify(item), 200
 
 
-@dspace_legacy_bp.route('/preview/item/<int:item_id>', methods=['GET'])
+@dspace_legacy_bp.route('/preview/item/<item_id>', methods=['GET'])
 @jwt_required()
 def preview_item(item_id):
     """
@@ -366,7 +366,7 @@ def preview_item(item_id):
     }), 200
 
 
-@dspace_legacy_bp.route('/sync/item/<int:item_id>', methods=['POST'])
+@dspace_legacy_bp.route('/sync/item/<item_id>', methods=['POST'])
 @jwt_required()
 def sync_single_item(item_id):
     """
@@ -381,10 +381,10 @@ def sync_single_item(item_id):
     parameters:
       - name: item_id
         in: path
-        type: integer
+        type: string
         required: true
-        description: DSpace item ID to sync
-        example: 12345
+        description: DSpace item ID or UUID to sync
+        example: bba163d4-a372-4e27-a796-fe01bd1ff5f1
       - name: update_existing
         in: query
         type: boolean
@@ -417,8 +417,8 @@ def sync_single_item(item_id):
     current_user_id = get_jwt_identity()
     update_existing = request.args.get('update_existing', 'false').lower() == 'true'
 
-    # Use handle or legacy-item-{id} as the mapping key
-    legacy_uuid = f"legacy-item-{item_id}"
+    # Use item_id directly as mapping key if it looks like a UUID, otherwise prefix it
+    legacy_uuid = item_id if '-' in str(item_id) else f"legacy-item-{item_id}"
 
     # Check if already synced
     existing_mapping = DSpaceMapping.query.filter_by(dspace_uuid=legacy_uuid).first()
@@ -590,7 +590,10 @@ def batch_sync():
         return jsonify({'error': 'Failed to fetch items'}), 500
 
     # --- Prefetch existing mappings ---
-    incoming_legacy_uuids = [f"legacy-item-{item.get('id')}" for item in items if item.get('id')]
+    def _make_legacy_uuid(item):
+        item_uuid = item.get('uuid') or item.get('id')
+        return str(item_uuid) if item_uuid and '-' in str(item_uuid) else f"legacy-item-{item_uuid}"
+    incoming_legacy_uuids = [_make_legacy_uuid(item) for item in items if item.get('uuid') or item.get('id')]
     existing_mappings_map = {}
     if incoming_legacy_uuids:
         existing_mappings = DSpaceMapping.query.filter(
@@ -614,9 +617,9 @@ def batch_sync():
     }
 
     for item_summary in items:
-        item_id = item_summary.get('id')
+        item_id = item_summary.get('uuid') or item_summary.get('id')
         handle = item_summary.get('handle', f'legacy/{item_id}')
-        legacy_uuid = f"legacy-item-{item_id}"
+        legacy_uuid = str(item_id) if item_id and '-' in str(item_id) else f"legacy-item-{item_id}"
 
         try:
             savepoint = db.session.begin_nested()
@@ -773,7 +776,7 @@ def list_collections():
     return jsonify(collections), 200
 
 
-@dspace_legacy_bp.route('/collections/<int:collection_id>/items', methods=['GET'])
+@dspace_legacy_bp.route('/collections/<collection_id>/items', methods=['GET'])
 @jwt_required()
 def get_collection_items(collection_id):
     """
@@ -788,8 +791,9 @@ def get_collection_items(collection_id):
     parameters:
       - name: collection_id
         in: path
-        type: integer
+        type: string
         required: true
+        description: Collection ID or UUID
       - name: limit
         in: query
         type: integer
