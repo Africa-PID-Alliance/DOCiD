@@ -1471,7 +1471,7 @@ class DocidRrid(db.Model):
     No SQLAlchemy relationship() declarations — polymorphic entity_id prevents clean FK
     relationships. Query by ID using class methods instead.
     """
-    ALLOWED_ENTITY_TYPES = frozenset({'publication', 'organization'})
+    ALLOWED_ENTITY_TYPES = frozenset({'publication', 'organization', 'document'})
 
     __tablename__ = 'docid_rrids'
 
