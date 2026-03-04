@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
-const RridForm = ({ formData = { resources: [] }, updateFormData }) => {
+const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourceTypes }) => {
   const theme = useTheme();
   const [isRridModalOpen, setIsRridModalOpen] = useState(false);
   const [researchResources, setResearchResources] = useState(formData?.resources || []);
@@ -144,6 +144,7 @@ const RridForm = ({ formData = { resources: [] }, updateFormData }) => {
         onClose={() => setIsRridModalOpen(false)}
         collectOnly
         onSelectRrid={handleAddResource}
+        allowedResourceTypes={allowedResourceTypes}
       />
     </Box>
   );

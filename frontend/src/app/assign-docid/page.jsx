@@ -398,6 +398,7 @@ const AssignDocID = () => {
               <RridForm
                 formData={formData.researchResources || { resources: [] }}
                 updateFormData={(data) => updateFormData('researchResources', data)}
+                allowedResourceTypes={['software', 'antibody', 'cell_line']}
               />
             </Paper>
           </Box>
@@ -472,6 +473,7 @@ const AssignDocID = () => {
               <RridForm
                 formData={formData.researchResources || { resources: [] }}
                 updateFormData={(data) => updateFormData('researchResources', data)}
+                allowedResourceTypes={['core_facility']}
               />
             </Paper>
           </Box>

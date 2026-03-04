@@ -56,11 +56,18 @@ const RridSearchModal = ({
   onAttachSuccess,
   collectOnly = false,
   onSelectRrid,
+  allowedResourceTypes,
 }) => {
+  // Filter resource types if allowedResourceTypes prop is provided
+  const availableResourceTypes = allowedResourceTypes
+    ? RESOURCE_TYPES.filter((type) => allowedResourceTypes.includes(type.value))
+    : RESOURCE_TYPES;
+  const defaultResourceType = availableResourceTypes[0]?.value || 'core_facility';
+
   // Search tab state
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [resourceType, setResourceType] = useState('core_facility');
+  const [resourceType, setResourceType] = useState(defaultResourceType);
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -81,7 +88,7 @@ const RridSearchModal = ({
   const handleClose = () => {
     setActiveTab(0);
     setSearchQuery('');
-    setResourceType('core_facility');
+    setResourceType(defaultResourceType);
     setSearchResults([]);
     setSearchLoading(false);
     setSearchError('');
@@ -264,7 +271,7 @@ const RridSearchModal = ({
                 label="Type"
                 onChange={handleResourceTypeChange}
               >
-                {RESOURCE_TYPES.map((resourceTypeOption) => (
+                {availableResourceTypes.map((resourceTypeOption) => (
                   <MenuItem key={resourceTypeOption.value} value={resourceTypeOption.value}>
                     {resourceTypeOption.label}
                   </MenuItem>
