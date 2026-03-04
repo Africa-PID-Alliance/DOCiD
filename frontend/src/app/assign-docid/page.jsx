@@ -371,10 +371,36 @@ const AssignDocID = () => {
         );
       case 2:
         return (
-          <DocumentsForm
-            formData={formData.documents}
-            updateFormData={(data) => updateFormData('documents', data)}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <DocumentsForm
+                formData={formData.documents}
+                updateFormData={(data) => updateFormData('documents', data)}
+              />
+            </Paper>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <RridForm
+                formData={formData.researchResources || { resources: [] }}
+                updateFormData={(data) => updateFormData('researchResources', data)}
+              />
+            </Paper>
+          </Box>
         );
       case 3:
         return (

@@ -56,6 +56,7 @@ import { formatDocIdForDisplay, formatDocIdForUrl } from '@/utils/docidUtils';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
+import LocalContextsLabels from '@/components/LocalContexts/LocalContextsLabels';
 
 const DocIDPage = ({ params }) => {
   const [comment, setComment] = useState('');
@@ -1460,6 +1461,22 @@ const DocIDPage = ({ params }) => {
                   entityId={publicationId}
                   onAttachSuccess={handleRridAttachSuccess}
                 />
+              )}
+
+              {/* Local Contexts TK/BC Labels Section */}
+              {publicationId && (
+                <Box mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
+                  <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+                    <Box
+                      component="img"
+                      src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
+                      alt="Local Contexts"
+                      sx={{ width: 20, height: 20 }}
+                    />
+                    <Typography fontWeight={600}>Local Contexts Labels</Typography>
+                  </Box>
+                  <LocalContextsLabels publicationId={publicationId} />
+                </Box>
               )}
 
               {/* Modal for viewing section details */}
