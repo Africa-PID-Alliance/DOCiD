@@ -329,7 +329,11 @@ class DSpaceLegacyMetadataMapper:
 
         # Extract basic fields
         title = cls._get_metadata_value(metadata, 'dc.title')
-        description = cls._get_metadata_value(metadata, 'dc.description.abstract')
+        description = (
+            cls._get_metadata_value(metadata, 'dc.description') or
+            cls._get_metadata_value(metadata, 'dc.description.abstract') or
+            ''
+        )
         dc_type = cls._get_metadata_value(metadata, 'dc.type')
         date_issued = cls._get_metadata_value(metadata, 'dc.date.issued')
 
@@ -538,32 +542,32 @@ class DSpaceLegacyMetadataMapper:
 
     @staticmethod
     def _map_dc_type_to_resource_type(dc_type: Optional[str]) -> str:
-        """Map Dublin Core type to DOCiD resource type"""
+        """Map Dublin Core type to DataCite resource type (must match resource_types DB table)"""
         if not dc_type:
             return 'Text'
 
         dc_type_lower = dc_type.lower()
 
-        # Common mappings
+        # Map to DataCite vocabulary matching resource_types DB table
         type_mapping = {
-            'article': 'Article',
-            'journal article': 'Article',
-            'book': 'Book',
-            'book chapter': 'Book Chapter',
-            'conference paper': 'Conference Paper',
-            'thesis': 'Thesis',
-            'dissertation': 'Thesis',
+            'article': 'Text',
+            'journal article': 'Text',
+            'book': 'Text',
+            'book chapter': 'Text',
+            'conference paper': 'Text',
+            'thesis': 'Text',
+            'dissertation': 'Text',
             'dataset': 'Dataset',
             'image': 'Image',
-            'video': 'Video',
-            'audio': 'Audio',
+            'video': 'Audiovisual',
+            'audio': 'Audiovisual',
             'software': 'Software',
-            'presentation': 'Presentation',
-            'poster': 'Poster',
-            'report': 'Report',
-            'technical report': 'Report',
-            'working paper': 'Working Paper',
-            'preprint': 'Preprint',
+            'presentation': 'Text',
+            'poster': 'Image',
+            'report': 'Text',
+            'technical report': 'Text',
+            'working paper': 'Text',
+            'preprint': 'Text',
         }
 
         for key, value in type_mapping.items():

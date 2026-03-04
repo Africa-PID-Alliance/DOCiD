@@ -241,10 +241,11 @@ class DSpaceMetadataMapper:
         if not title:
             title = dspace_item.get('name', 'Untitled')
 
-        # Extract description
+        # Extract description — prefer dc.description (richer provenance/detail)
+        # over dc.description.abstract (short summary)
         description = (
-            cls._get_metadata_value(metadata, 'dc.description.abstract') or
             cls._get_metadata_value(metadata, 'dc.description') or
+            cls._get_metadata_value(metadata, 'dc.description.abstract') or
             ''
         )
 
