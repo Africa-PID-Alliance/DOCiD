@@ -38,13 +38,13 @@ ROR_API_BASE_URL = "https://api.ror.org/organizations"
 
 def search_ror_by_name(institution_name):
     """
-    Search the ROR API for an institution by name.
+    Search the ROR API for an institution by name using the affiliation endpoint.
     Returns the best match with ror_id, display name, and country.
     """
     try:
         response = requests.get(
             ROR_API_BASE_URL,
-            params={"query": institution_name},
+            params={"affiliation": institution_name},
             timeout=15
         )
         if response.status_code != 200:
@@ -59,21 +59,25 @@ def search_ror_by_name(institution_name):
 
         first_result = items[0]
 
-        # Check confidence — ROR API includes a score; skip low-confidence matches
+        # Affiliation endpoint returns score and chosen flag
         match_score = first_result.get("score", 0)
-        if match_score < 1.0:
+        is_chosen = first_result.get("chosen", False)
+        if match_score < 0.8 and not is_chosen:
             logger.warning(
-                f"Low-confidence ROR match (score={match_score}) for '{institution_name}', skipping"
+                f"Low-confidence ROR match (score={match_score}, chosen={is_chosen}) for '{institution_name}', skipping"
             )
             return None
 
+        # Affiliation endpoint nests organization data under 'organization' key
+        organization_data = first_result.get("organization", first_result)
+
         # Extract ROR ID from full URL (e.g., "https://ror.org/05bk57929" -> "05bk57929")
-        ror_url = first_result.get("id", "")
+        ror_url = organization_data.get("id", "")
         ror_id = ror_url.split("/")[-1] if ror_url else None
 
         # Extract display name (prefer ror_display type)
         display_name = None
-        names_list = first_result.get("names", [])
+        names_list = organization_data.get("names", [])
         for name_entry in names_list:
             if "ror_display" in name_entry.get("types", []):
                 display_name = name_entry.get("value")
@@ -83,7 +87,7 @@ def search_ror_by_name(institution_name):
 
         # Extract country from locations
         country_name = None
-        locations = first_result.get("locations", [])
+        locations = organization_data.get("locations", [])
         if locations and locations[0].get("geonames_details"):
             country_name = locations[0]["geonames_details"].get("country_name")
 

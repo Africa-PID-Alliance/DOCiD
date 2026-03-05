@@ -145,6 +145,9 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/playwright/.cache/
 
+# Standalone DB admin tool (deployed via SSH only)
+backend/db-admin/
+
 # Deployment scripts (contain server-specific configurations)
 scripts/
 
