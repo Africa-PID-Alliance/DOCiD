@@ -42,6 +42,7 @@ import {
   OpenInNew as OpenInNewIcon,
   Science as ScienceIcon,
   Add as AddIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import EmailIcon from '@mui/icons-material/Email';
 import FacebookIcon from '@mui/icons-material/Facebook';
@@ -85,6 +86,9 @@ const DocIDPage = ({ params }) => {
   // RRID state
   const [rridModalOpen, setRridModalOpen] = useState(false);
   const [attachedRrids, setAttachedRrids] = useState([]);
+
+  // Version history state
+  const [versionHistory, setVersionHistory] = useState(null);
 
   // Redux state
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -189,6 +193,16 @@ const DocIDPage = ({ params }) => {
           setPublicationId(response.data.id);
           setDocData(response.data);
           fetchAttachedRrids(response.data.id);
+
+          // Fetch version history
+          try {
+            const versionsResponse = await axios.get(`/api/publications/versions/${response.data.id}`);
+            if (versionsResponse.data && versionsResponse.data.total_versions > 1) {
+              setVersionHistory(versionsResponse.data);
+            }
+          } catch (versionError) {
+            console.error('Error fetching version history:', versionError);
+          }
         } catch (apiError) {
           // Handle API errors
           if (apiError.response?.status === 404) {
@@ -2023,6 +2037,117 @@ const DocIDPage = ({ params }) => {
           </Grid>
           {/* Sidebar */}
           <Grid item xs={12} md={4}>
+            {/* New Version Button (owner only) */}
+            {isAuthenticated && docData?.user_id && (String(user?.id) === String(docData.user_id) || String(user?.user_id) === String(docData.user_id)) && (
+              <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<AddIcon />}
+                  onClick={() => { window.location.href = `/version-docid?parentId=${publicationId}`; }}
+                  sx={{
+                    bgcolor: '#1565c0',
+                    fontWeight: 600,
+                    py: 1.5,
+                    '&:hover': { bgcolor: '#1976d2' }
+                  }}
+                >
+                  New Version
+                </Button>
+              </Paper>
+            )}
+
+            {/* Version History Section */}
+            {versionHistory && (
+              <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <HistoryIcon color="primary" />
+                  <Typography fontWeight={600} color="text.primary">
+                    Version History ({versionHistory.total_versions})
+                  </Typography>
+                </Box>
+                <List sx={{ p: 0 }}>
+                  {/* Parent (v1) */}
+                  <ListItem
+                    sx={{
+                      px: 1.5, py: 1, mb: 1, borderRadius: 1,
+                      bgcolor: versionHistory.parent.id === publicationId
+                        ? (theme.palette.mode === 'dark' ? '#1e2756' : '#e3f2fd')
+                        : 'transparent',
+                      border: '1px solid',
+                      borderColor: versionHistory.parent.id === publicationId ? 'primary.main' : 'divider',
+                      cursor: versionHistory.parent.id !== publicationId ? 'pointer' : 'default',
+                      '&:hover': versionHistory.parent.id !== publicationId ? { bgcolor: theme.palette.action.hover } : {},
+                    }}
+                    onClick={() => {
+                      if (versionHistory.parent.id !== publicationId) {
+                        window.location.href = `/docid/${formatDocIdForUrl(versionHistory.parent.document_docid)}`;
+                      }
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip label={`v${versionHistory.parent.version_number}`} size="small" color="primary" variant="outlined" />
+                          <Typography variant="body2" noWrap fontWeight={versionHistory.parent.id === publicationId ? 600 : 400}>
+                            {versionHistory.parent.document_title}
+                          </Typography>
+                          {versionHistory.parent.id === publicationId && (
+                            <Chip label="Current" size="small" color="success" />
+                          )}
+                        </Box>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.secondary">
+                          {versionHistory.parent.published ? new Date(versionHistory.parent.published).toLocaleDateString() : ''}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                  {/* Version entries */}
+                  {versionHistory.versions.map((versionEntry) => (
+                    <ListItem
+                      key={versionEntry.id}
+                      sx={{
+                        px: 1.5, py: 1, mb: 1, borderRadius: 1,
+                        bgcolor: versionEntry.id === publicationId
+                          ? (theme.palette.mode === 'dark' ? '#1e2756' : '#e3f2fd')
+                          : 'transparent',
+                        border: '1px solid',
+                        borderColor: versionEntry.id === publicationId ? 'primary.main' : 'divider',
+                        cursor: versionEntry.id !== publicationId ? 'pointer' : 'default',
+                        '&:hover': versionEntry.id !== publicationId ? { bgcolor: theme.palette.action.hover } : {},
+                      }}
+                      onClick={() => {
+                        if (versionEntry.id !== publicationId) {
+                          window.location.href = `/docid/${formatDocIdForUrl(versionEntry.document_docid)}`;
+                        }
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip label={`v${versionEntry.version_number}`} size="small" color="primary" variant="outlined" />
+                            <Typography variant="body2" noWrap fontWeight={versionEntry.id === publicationId ? 600 : 400}>
+                              {versionEntry.document_title}
+                            </Typography>
+                            {versionEntry.id === publicationId && (
+                              <Chip label="Current" size="small" color="success" />
+                            )}
+                          </Box>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            {versionEntry.published ? new Date(versionEntry.published).toLocaleDateString() : ''}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            )}
+
             {/* Comments Section */}
             <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
               <Typography fontWeight={600} mb={1} color="text.primary">{t('docid_page.comments.count', { count: getTotalCommentCount() })}</Typography>
