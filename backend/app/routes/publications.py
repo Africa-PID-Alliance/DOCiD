@@ -11,7 +11,7 @@ from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifie
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
 # from app.service_codra import update_object
 from app.service_identifiers import IdentifierService
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import re
@@ -587,7 +587,9 @@ def get_publication(publication_id):
                 'name': org.name,
                 'type': org.type,
                 'other_name': org.other_name,
-                'country': org.country
+                'country': org.country,
+                'identifier': org.identifier,
+                'identifier_type': org.identifier_type
             } for org in data.publication_organizations
         ]
 
@@ -742,7 +744,9 @@ def get_publication_by_docid_prefix():
                 'name': org.name,
                 'type': org.type,
                 'other_name': org.other_name,
-                'country': org.country
+                'country': org.country,
+                'identifier': org.identifier,
+                'identifier_type': org.identifier_type
             } for org in data.publication_organizations
         ]
 
@@ -904,7 +908,9 @@ def get_publication_by_docid_simple(document_docid):
                 'name': org.name,
                 'type': org.type,
                 'other_name': org.other_name,
-                'country': org.country
+                'country': org.country,
+                'identifier': org.identifier,
+                'identifier_type': org.identifier_type
             } for org in data.publication_organizations
         ]
 
@@ -2694,4 +2700,512 @@ def delete_publication(publication_id):
         logger.error(f"Error deleting publication {publication_id}: {str(e)}")
         return jsonify({'error': 'Failed to delete publication'}), 500
 
- 
+
+# ===== VERSIONING ENDPOINTS =====
+
+@publications_bp.route('/my-docids/<int:user_id>', methods=['GET'])
+def get_my_docids(user_id):
+    """
+    Get all published DOCiDs for a user (for parent selector dropdown in version-docid page)
+    ---
+    tags:
+      - Publications
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: List of user's DOCiDs
+    """
+    try:
+        publications = Publications.query.filter_by(user_id=user_id).order_by(Publications.published.desc()).all()
+
+        docid_list = []
+        for publication in publications:
+            docid_list.append({
+                'id': publication.id,
+                'document_docid': publication.document_docid,
+                'document_title': publication.document_title,
+                'version_number': publication.version_number,
+                'published': publication.published.isoformat() if publication.published else None
+            })
+
+        return jsonify(docid_list), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching DOCiDs for user {user_id}: {str(e)}")
+        return jsonify({'error': 'Failed to fetch DOCiDs'}), 500
+
+
+@publications_bp.route('/versions/<int:publication_id>', methods=['GET'])
+def get_publication_versions(publication_id):
+    """
+    Get version chain for a publication (parent + all versions)
+    ---
+    tags:
+      - Publications
+    parameters:
+      - name: publication_id
+        in: path
+        type: integer
+        required: true
+        description: Publication ID (can be parent or any version)
+    responses:
+      200:
+        description: Version chain with parent and all versions
+      404:
+        description: Publication not found
+    """
+    try:
+        publication = Publications.query.get(publication_id)
+        if not publication:
+            return jsonify({'error': 'Publication not found'}), 404
+
+        # Resolve to root parent (walk up if this is a version itself)
+        root_parent = publication
+        if publication.parent_id:
+            root_parent = Publications.query.get(publication.parent_id)
+            if not root_parent:
+                root_parent = publication  # parent was deleted, treat as standalone
+
+        # Get all versions of the root parent
+        version_records = Publications.query.filter_by(parent_id=root_parent.id).order_by(Publications.version_number.asc()).all()
+
+        parent_data = {
+            'id': root_parent.id,
+            'document_docid': root_parent.document_docid,
+            'document_title': root_parent.document_title,
+            'version_number': root_parent.version_number or 1,
+            'published': root_parent.published.isoformat() if root_parent.published else None
+        }
+
+        versions_data = []
+        for version_record in version_records:
+            versions_data.append({
+                'id': version_record.id,
+                'document_docid': version_record.document_docid,
+                'document_title': version_record.document_title,
+                'version_number': version_record.version_number,
+                'published': version_record.published.isoformat() if version_record.published else None
+            })
+
+        return jsonify({
+            'parent': parent_data,
+            'versions': versions_data,
+            'total_versions': len(versions_data) + 1  # including parent
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching versions for publication {publication_id}: {str(e)}")
+        return jsonify({'error': 'Failed to fetch versions'}), 500
+
+
+@publications_bp.route('/version', methods=['POST'])
+def create_version():
+    """
+    Create a new version of an existing publication.
+    Mirrors /publish but requires parentId and auto-computes version_number.
+    ---
+    tags:
+      - Publications
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: parentId
+        in: formData
+        type: integer
+        required: true
+        description: Publication ID of the parent DOCiD to version
+      - name: documentDocid
+        in: formData
+        type: string
+        required: true
+        description: New unique identifier for this version
+      - name: documentTitle
+        in: formData
+        type: string
+        required: true
+      - name: documentDescription
+        in: formData
+        type: string
+        required: true
+      - name: resourceType
+        in: formData
+        type: string
+        required: true
+      - name: user_id
+        in: formData
+        type: integer
+        required: true
+      - name: owner
+        in: formData
+        type: string
+        required: true
+    responses:
+      200:
+        description: Version created successfully
+      400:
+        description: Missing required fields
+      403:
+        description: Not authorized to version this DOCiD
+      404:
+        description: Parent publication not found
+      500:
+        description: Server error
+    """
+    try:
+        logger.info(f"=== START: Create Version Request at {datetime.now()} ===")
+
+        # --- Extract parent_id ---
+        parent_id_str = request.form.get('parentId')
+        if not parent_id_str:
+            return jsonify({'message': 'Missing required field: parentId'}), 400
+
+        try:
+            parent_id = int(parent_id_str)
+        except ValueError:
+            return jsonify({'message': 'parentId must be an integer'}), 400
+
+        # --- Validate parent exists ---
+        parent_publication = Publications.query.get(parent_id)
+        if not parent_publication:
+            return jsonify({'message': f'Parent publication {parent_id} not found'}), 404
+
+        # --- Extract and validate common fields ---
+        document_docid = request.form.get('documentDocid')
+        document_title = request.form.get('documentTitle')
+        document_description = request.form.get('documentDescription')
+        resource_type = request.form.get('resourceType')
+        user_id = request.form.get('user_id')
+        doi = clean_undefined_string(request.form.get('doi'))
+        owner = request.form.get('owner')
+        publication_poster = request.files.get('publicationPoster')
+        avatar = clean_undefined_string(request.form.get('avatar'))
+
+        missing_fields = []
+        if not document_docid:
+            missing_fields.append('documentDocid')
+        if not document_title:
+            missing_fields.append('documentTitle')
+        if not document_description:
+            missing_fields.append('documentDescription')
+        if not resource_type:
+            missing_fields.append('resourceType')
+        if not user_id:
+            missing_fields.append('user_id')
+        if not owner:
+            missing_fields.append('owner')
+
+        if missing_fields:
+            return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+
+        try:
+            resource_type = int(resource_type)
+        except ValueError:
+            return jsonify({'message': f"Invalid resource type '{resource_type}'."}), 400
+
+        resource_type_obj = ResourceTypes.query.filter_by(id=resource_type).first()
+        if not resource_type_obj:
+            return jsonify({'message': f"Invalid resource type '{resource_type}'."}), 400
+        resource_type_id = resource_type_obj.id
+
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return jsonify({'message': f"Invalid user id '{user_id}'."}), 400
+
+        user = UserAccount.query.filter_by(user_id=user_id).first()
+        if not user:
+            return jsonify({'message': f"Invalid user '{user_id}'."}), 400
+
+        # --- Owner check: only parent owner can create versions ---
+        if parent_publication.user_id != user_id:
+            logger.warning(f"User {user_id} attempted to version publication {parent_id} owned by user {parent_publication.user_id}")
+            return jsonify({'message': 'You can only create versions of your own DOCiDs'}), 403
+
+        # --- Resolve root parent (flat chain: all versions point to original v1) ---
+        root_parent_id = parent_id
+        if parent_publication.parent_id:
+            root_parent_id = parent_publication.parent_id
+            logger.info(f"Resolved to root parent: {root_parent_id} (selected parent {parent_id} is itself a version)")
+
+        # --- Auto-compute version number ---
+        max_version = db.session.query(func.max(Publications.version_number)).filter_by(parent_id=root_parent_id).scalar() or 0
+        # Also check root parent's own version_number
+        root_parent = Publications.query.get(root_parent_id)
+        if root_parent and root_parent.version_number and root_parent.version_number > max_version:
+            max_version = root_parent.version_number
+        new_version_number = max(max_version, 1) + 1
+
+        logger.info(f"Versioning publication {root_parent_id}: new version_number = {new_version_number}")
+
+        # --- Backfill parent version_number if null ---
+        if root_parent and root_parent.version_number is None:
+            root_parent.version_number = 1
+            logger.info(f"Backfilled root parent {root_parent_id} with version_number=1")
+
+        # --- Handle file uploads ---
+        publication_poster_url = None
+        if publication_poster:
+            poster_filename = publication_poster.filename
+            publication_poster.save(f'uploads/{poster_filename}')
+            base_url = 'https://docid.africapidalliance.org'
+            publication_poster_url = f'{base_url}/uploads/{poster_filename}'
+
+        # --- Create the versioned publication record ---
+        publication = Publications(
+            user_id=user_id,
+            document_docid=document_docid,
+            document_title=document_title,
+            document_description=document_description,
+            owner=owner,
+            doi=doi,
+            resource_type_id=resource_type_id,
+            avatar=avatar,
+            publication_poster_url=publication_poster_url,
+            parent_id=root_parent_id,
+            version_number=new_version_number
+        )
+        db.session.add(publication)
+        db.session.flush()
+        publication_id = publication.id
+        logger.info(f"Version publication created with ID: {publication_id}")
+
+        # Schedule CORDRA push (new version gets its own handle)
+        try:
+            from app.tasks import push_to_cordra_async
+            push_to_cordra_async.apply_async(args=[publication_id], countdown=60)
+            logger.info(f"Scheduled CORDRA push for version publication {publication_id}")
+        except ImportError:
+            logger.warning("Celery not configured. CORDRA push will need manual run")
+
+        # --- Save sub-entities (same as /publish) ---
+
+        # Save PublicationFiles records
+        files_publications = []
+        index = 0
+        while True:
+            file_title = request.form.get(f'filesPublications[{index}][title]')
+            if file_title is None:
+                break
+
+            file_description = clean_undefined_string(request.form.get(f'filesPublications[{index}][description]'))
+            publication_type = request.form.get(f'filesPublications[{index}][publication_type]')
+            file_type = request.form.get(f'filesPublications[{index}][file_type]')
+            identifier = request.form.get(f'filesPublications[{index}][identifier]')
+            generated_identifier = request.form.get(f'filesPublications[{index}][generated_identifier]')
+            file = request.files.get(f'filesPublications_{index}_file')
+
+            file_url = ''
+            if file:
+                filename = file.filename
+                file.save(f'uploads/{filename}')
+                base_url = 'https://docid.africapidalliance.org'
+                file_url = f'{base_url}/uploads/{filename}'
+
+            pub_file = PublicationFiles(
+                publication_id=publication_id,
+                title=file_title,
+                description=file_description or '',
+                publication_type_id=int(publication_type) if publication_type else 1,
+                file_name=file.filename if file else '',
+                file_type=file_type or '',
+                file_url=file_url,
+                identifier=identifier or '',
+                generated_identifier=generated_identifier or ''
+            )
+            db.session.add(pub_file)
+            files_publications.append(pub_file)
+            index += 1
+
+        # Save PublicationDocuments records
+        files_documents = []
+        index = 0
+        while True:
+            doc_title = request.form.get(f'filesDocuments[{index}][title]')
+            if doc_title is None:
+                break
+
+            doc_description = clean_undefined_string(request.form.get(f'filesDocuments[{index}][description]'))
+            doc_type = request.form.get(f'filesDocuments[{index}][publication_type]')
+            doc_identifier = request.form.get(f'filesDocuments[{index}][identifier]')
+            doc_generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
+            doc_file = request.files.get(f'filesDocuments_{index}_file')
+
+            doc_file_url = ''
+            if doc_file:
+                doc_filename = doc_file.filename
+                doc_file.save(f'uploads/{doc_filename}')
+                base_url = 'https://docid.africapidalliance.org'
+                doc_file_url = f'{base_url}/uploads/{doc_filename}'
+
+            pub_doc = PublicationDocuments(
+                publication_id=publication_id,
+                title=doc_title,
+                description=doc_description or '',
+                publication_type_id=int(doc_type) if doc_type else 1,
+                file_url=doc_file_url,
+                identifier_type_id=int(doc_identifier) if doc_identifier else None,
+                generated_identifier=doc_generated_identifier or ''
+            )
+            db.session.add(pub_doc)
+            files_documents.append(pub_doc)
+            index += 1
+
+        # Save Creators
+        index = 0
+        while True:
+            creator_family = request.form.get(f'creators[{index}][family_name]')
+            if creator_family is None:
+                break
+
+            creator_given = request.form.get(f'creators[{index}][given_name]')
+            creator_identifier = clean_undefined_string(request.form.get(f'creators[{index}][orcid_id]'))
+            creator_identifier_type = clean_undefined_string(request.form.get(f'creators[{index}][identifier]'))
+            creator_role = request.form.get(f'creators[{index}][role]')
+
+            creator = PublicationCreators(
+                publication_id=publication_id,
+                family_name=creator_family,
+                given_name=creator_given or '',
+                identifier=creator_identifier or '',
+                identifier_type=creator_identifier_type or '',
+                role_id=creator_role or ''
+            )
+            db.session.add(creator)
+            index += 1
+
+        # Save Organizations (ROR)
+        index = 0
+        while True:
+            org_name = request.form.get(f'organizationRor[{index}][name]')
+            if org_name is None:
+                break
+
+            org = PublicationOrganization(
+                publication_id=publication_id,
+                name=org_name,
+                type=request.form.get(f'organizationRor[{index}][type]') or '',
+                other_name=clean_undefined_string(request.form.get(f'organizationRor[{index}][other_name]')) or '',
+                country=request.form.get(f'organizationRor[{index}][country]') or '',
+                identifier=clean_undefined_string(request.form.get(f'organizationRor[{index}][ror_id]')) or '',
+                identifier_type='ror'
+            )
+            db.session.add(org)
+            index += 1
+
+        # Save Organizations (ISNI)
+        index = 0
+        while True:
+            org_name = request.form.get(f'organizationIsni[{index}][name]')
+            if org_name is None:
+                break
+
+            org = PublicationOrganization(
+                publication_id=publication_id,
+                name=org_name,
+                type=request.form.get(f'organizationIsni[{index}][type]') or '',
+                other_name=clean_undefined_string(request.form.get(f'organizationIsni[{index}][other_name]')) or '',
+                country=request.form.get(f'organizationIsni[{index}][country]') or '',
+                identifier=clean_undefined_string(request.form.get(f'organizationIsni[{index}][isni_id]')) or '',
+                identifier_type='isni'
+            )
+            db.session.add(org)
+            index += 1
+
+        # Save Funders
+        index = 0
+        while True:
+            funder_name = request.form.get(f'funders[{index}][name]')
+            if funder_name is None:
+                break
+
+            funder = PublicationFunders(
+                publication_id=publication_id,
+                name=funder_name,
+                type=request.form.get(f'funders[{index}][type]') or '',
+                funder_type_id=int(request.form.get(f'funders[{index}][type]') or 1),
+                other_name=clean_undefined_string(request.form.get(f'funders[{index}][other_name]')) or '',
+                country=request.form.get(f'funders[{index}][country]') or '',
+                identifier=clean_undefined_string(request.form.get(f'funders[{index}][ror_id]')) or '',
+                identifier_type='ror'
+            )
+            db.session.add(funder)
+            index += 1
+
+        # Save Projects
+        index = 0
+        while True:
+            project_title = request.form.get(f'projects[{index}][title]')
+            if project_title is None:
+                break
+
+            project_description = clean_undefined_string(request.form.get(f'projects[{index}][description]'))
+            project_raid_id = clean_undefined_string(request.form.get(f'projects[{index}][raid_id]'))
+
+            project = PublicationProjects(
+                publication_id=publication_id,
+                title=project_title,
+                description=project_description or '',
+                raid_id=project_raid_id or '',
+                identifier=project_raid_id or '',
+                identifier_type='raid' if project_raid_id else ''
+            )
+            db.session.add(project)
+            index += 1
+
+        # Save Research Resources (RRIDs)
+        index = 0
+        while True:
+            rrid_value = request.form.get(f'researchResources[{index}][rrid]')
+            if rrid_value is None:
+                break
+
+            rrid_name = request.form.get(f'researchResources[{index}][rrid_name]')
+            rrid_description = clean_undefined_string(request.form.get(f'researchResources[{index}][rrid_description]'))
+            rrid_resource_type = request.form.get(f'researchResources[{index}][rrid_resource_type]')
+            rrid_url = request.form.get(f'researchResources[{index}][rrid_url]')
+            resolved_json_str = request.form.get(f'researchResources[{index}][resolved_json]')
+
+            resolved_json = None
+            if resolved_json_str:
+                try:
+                    resolved_json = json.loads(resolved_json_str)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            rrid_record = DocidRrid(
+                entity_type='publication',
+                entity_id=publication_id,
+                rrid=rrid_value,
+                rrid_name=rrid_name,
+                rrid_description=rrid_description,
+                rrid_resource_type=rrid_resource_type,
+                rrid_url=rrid_url,
+                resolved_json=resolved_json,
+                last_resolved_at=datetime.utcnow(),
+            )
+            db.session.add(rrid_record)
+            index += 1
+
+        # Commit all changes
+        db.session.commit()
+
+        logger.info(f"=== SUCCESS: Version {new_version_number} created for parent {root_parent_id} with publication ID: {publication_id} ===")
+
+        return jsonify({
+            'message': 'Version created successfully',
+            'publication_id': publication_id,
+            'parent_id': root_parent_id,
+            'version_number': new_version_number,
+            'document_docid': publication.document_docid
+        }), 200
+
+    except Exception as e:
+        logger.error(f"=== ERROR: Failed to create version ===")
+        logger.error(f"Error: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

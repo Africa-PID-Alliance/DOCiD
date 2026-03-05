@@ -491,6 +491,10 @@ class Publications(db.Model):
     cordra_error = Column(Text, nullable=True)  # Error message if minting failed
     cordra_object_id = Column(String(128), nullable=True, index=True)  # Cordra object ID after minting
 
+    # Versioning
+    parent_id = Column(Integer, ForeignKey('publications.id', ondelete='SET NULL'), nullable=True, index=True)
+    version_number = Column(Integer, nullable=True, default=None)
+
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
@@ -500,6 +504,7 @@ class Publications(db.Model):
     publication_organizations = relationship('PublicationOrganization', back_populates='publication', cascade="all, delete-orphan")
     publication_funders = relationship('PublicationFunders', back_populates='publication', cascade="all, delete-orphan")
     publication_projects = relationship('PublicationProjects', back_populates='publication', cascade="all, delete-orphan")
+    parent_publication = relationship('Publications', remote_side='Publications.id', foreign_keys=[parent_id], backref='versions')
 
     def __repr__(self):
         return f"<Publications(id={self.id}, document_title='{self.document_title}', doi='{self.doi}')>"

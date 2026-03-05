@@ -10,6 +10,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_dspace_legacy import DSpaceLegacyClient, DSpaceLegacyMetadataMapper
+from app.service_identifiers import IdentifierService
 from datetime import datetime
 import os
 import logging
@@ -91,9 +92,33 @@ def _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id
     publication.document_description = mapped_data['publication'].get('document_description', '')
     publication.resource_type_id = resource_type_id
     publication.doi = doi or ''
-    publication.document_docid = handle if handle else f"LegacyItem:{item_id}"
+
+    # Mint a DOCiD via Cordra instead of using the DSpace handle.
+    # Only mint if docid is empty or a known fallback — never re-mint a valid Cordra DOCiD (20.500.xxxxx/).
+    existing_docid = publication.document_docid or ''
+    needs_minting = (
+        not existing_docid
+        or existing_docid.startswith('LegacyItem:')
+        or (handle and existing_docid == handle)
+    )
+    if needs_minting:
+        minted_docid = IdentifierService.generate_handle()
+        if minted_docid:
+            publication.document_docid = minted_docid
+            logger.info(f"Minted DOCiD {minted_docid} for DSpace legacy item {item_id} (handle: {handle})")
+        else:
+            logger.warning(f"Failed to mint DOCiD for item {item_id}, using DSpace handle as fallback")
+            publication.document_docid = handle if handle else f"LegacyItem:{item_id}"
     publication.handle_url = f"{DSPACE_LEGACY_URL}/handle/{handle}" if handle else None
     publication.owner = os.environ.get('DSPACE_LEGACY_INSTANCE_NAME', 'DSpace Legacy Repository')
+
+    # Set avatar from DSpace bitstream image (preview/thumbnail)
+    avatar_relative_url = mapped_data.get('avatar_url')
+    if avatar_relative_url:
+        if avatar_relative_url.startswith('http'):
+            publication.avatar = avatar_relative_url
+        else:
+            publication.avatar = f"{DSPACE_LEGACY_URL}{avatar_relative_url}"
 
 
 @dspace_legacy_bp.route('/config', methods=['GET'])
@@ -416,6 +441,9 @@ def sync_single_item(item_id):
     """
     current_user_id = get_jwt_identity()
     update_existing = request.args.get('update_existing', 'false').lower() == 'true'
+    force_remap = request.args.get('force_remap', 'false').lower() == 'true'
+    if force_remap:
+        update_existing = True
 
     # Use item_id directly as mapping key if it looks like a UUID, otherwise prefix it
     legacy_uuid = item_id if '-' in str(item_id) else f"legacy-item-{item_id}"
@@ -459,8 +487,8 @@ def sync_single_item(item_id):
         author_role_id = author_role.role_id if author_role else None
 
         if existing_mapping and update_existing:
-            # Check if metadata changed
-            if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+            # Check if metadata changed (skip check if force_remap)
+            if not force_remap and existing_mapping.dspace_metadata_hash == new_metadata_hash:
                 return jsonify({
                     'success': True,
                     'status': 'unchanged',
@@ -579,11 +607,19 @@ def batch_sync():
     limit = min(data.get('limit', 10), 200)
     offset = max(data.get('offset', 0), 0)
     update_existing = data.get('update_existing', False)
+    force_remap = data.get('force_remap', False)
+    collection_id = data.get('collection_id', None)
+    if force_remap:
+        update_existing = True
 
     # Single authenticated client for entire batch
     client = get_dspace_legacy_client()
     client.authenticate()
-    items = client.get_items(limit=limit, offset=offset)
+
+    if collection_id:
+        items = client.get_collection_items(collection_id, limit=limit, offset=offset)
+    else:
+        items = client.get_items(limit=limit, offset=offset)
 
     if not items:
         client.logout()
@@ -657,8 +693,8 @@ def batch_sync():
             )
 
             if existing_mapping and update_existing:
-                # Check if metadata changed
-                if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+                # Check if metadata changed (skip check if force_remap)
+                if not force_remap and existing_mapping.dspace_metadata_hash == new_metadata_hash:
                     savepoint.rollback()
                     results['unchanged'] += 1
                     results['items'].append({
@@ -717,7 +753,10 @@ def batch_sync():
                 })
 
         except Exception as e:
-            db.session.rollback()
+            try:
+                savepoint.rollback()
+            except Exception:
+                db.session.rollback()
             results['errors'] += 1
             results['items'].append({
                 'item_id': item_id, 'handle': handle,

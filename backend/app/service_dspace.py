@@ -347,6 +347,9 @@ class DSpaceMetadataMapper:
             }
         }
 
+        # Extract thumbnail/avatar URL from DSpace item links
+        avatar_url = cls._extract_avatar_url(dspace_item)
+
         return {
             'publication': publication_data,
             'creators': creators,
@@ -356,7 +359,8 @@ class DSpaceMetadataMapper:
             'funders': funders,
             'projects': projects,
             'extended_metadata': extended_metadata,
-            'last_modified': last_modified
+            'last_modified': last_modified,
+            'avatar_url': avatar_url,
         }
 
     @staticmethod
@@ -372,6 +376,19 @@ class DSpaceMetadataMapper:
         """Get all values from metadata field"""
         values = metadata.get(field, [])
         return [v.get('value') for v in values if v.get('value')]
+
+    @classmethod
+    def _extract_avatar_url(cls, dspace_item: Dict) -> Optional[str]:
+        """
+        Extract thumbnail/avatar URL from DSpace 7+ item.
+        DSpace 7+ exposes thumbnails via _links.thumbnail.href.
+        """
+        links = dspace_item.get('_links', {})
+        thumbnail_link = links.get('thumbnail', {})
+        thumbnail_url = thumbnail_link.get('href')
+        if thumbnail_url:
+            return thumbnail_url
+        return None
 
     @classmethod
     def _extract_creators(cls, metadata: Dict) -> List[Dict]:

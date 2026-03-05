@@ -7,6 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
+from app.service_identifiers import IdentifierService
 import os
 import logging
 
@@ -131,9 +132,23 @@ def _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id
     publication.document_description = mapped_data['publication'].get('document_description', '')
     publication.resource_type_id = resource_type_id
     publication.doi = doi
-    publication.document_docid = handle if handle else f"DSpaceUUID:{uuid}"
+
+    # Mint a DOCiD via Cordra instead of using the DSpace handle
+    if not publication.document_docid or publication.document_docid.startswith('DSpaceUUID:') or (handle and publication.document_docid == handle):
+        minted_docid = IdentifierService.generate_handle()
+        if minted_docid:
+            publication.document_docid = minted_docid
+            logger.info(f"Minted DOCiD {minted_docid} for DSpace item {uuid} (handle: {handle})")
+        else:
+            logger.warning(f"Failed to mint DOCiD for DSpace item {uuid}, using handle as fallback")
+            publication.document_docid = handle if handle else f"DSpaceUUID:{uuid}"
     publication.handle_url = _build_handle_url(handle)
     publication.owner = 'DSpace Repository'
+
+    # Set avatar from DSpace thumbnail URL
+    avatar_url = mapped_data.get('avatar_url')
+    if avatar_url:
+        publication.avatar = avatar_url
 
 
 @dspace_bp.route('/config', methods=['GET'])
@@ -302,6 +317,9 @@ def sync_single_item(uuid):
     try:
         current_user_id = get_jwt_identity()
         update_existing = request.args.get('update_existing', 'false').lower() == 'true'
+        force_remap = request.args.get('force_remap', 'false').lower() == 'true'
+        if force_remap:
+            update_existing = True
 
         # Get DSpace item
         client = get_dspace_client()
@@ -340,8 +358,8 @@ def sync_single_item(uuid):
         author_role_id = author_role.role_id if author_role else None
 
         if existing_mapping and update_existing:
-            # Check if metadata actually changed
-            if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+            # Check if metadata actually changed (skip check if force_remap)
+            if not force_remap and existing_mapping.dspace_metadata_hash == new_metadata_hash:
                 return jsonify({
                     'success': True,
                     'status': 'unchanged',
@@ -467,6 +485,9 @@ def sync_batch():
         page = data.get('page', 0)
         size = min(data.get('size', 50), 200)
         update_existing = data.get('update_existing', False)
+        force_remap = data.get('force_remap', False)
+        if force_remap:
+            update_existing = True
 
         # Get items from DSpace
         client = get_dspace_client()
@@ -538,8 +559,8 @@ def sync_batch():
                 )
 
                 if existing_mapping and update_existing:
-                    # Check if metadata changed
-                    if existing_mapping.dspace_metadata_hash == new_metadata_hash:
+                    # Check if metadata changed (skip check if force_remap)
+                    if not force_remap and existing_mapping.dspace_metadata_hash == new_metadata_hash:
                         savepoint.rollback()
                         results['unchanged'] += 1
                         results['items'].append({
@@ -597,7 +618,10 @@ def sync_batch():
                     })
 
             except Exception as e:
-                db.session.rollback()
+                try:
+                    savepoint.rollback()
+                except Exception:
+                    db.session.rollback()
                 results['errors'] += 1
                 results['items'].append({
                     'uuid': item_uuid, 'handle': handle,

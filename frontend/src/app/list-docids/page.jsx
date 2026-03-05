@@ -654,27 +654,6 @@ const ListDocIds = () => {
                             router.push(getDocIdUrl(doc.docid));
                           }}
                         >
-                          {/* Source Institution Badge */}
-                          <Chip
-                            label={doc.owner || 'DOCiD'}
-                            size="small"
-                            sx={{
-                              position: 'absolute',
-                              top: 12,
-                              right: 12,
-                              zIndex: 1,
-                              bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
-                              color: 'white',
-                              fontWeight: 600,
-                              fontSize: '0.75rem',
-                              height: 24,
-                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                              '& .MuiChip-label': {
-                                px: 1.5
-                              }
-                            }}
-                          />
-
                           {/* Title & Date Section */}
                           <CardContent sx={{ pb: 1 }}>
                             <Typography
@@ -685,7 +664,6 @@ const ListDocIds = () => {
                                 fontWeight: 600,
                                 color: theme.palette.text.primary,
                                 mb: 0.5,
-                                pr: 10,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 display: '-webkit-box',
@@ -699,11 +677,30 @@ const ListDocIds = () => {
                               variant="caption"
                               sx={{
                                 color: theme.palette.text.secondary,
-                                display: 'block'
+                                display: 'block',
+                                mb: 0.5
                               }}
                             >
                               {formatDate(doc.published_isoformat)}
                             </Typography>
+                            {/* Source Institution Label */}
+                            {doc.owner && (
+                              <Chip
+                                label={doc.owner}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+                                  color: theme.palette.text.secondary,
+                                  fontWeight: 500,
+                                  fontSize: '0.7rem',
+                                  height: 22,
+                                  '& .MuiChip-label': {
+                                    px: 1
+                                  }
+                                }}
+                              />
+                            )}
                           </CardContent>
 
                           {/* Image Section */}
@@ -718,15 +715,16 @@ const ListDocIds = () => {
                               component="img"
                               image={doc.publication_poster_url ?
                                 `${doc.publication_poster_url}` :
-                                `/assets/images/logo2.png`}
+                                (doc.avatar || `/assets/images/logo2.png`)}
                               alt={doc.title || 'DOCiD Logo'}
                               className="card-media"
+                              onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}
                               sx={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: doc.publication_poster_url ? 'cover' : 'contain',
+                                objectFit: (doc.publication_poster_url || doc.avatar) ? 'cover' : 'contain',
                                 transition: 'transform 0.3s ease',
-                                p: doc.publication_poster_url ? 0 : 2
+                                p: (doc.publication_poster_url || doc.avatar) ? 0 : 2
                               }}
                             />
                           </Box>

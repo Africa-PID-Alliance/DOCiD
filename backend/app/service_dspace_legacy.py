@@ -156,7 +156,7 @@ class DSpaceLegacyClient:
             params = {
                 'limit': limit,
                 'offset': offset,
-                'expand': 'metadata,parentCollection'
+                'expand': 'metadata,parentCollection,bitstreams'
             }
             response = self.session.get(url, params=params)
 
@@ -242,7 +242,7 @@ class DSpaceLegacyClient:
             params = {
                 'limit': limit,
                 'offset': offset,
-                'expand': 'metadata'
+                'expand': 'metadata,bitstreams'
             }
             response = self.session.get(url, params=params)
 
@@ -403,6 +403,9 @@ class DSpaceLegacyMetadataMapper:
             'citation': cls._get_metadata_value(metadata, 'dc.identifier.citation'),
         }
 
+        # Extract avatar image URL from bitstreams
+        avatar_url = cls._extract_avatar_url(dspace_item)
+
         return {
             'publication': publication_data,
             'creators': creators,
@@ -412,7 +415,8 @@ class DSpaceLegacyMetadataMapper:
             'funders': funders,
             'projects': projects,
             'extended_metadata': extended_metadata,
-            'last_modified': last_modified
+            'last_modified': last_modified,
+            'avatar_url': avatar_url,
         }
 
     @staticmethod
@@ -451,6 +455,50 @@ class DSpaceLegacyMetadataMapper:
                 if value:
                     values.append(value)
         return values
+
+    @classmethod
+    def _extract_avatar_url(cls, dspace_item: Dict) -> Optional[str]:
+        """
+        Extract the best image URL from DSpace bitstreams for use as avatar/poster.
+
+        Priority: preview.jpg > thumbnail.jpg > any image bitstream.
+        Returns a full retrieve URL or None if no image bitstreams exist.
+        """
+        bitstreams = dspace_item.get('bitstreams', [])
+        if not bitstreams:
+            return None
+
+        image_mime_types = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+        preview_bitstream = None
+        thumbnail_bitstream = None
+        original_image_bitstream = None
+
+        for bitstream in bitstreams:
+            mime_type = (bitstream.get('mimeType') or '').lower()
+            bitstream_name = (bitstream.get('name') or '').lower()
+            retrieve_link = bitstream.get('retrieveLink')
+
+            if not retrieve_link or mime_type not in image_mime_types:
+                continue
+
+            if '.preview.' in bitstream_name:
+                preview_bitstream = bitstream
+            elif bitstream_name.endswith(('.jpg', '.jpeg')) and '.preview.' not in bitstream_name and original_image_bitstream is None:
+                # Small thumbnail (e.g., "file.png.jpg")
+                if '.' in bitstream_name.rsplit('.', 1)[0]:
+                    thumbnail_bitstream = bitstream
+                else:
+                    original_image_bitstream = bitstream
+            elif mime_type in image_mime_types and original_image_bitstream is None:
+                original_image_bitstream = bitstream
+
+        # Prefer preview > thumbnail > original
+        chosen_bitstream = preview_bitstream or thumbnail_bitstream or original_image_bitstream
+        if not chosen_bitstream:
+            return None
+
+        # Return the retrieveLink (may be relative like /rest/bitstreams/{uuid}/retrieve)
+        return chosen_bitstream.get('retrieveLink') or None
 
     @classmethod
     def _extract_creators(cls, metadata: List[Dict]) -> List[Dict]:

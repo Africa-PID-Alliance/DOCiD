@@ -90,6 +90,14 @@ def seed():
             {'resource_type': 'Project'},
             {'resource_type': 'Funder'},
             {'resource_type': 'DMP (Data Management Plan)'},
+            # DataCite resource types for Figshare/DSpace/OJS integrations
+            {'resource_type': 'Text'},
+            {'resource_type': 'Dataset'},
+            {'resource_type': 'Image'},
+            {'resource_type': 'Audiovisual'},
+            {'resource_type': 'Collection'},
+            {'resource_type': 'Software'},
+            {'resource_type': 'Other'},
         ]
 
         try:

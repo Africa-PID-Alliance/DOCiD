@@ -871,8 +871,9 @@ const DocIDPage = ({ params }) => {
                 <img
                   src={docData.publication_poster_url
                     ? `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${docData.publication_poster_url}`
-                    : '/assets/images/logo2.png'}
+                    : (docData.avatar || '/assets/images/logo2.png')}
                   alt="DOCiD"
+                  onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}
                   style={{
                     width: '100%',
                     height: 'auto',
@@ -1524,10 +1525,11 @@ const DocIDPage = ({ params }) => {
                                 value={item.title}
                                 InputProps={{
                                   readOnly: true,
+                                  disableUnderline: true,
                                 }}
-                                variant="outlined"
+                                variant="filled"
                                 size="small"
-                                sx={{ mb: 2 }}
+                                sx={{ mb: 2, '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
 
                               <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
@@ -1564,10 +1566,11 @@ const DocIDPage = ({ params }) => {
                                 value={item.description?.replace(/<[^>]+>/g, '') || ''}
                                 InputProps={{
                                   readOnly: true,
+                                  disableUnderline: true,
                                 }}
-                                variant="outlined"
+                                variant="filled"
                                 size="small"
-                                sx={{ mb: 2 }}
+                                sx={{ mb: 2, '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
 
                               <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -1580,9 +1583,11 @@ const DocIDPage = ({ params }) => {
                                     value={getIdentifierLabel(item.identifier)}
                                     InputProps={{
                                       readOnly: true,
+                                      disableUnderline: true,
                                     }}
-                                    variant="outlined"
+                                    variant="filled"
                                     size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                                   />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -1594,9 +1599,11 @@ const DocIDPage = ({ params }) => {
                                     value={item.generated_identifier}
                                     InputProps={{
                                       readOnly: true,
+                                      disableUnderline: true,
                                     }}
-                                    variant="outlined"
+                                    variant="filled"
                                     size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                                   />
                                 </Grid>
                                 {item.handle_identifier && (
@@ -1610,9 +1617,11 @@ const DocIDPage = ({ params }) => {
                                         value={item.handle_identifier}
                                         InputProps={{
                                           readOnly: true,
+                                          disableUnderline: true,
                                         }}
-                                        variant="outlined"
+                                        variant="filled"
                                         size="small"
+                                        sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                                       />
                                       <Button
                                         variant="contained"
@@ -1652,9 +1661,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={`${item.given_name || ''} ${item.family_name || ''}`}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1665,9 +1675,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.family_name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1678,9 +1689,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.given_name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1691,9 +1703,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.identifier || 'ORCID'}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1704,9 +1717,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.affiliation || 'DOCiD'}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1717,9 +1731,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={getRoleName(item.role)}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
                           </Grid>
@@ -1743,9 +1758,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1756,9 +1772,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.type || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1769,9 +1786,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.other_name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1782,11 +1800,33 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.country || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
+
+                            {item.identifier && (
+                              <Grid item xs={12}>
+                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                  {item.identifier_type ? item.identifier_type.toUpperCase() + ' Identifier' : 'Identifier'}
+                                </Typography>
+                                {/^https?:\/\//i.test(item.identifier) ? (
+                                  <Link
+                                    href={item.identifier}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    underline="hover"
+                                    sx={{ fontSize: '0.875rem' }}
+                                  >
+                                    {item.identifier}
+                                  </Link>
+                                ) : (
+                                  <Typography sx={{ fontSize: '0.875rem' }}>{item.identifier}</Typography>
+                                )}
+                              </Grid>
+                            )}
                           </Grid>
                         </Box>
                       ))}
@@ -1808,9 +1848,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1821,9 +1862,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value="Funder"
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1834,9 +1876,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.other_name || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1847,9 +1890,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.country || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
                           </Grid>
@@ -1873,9 +1917,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.title || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                                 sx={{ mb: 2 }}
                               />
                             </Grid>
@@ -1889,9 +1934,10 @@ const DocIDPage = ({ params }) => {
                                 multiline
                                 rows={3}
                                 value={item.description?.replace(/<[^>]+>/g, '') || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                                 sx={{ mb: 2 }}
                               />
                             </Grid>
@@ -1903,9 +1949,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.identifier || item.raid_url || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
 
@@ -1916,9 +1963,10 @@ const DocIDPage = ({ params }) => {
                               <TextField
                                 fullWidth
                                 value={item.generated_identifier || ''}
-                                InputProps={{ readOnly: true }}
-                                variant="outlined"
+                                InputProps={{ readOnly: true, disableUnderline: true }}
+                                variant="filled"
                                 size="small"
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
                               />
                             </Grid>
                           </Grid>
