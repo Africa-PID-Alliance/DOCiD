@@ -889,10 +889,12 @@ const DocIDPage = ({ params }) => {
                   alt="DOCiD"
                   onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}
                   style={{
-                    width: '100%',
+                    maxWidth: '100%',
+                    maxHeight: '600px',
                     height: 'auto',
                     display: 'block',
-                    maxWidth: '100%'
+                    margin: '0 auto',
+                    objectFit: 'contain'
                   }}
                 />
               </Box>
