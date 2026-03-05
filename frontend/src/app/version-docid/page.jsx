@@ -493,7 +493,7 @@ const VersionDocIDInner = () => {
       submitData.append("user_id", Number(parseInt(user.id)));
       submitData.append("owner", String(user?.name || user?.username || ''));
       submitData.append("avatar", String(user?.picture));
-      submitData.append("doi", formData.docId.generatedId);
+      // doi intentionally omitted — new versions don't have a DOI until independently assigned
 
       // Publications Files
       if (formData.publications?.files?.length > 0) {

@@ -2962,7 +2962,7 @@ def create_version():
             document_title=document_title,
             document_description=document_description,
             owner=owner,
-            doi=doi,
+            doi=None,  # New versions don't inherit DOI — assigned independently later
             resource_type_id=resource_type_id,
             avatar=avatar,
             publication_poster_url=publication_poster_url,
