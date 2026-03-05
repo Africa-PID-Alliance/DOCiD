@@ -84,11 +84,12 @@ def push_publication_to_cordra(publication):
             logger.warning(f"Publication {publication.id} has no DOI, skipping CORDRA push")
             return False
             
+        cordra_description = (publication.document_description or "")[:2048]
         metadata = {
             "id": str(publication.id),
             "docid": f"https://docid.africapidalliance.org/docid/{publication.document_docid}",
             "title": publication.document_title,
-            "description": publication.document_description,
+            "description": cordra_description,
             "doi": publication.doi,
             "owner": publication.owner,
             "user_id": publication.user_id,
@@ -139,7 +140,7 @@ def push_publication_files_to_cordra(publication):
             
             metadata = {
                 "title": file.title,
-                "description": file.description,
+                "description": (file.description or "")[:2048],
                 "fileUrl": fix_file_url(file.file_url),
                 "fileType": file.file_type,
                 "fileName": file.file_name,
@@ -213,7 +214,7 @@ def push_publication_documents_to_cordra(publication):
             
             metadata = {
                 "title": doc.title,
-                "description": doc.description,
+                "description": (doc.description or "")[:2048],
                 "fileUrl": fix_file_url(doc.file_url),
                 "publicationType": pub_type_name,
                 "identifierType": identifier_type_name,

@@ -791,8 +791,8 @@ def assign_doi_indigenous_knowledge(doi: str, name: str, description: str, descr
             "content": {
                 "doi": doi,
                 "name": name,
-                "description": description,
-                "description2": description2
+                "description": (description or "")[:2048],
+                "description2": (description2 or "")[:2048]
             }
         }
     }
@@ -805,7 +805,7 @@ def assign_doi_container_id( title: str, description: str) -> Dict[str, Any]:
         "attributes": {
             "content": {
                 "groupName": title,
-                "description": description
+                "description": (description or "")[:2048]
             }
         },
         "acl": {
@@ -856,7 +856,7 @@ def assign_doi_patent(
     content = {
         "doi": doi,
         "name": name,
-        "description": description,
+        "description": (description or "")[:2048],
         "title": title,
         "inventor": inventor,
         "assignee": assignee,
