@@ -144,6 +144,7 @@ def _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id
             publication.document_docid = handle if handle else f"DSpaceUUID:{uuid}"
     publication.handle_url = _build_handle_url(handle)
     publication.owner = 'DSpace Repository'
+    publication.collection_name = mapped_data.get('collection_name') or publication.collection_name
 
     # Set avatar from DSpace thumbnail URL
     avatar_url = mapped_data.get('avatar_url')
@@ -344,8 +345,12 @@ def sync_single_item(uuid):
                 'handle': handle
             }), 200
 
+        # Fetch owning collection name (DSpace 7+ requires separate API call)
+        owning_collection = client.get_item_owning_collection(uuid)
+        owning_collection_name = owning_collection.get('name') if isinstance(owning_collection, dict) else None
+
         # Transform metadata
-        mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id)
+        mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id, collection_name=owning_collection_name)
         doi = _extract_doi_from_metadata(metadata)
 
         # Resolve resource type
@@ -552,7 +557,12 @@ def sync_batch():
 
                 metadata = full_item.get('metadata', {})
                 new_metadata_hash = client.calculate_metadata_hash(metadata)
-                mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, current_user_id)
+
+                # Fetch owning collection name (DSpace 7+ requires separate API call)
+                owning_collection = client.get_item_owning_collection(item_uuid)
+                owning_collection_name = owning_collection.get('name') if isinstance(owning_collection, dict) else None
+
+                mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, current_user_id, collection_name=owning_collection_name)
                 doi = _extract_doi_from_metadata(metadata)
                 resource_type_id = resource_type_cache.get(
                     mapped_data['publication'].get('resource_type', 'Text'), 1
@@ -926,8 +936,12 @@ def preview_item_metadata(uuid):
         if not dspace_item:
             return jsonify({'error': f'Item {uuid} not found in DSpace'}), 404
 
+        # Fetch owning collection for preview (DSpace 7+ requires separate call)
+        owning_collection = client.get_item_owning_collection(uuid)
+        owning_collection_name = owning_collection.get('name') if isinstance(owning_collection, dict) else None
+
         # Transform metadata
-        mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id)
+        mapped_data = DSpaceMetadataMapper.dspace_to_docid(dspace_item, current_user_id, collection_name=owning_collection_name)
 
         # Return the full mapped data for preview
         return jsonify({

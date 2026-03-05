@@ -827,12 +827,17 @@ const DocIDPage = ({ params }) => {
                   <Avatar src={docData.avatar || '/default-avatar.png'} alt={docData.owner} sx={{ width: 48, height: 48, mr: 2 }} />
                   <Box>
                     <Typography fontWeight={600}>{docData.owner}</Typography>
+                    {docData.collection_name && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.3 }}>
+                        {docData.collection_name}
+                      </Typography>
+                    )}
                     <Typography variant="caption" color="text.secondary">
                       {formatDate(docData.published_isoformat || docData.published)}
                     </Typography>
                   </Box>
                 </Box>
-                <IconButton 
+                <IconButton
                   onClick={() => setFeatureModal(true)}
                   sx={{ ml: 2 }}
                 >

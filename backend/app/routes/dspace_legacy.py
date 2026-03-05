@@ -111,6 +111,7 @@ def _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id
             publication.document_docid = handle if handle else f"LegacyItem:{item_id}"
     publication.handle_url = f"{DSPACE_LEGACY_URL}/handle/{handle}" if handle else None
     publication.owner = os.environ.get('DSPACE_LEGACY_INSTANCE_NAME', 'DSpace Legacy Repository')
+    publication.collection_name = mapped_data.get('collection_name') or publication.collection_name
 
     # Set avatar from DSpace bitstream image (preview/thumbnail)
     avatar_relative_url = mapped_data.get('avatar_url')

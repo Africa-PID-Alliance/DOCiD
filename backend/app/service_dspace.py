@@ -127,6 +127,30 @@ class DSpaceClient:
             print(f"Error getting item {uuid}: {e}")
             return None
 
+    def get_item_owning_collection(self, uuid: str) -> Optional[Dict]:
+        """
+        Get the owning collection for a DSpace 7+ item.
+        DSpace 7+ exposes this via a separate endpoint, not embedded in the item.
+
+        Args:
+            uuid: Item UUID
+
+        Returns:
+            Collection data dict (with 'name', 'uuid', 'handle') or None
+        """
+        try:
+            url = f"{self.api_url}/core/items/{uuid}/owningCollection"
+            response = self.session.get(url, headers=self._get_headers())
+
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Failed to get owning collection for {uuid}: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error getting owning collection for {uuid}: {e}")
+            return None
+
     def get_item_by_handle(self, handle: str) -> Optional[Dict]:
         """
         Get item by Handle identifier
@@ -223,13 +247,14 @@ class DSpaceMetadataMapper:
     }
 
     @classmethod
-    def dspace_to_docid(cls, dspace_item: Dict, user_id: int) -> Dict:
+    def dspace_to_docid(cls, dspace_item: Dict, user_id: int, collection_name: str = None) -> Dict:
         """
         Transform DSpace item to DOCiD publication format
 
         Args:
             dspace_item: DSpace item data
             user_id: DOCiD user ID who will own the publication
+            collection_name: Optional collection name (fetched separately via owningCollection endpoint)
 
         Returns:
             Dictionary ready for Publications model creation
@@ -361,6 +386,7 @@ class DSpaceMetadataMapper:
             'extended_metadata': extended_metadata,
             'last_modified': last_modified,
             'avatar_url': avatar_url,
+            'collection_name': collection_name,
         }
 
     @staticmethod

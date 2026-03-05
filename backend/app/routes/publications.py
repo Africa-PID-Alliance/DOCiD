@@ -531,7 +531,8 @@ def get_publication(publication_id):
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
+                          'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Log publication details
         logger.info(f"Fetching publication details for ID: {publication_id}, User ID: {getattr(data, 'user_id', 'unknown')}")
@@ -691,7 +692,8 @@ def get_publication_by_docid_prefix():
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
+                          'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:
@@ -855,7 +857,8 @@ def get_publication_by_docid_simple(document_docid):
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
-                          'resource_type_id', 'user_id', 'avatar', 'owner', 'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
+                          'publication_poster_url', 'doi', 'published', 'handle_url']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:

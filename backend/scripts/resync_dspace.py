@@ -189,6 +189,7 @@ def resync_dspace_items():
                         document_docid=document_docid,  # DSpace handle (not full URL)
                         handle_url=handle_url,  # Full resolvable URL for DSpace item
                         owner='DSpace Repository',
+                        collection_name=mapped_data.get('collection_name'),
                     )
 
                     db.session.add(publication)

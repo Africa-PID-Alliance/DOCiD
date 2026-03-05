@@ -406,6 +406,10 @@ class DSpaceLegacyMetadataMapper:
         # Extract avatar image URL from bitstreams
         avatar_url = cls._extract_avatar_url(dspace_item)
 
+        # Extract parent collection name (available via expand=parentCollection)
+        parent_collection = dspace_item.get('parentCollection') or {}
+        collection_name = parent_collection.get('name') if isinstance(parent_collection, dict) else None
+
         return {
             'publication': publication_data,
             'creators': creators,
@@ -417,6 +421,7 @@ class DSpaceLegacyMetadataMapper:
             'extended_metadata': extended_metadata,
             'last_modified': last_modified,
             'avatar_url': avatar_url,
+            'collection_name': collection_name,
         }
 
     @staticmethod

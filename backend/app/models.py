@@ -474,6 +474,7 @@ class Publications(db.Model):
     publication_poster_url = Column(String(255))
     doi = Column(String(50), nullable=True)
     handle_url = Column(String(500), nullable=True)  # Full resolvable URL for DSpace/repository handles
+    collection_name = Column(String(500), nullable=True)  # DSpace collection name (e.g., "City Centre & Atlantic Seaboard")
     published = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
