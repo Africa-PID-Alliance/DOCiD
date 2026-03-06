@@ -845,14 +845,14 @@ const DocIDPage = ({ params }) => {
                 </IconButton>
               </Box>
               {/* Title */}
-              <Typography align="center" variant="h5" color="primary" fontWeight={600} mb={1}>
+              <Typography align="left" variant="h5" color="primary" fontWeight={600} mb={1}>
                 {docData.document_title}
               </Typography>
-              <Typography align="center" variant="subtitle1" color="text.secondary" mb={2}>
+              <Typography align="left" variant="subtitle1" color="text.secondary" mb={2}>
                 DOCiD: {formatDocIdForDisplay(docData.document_docid || docData.docid)}
               </Typography>
               {docData.handle_url && (
-                <Box display="flex" justifyContent="center" mb={2}>
+                <Box display="flex" justifyContent="flex-start" mb={2}>
                   <Link
                     href={docData.handle_url}
                     target="_blank"
@@ -904,7 +904,7 @@ const DocIDPage = ({ params }) => {
                 />
               </Box>
               {/* Description */}
-              <Typography align="center" mb={2} dangerouslySetInnerHTML={{ __html: docData.document_description }} />
+              <Typography align="left" mb={2} dangerouslySetInnerHTML={{ __html: docData.document_description }} />
               {/* Like, View, Share Row */}
               <Box display="flex" justifyContent="space-between" alignItems="center" gap={4} mb={2}>
                 <Button startIcon={<ThumbUpOutlined sx={{ fontSize: 80 }} />} size="large" onClick={handleLikeClick}>0</Button>
