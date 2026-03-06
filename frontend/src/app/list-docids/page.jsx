@@ -77,7 +77,7 @@ const ListDocIds = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const searchTimeout = useRef(null);
-  const [allPublications, setAllPublications] = useState([]);
+  const debouncedSearchQuery = useRef('');
   const [userAccountType, setUserAccountType] = useState('');
 
   // Wait for Redux Persist to rehydrate before checking authentication
@@ -159,14 +159,17 @@ const ListDocIds = () => {
       params.append('page', page);
       params.append('page_size', pagination.page_size);
 
+      // Add search term if present
+      if (debouncedSearchQuery.current) {
+        params.append('search', debouncedSearchQuery.current);
+      }
+
       // Only add resource_type if types are selected
       if (selectedTypes.length > 0 && resourceTypesLoaded) {
-        // Get the IDs of the selected resource types
         const selectedTypeIds = stableResourceTypesList
           .filter(type => selectedTypes.includes(type.resource_type))
           .map(type => type.id);
 
-        // Add each resource type ID as a separate parameter
         selectedTypeIds.forEach(id => {
           params.append('resource_type_id', id);
         });
@@ -176,57 +179,68 @@ const ListDocIds = () => {
         `/api/publications/get-publications?${params.toString()}`
       );
 
-      const data = response.data.data;
-      setAllPublications(data);
-      setPublications(data);
+      setPublications(response.data.data);
       setPagination(response.data.pagination);
+
+      // Use backend resource type counts
+      if (response.data.resource_type_counts) {
+        const backendCounts = response.data.resource_type_counts;
+        const countsByName = {};
+        stableResourceTypesList.forEach(type => {
+          const count = backendCounts[String(type.id)] || 0;
+          if (count > 0) {
+            countsByName[type.resource_type] = count;
+          }
+        });
+        setResourceTypeCounts(countsByName);
+      }
     } catch (error) {
       console.error('Error fetching publications:', error);
       setPublications([]);
-      setAllPublications([]);
       setPagination({
         page: 1,
-        page_size: 10,
+        page_size: 15,
         total: 0,
         total_pages: 0
       });
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTypes, pagination.page_size, resourceTypesLoaded, stableResourceTypesList]); // Use memoized version
+  }, [selectedTypes, pagination.page_size, resourceTypesLoaded, stableResourceTypesList]);
 
-  // Effect for initial load and when dependencies change
+  // Effect for initial load and when filter dependencies change
   useEffect(() => {
     if (resourceTypesLoaded) {
       fetchPublications(1);
     }
   }, [fetchPublications, resourceTypesLoaded]);
 
-  // Calculate resource type counts
-  useEffect(() => {
-    if (allPublications.length > 0 && resourceTypesLoaded) {
-      const counts = allPublications.reduce((acc, pub) => {
-        const resourceType = stableResourceTypesList.find(type => type.id === pub.resource_type_id);
-        const resourceTypeName = resourceType ? resourceType.resource_type : '';
-        acc[resourceTypeName] = (acc[resourceTypeName] || 0) + 1;
-        return acc;
-      }, {});
-      setResourceTypeCounts(counts);
-    }
-  }, [allPublications, resourceTypesLoaded, stableResourceTypesList]); // Include stable version
+  // Debounced search: trigger API call after 300ms of typing inactivity
+  const isInitialMount = useRef(true);
+  const fetchPublicationsRef = useRef(fetchPublications);
+  fetchPublicationsRef.current = fetchPublications;
 
-  // Separate effect for search filtering
   useEffect(() => {
-    if (!isLoading && allPublications.length > 0) {
-      const filteredData = searchQuery.trim()
-        ? allPublications.filter(pub =>
-          pub.title.toLowerCase().includes(searchQuery.toLowerCase().trim())
-        )
-        : allPublications;
-
-      setPublications(filteredData);
+    // Skip initial mount — the effect above handles it
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
-  }, [searchQuery, allPublications, isLoading]);
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    searchTimeout.current = setTimeout(() => {
+      debouncedSearchQuery.current = searchQuery.trim();
+      if (resourceTypesLoaded) {
+        fetchPublicationsRef.current(1);
+      }
+    }, 300);
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
+  }, [searchQuery, resourceTypesLoaded]);
 
   // Update search handler
   const handleSearchChange = (event) => {
@@ -251,13 +265,6 @@ const ListDocIds = () => {
   // Update clear search handler
   const handleClearSearch = () => {
     setSearchQuery('');
-    setPublications(allPublications);
-    setPagination(prev => ({
-      ...prev,
-      page: 1,
-      total: allPublications.length,
-      total_pages: Math.ceil(allPublications.length / prev.page_size)
-    }));
   };
 
   // Update clear filter handler

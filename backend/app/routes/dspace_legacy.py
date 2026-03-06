@@ -90,6 +90,12 @@ def _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id
     """Apply mapped DSpace legacy metadata to a Publication object."""
     publication.document_title = mapped_data['publication']['document_title']
     publication.document_description = mapped_data['publication'].get('document_description', '')
+
+    # Stellenbosch University DSpace: all items are Cultural Heritage (resource_type_id=3)
+    instance_name = os.environ.get('DSPACE_LEGACY_INSTANCE_NAME', '')
+    if instance_name == 'Stellenbosch University':
+        resource_type_id = 3
+
     publication.resource_type_id = resource_type_id
     publication.doi = doi or ''
 

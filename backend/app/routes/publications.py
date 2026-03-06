@@ -365,8 +365,11 @@ def get_all_publications():
         if page <= 0 or page_size <= 0:
             return jsonify({'message': 'page and page_size must be positive integers'}), 400
 
-        # Optional filter by resource_type_id
-        resource_type_id = request.args.get('resource_type_id')
+        # Optional search by title
+        search_term = request.args.get('search', '').strip()
+
+        # Optional filter by resource_type_id (supports multiple values)
+        resource_type_ids = request.args.getlist('resource_type_id')
 
         # Sorting parameters
         sort_field = request.args.get('sort', 'published')  # Default sort field is 'published'
@@ -384,10 +387,21 @@ def get_all_publications():
         # Build the query using the Publications model
         query = Publications.query
 
-        if resource_type_id:
+        # Apply search filter
+        if search_term:
+            query = query.filter(Publications.document_title.ilike(f'%{search_term}%'))
+
+        # Compute resource type counts (after search filter, before resource_type filter)
+        count_query = query.with_entities(
+            Publications.resource_type_id, func.count(Publications.id)
+        ).group_by(Publications.resource_type_id)
+        resource_type_counts = {str(rt_id): count for rt_id, count in count_query.all()}
+
+        # Apply resource type filter
+        if resource_type_ids:
             try:
-                resource_type_id = int(resource_type_id)
-                query = query.filter_by(resource_type_id=resource_type_id)
+                resource_type_ids = [int(rt) for rt in resource_type_ids]
+                query = query.filter(Publications.resource_type_id.in_(resource_type_ids))
             except ValueError:
                 return jsonify({'message': 'Invalid resource_type_id (must be an integer)'}), 400
 
@@ -436,7 +450,8 @@ def get_all_publications():
 
         return jsonify({
             'data': data_list,
-            'pagination': pagination
+            'pagination': pagination,
+            'resource_type_counts': resource_type_counts
         }), 200
 
     except ValueError:
@@ -2965,7 +2980,7 @@ def create_version():
             document_title=document_title,
             document_description=document_description,
             owner=owner,
-            doi=None,  # New versions don't inherit DOI — assigned independently later
+            doi='',  # New versions don't inherit DOI — assigned independently later
             resource_type_id=resource_type_id,
             avatar=avatar,
             publication_poster_url=publication_poster_url,
@@ -3115,6 +3130,25 @@ def create_version():
                 country=request.form.get(f'organizationIsni[{index}][country]') or '',
                 identifier=clean_undefined_string(request.form.get(f'organizationIsni[{index}][isni_id]')) or '',
                 identifier_type='isni'
+            )
+            db.session.add(org)
+            index += 1
+
+        # Save Organizations (Ringgold)
+        index = 0
+        while True:
+            org_name = request.form.get(f'organizationRinggold[{index}][name]')
+            if org_name is None:
+                break
+
+            org = PublicationOrganization(
+                publication_id=publication_id,
+                name=org_name,
+                type=request.form.get(f'organizationRinggold[{index}][type]') or '',
+                other_name=clean_undefined_string(request.form.get(f'organizationRinggold[{index}][other_name]')) or '',
+                country=request.form.get(f'organizationRinggold[{index}][country]') or '',
+                identifier=clean_undefined_string(request.form.get(f'organizationRinggold[{index}][ringgold_id]')) or '',
+                identifier_type='ringgold'
             )
             db.session.add(org)
             index += 1
