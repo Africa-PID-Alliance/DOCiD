@@ -11,7 +11,7 @@ from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifie
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
 # from app.service_codra import update_object
 from app.service_identifiers import IdentifierService
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import re
@@ -365,8 +365,12 @@ def get_all_publications():
         if page <= 0 or page_size <= 0:
             return jsonify({'message': 'page and page_size must be positive integers'}), 400
 
-        # Optional search by title
+        # Optional search by field (all, title, author, institution, keywords)
         search_term = request.args.get('search', '').strip()
+        search_field = request.args.get('search_field', 'all').strip().lower()
+
+        # Optional filter by account type (individual, institutional)
+        account_type_filter = request.args.get('account_type', '').strip()
 
         # Optional filter by resource_type_id (supports multiple values)
         resource_type_ids = request.args.getlist('resource_type_id')
@@ -384,17 +388,70 @@ def get_all_publications():
         if sort_field not in valid_sort_fields:
             return jsonify({'message': f'Invalid sort field (must be one of {valid_sort_fields})'}), 400
 
+        # Validate search field
+        valid_search_fields = ['all', 'title', 'author', 'institution', 'keywords']
+        if search_field not in valid_search_fields:
+            return jsonify({'message': f'Invalid search_field (must be one of {valid_search_fields})'}), 400
+
         # Build the query using the Publications model
         query = Publications.query
+        needs_distinct = False
 
-        # Apply search filter
+        # Apply search filter based on selected field
         if search_term:
-            query = query.filter(Publications.document_title.ilike(f'%{search_term}%'))
+            if search_field == 'title':
+                query = query.filter(Publications.document_title.ilike(f'%{search_term}%'))
+
+            elif search_field == 'author':
+                query = query.join(PublicationCreators).filter(
+                    or_(
+                        PublicationCreators.given_name.ilike(f'%{search_term}%'),
+                        PublicationCreators.family_name.ilike(f'%{search_term}%'),
+                        func.concat(PublicationCreators.given_name, ' ', PublicationCreators.family_name).ilike(f'%{search_term}%')
+                    )
+                )
+                needs_distinct = True
+
+            elif search_field == 'institution':
+                query = query.outerjoin(PublicationOrganization).filter(
+                    or_(
+                        PublicationOrganization.name.ilike(f'%{search_term}%'),
+                        Publications.owner.ilike(f'%{search_term}%')
+                    )
+                )
+                needs_distinct = True
+
+            elif search_field == 'keywords':
+                query = query.filter(Publications.document_description.ilike(f'%{search_term}%'))
+
+            elif search_field == 'all':
+                query = query.outerjoin(PublicationCreators).outerjoin(PublicationOrganization).filter(
+                    or_(
+                        Publications.document_title.ilike(f'%{search_term}%'),
+                        Publications.document_description.ilike(f'%{search_term}%'),
+                        Publications.owner.ilike(f'%{search_term}%'),
+                        PublicationCreators.given_name.ilike(f'%{search_term}%'),
+                        PublicationCreators.family_name.ilike(f'%{search_term}%'),
+                        PublicationOrganization.name.ilike(f'%{search_term}%')
+                    )
+                )
+                needs_distinct = True
+
+        # Apply account type filter (individual vs institutional)
+        if account_type_filter:
+            query = query.join(UserAccount, Publications.user_id == UserAccount.user_id).join(
+                AccountTypes, UserAccount.account_type_id == AccountTypes.id
+            ).filter(AccountTypes.account_type_name.ilike(account_type_filter))
 
         # Compute resource type counts (after search filter, before resource_type filter)
-        count_query = query.with_entities(
-            Publications.resource_type_id, func.count(Publications.id)
-        ).group_by(Publications.resource_type_id)
+        if needs_distinct:
+            count_query = query.with_entities(
+                Publications.resource_type_id, func.count(func.distinct(Publications.id))
+            ).group_by(Publications.resource_type_id)
+        else:
+            count_query = query.with_entities(
+                Publications.resource_type_id, func.count(Publications.id)
+            ).group_by(Publications.resource_type_id)
         resource_type_counts = {str(rt_id): count for rt_id, count in count_query.all()}
 
         # Apply resource type filter
@@ -412,6 +469,11 @@ def get_all_publications():
 
         # Apply sorting and pagination
         offset = (page - 1) * page_size
+        if needs_distinct:
+            # Use subquery to get distinct publication IDs first, then fetch full objects
+            distinct_ids_query = query.with_entities(Publications.id).distinct()
+            query = Publications.query.filter(Publications.id.in_(distinct_ids_query))
+
         publications = (
             query.order_by(sort_column)
             .limit(page_size)
@@ -448,10 +510,60 @@ def get_all_publications():
             'total_pages': (total_publications + page_size - 1) // page_size
         }
 
+        # Compute account type counts (individual vs institutional)
+        # Use OUTER JOIN to AccountTypes so users without account_type_id are included
+        account_type_count_query = db.session.query(
+            func.coalesce(AccountTypes.account_type_name, 'Unspecified'),
+            func.count(func.distinct(Publications.id))
+        ).select_from(Publications).join(
+            UserAccount, Publications.user_id == UserAccount.user_id
+        ).outerjoin(
+            AccountTypes, UserAccount.account_type_id == AccountTypes.id
+        )
+        # Apply same search filters for accurate counts
+        if search_term:
+            if search_field == 'title':
+                account_type_count_query = account_type_count_query.filter(Publications.document_title.ilike(f'%{search_term}%'))
+            elif search_field == 'author':
+                account_type_count_query = account_type_count_query.outerjoin(PublicationCreators).filter(
+                    or_(
+                        PublicationCreators.given_name.ilike(f'%{search_term}%'),
+                        PublicationCreators.family_name.ilike(f'%{search_term}%'),
+                        func.concat(PublicationCreators.given_name, ' ', PublicationCreators.family_name).ilike(f'%{search_term}%')
+                    )
+                )
+            elif search_field == 'institution':
+                account_type_count_query = account_type_count_query.outerjoin(PublicationOrganization).filter(
+                    or_(
+                        PublicationOrganization.name.ilike(f'%{search_term}%'),
+                        Publications.owner.ilike(f'%{search_term}%')
+                    )
+                )
+            elif search_field == 'keywords':
+                account_type_count_query = account_type_count_query.filter(Publications.document_description.ilike(f'%{search_term}%'))
+            elif search_field == 'all':
+                account_type_count_query = account_type_count_query.outerjoin(PublicationCreators).outerjoin(PublicationOrganization).filter(
+                    or_(
+                        Publications.document_title.ilike(f'%{search_term}%'),
+                        Publications.document_description.ilike(f'%{search_term}%'),
+                        Publications.owner.ilike(f'%{search_term}%'),
+                        PublicationCreators.given_name.ilike(f'%{search_term}%'),
+                        PublicationCreators.family_name.ilike(f'%{search_term}%'),
+                        PublicationOrganization.name.ilike(f'%{search_term}%')
+                    )
+                )
+        if resource_type_ids:
+            account_type_count_query = account_type_count_query.filter(Publications.resource_type_id.in_(resource_type_ids))
+        account_type_counts = {
+            name: count for name, count in
+            account_type_count_query.group_by(func.coalesce(AccountTypes.account_type_name, 'Unspecified')).all()
+        }
+
         return jsonify({
             'data': data_list,
             'pagination': pagination,
-            'resource_type_counts': resource_type_counts
+            'resource_type_counts': resource_type_counts,
+            'account_type_counts': account_type_counts
         }), 200
 
     except ValueError:

@@ -57,6 +57,9 @@ import { useTranslation } from 'react-i18next';
 const ListDocIds = () => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchField, setSearchField] = useState('all');
+  const [accountTypeFilter, setAccountTypeFilter] = useState('');
+  const [accountTypeCounts, setAccountTypeCounts] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRehydrated, setIsRehydrated] = useState(false);
   const [publications, setPublications] = useState([]);
@@ -159,9 +162,15 @@ const ListDocIds = () => {
       params.append('page', page);
       params.append('page_size', pagination.page_size);
 
-      // Add search term if present
+      // Add search term and search field if present
       if (debouncedSearchQuery.current) {
         params.append('search', debouncedSearchQuery.current);
+        params.append('search_field', searchField);
+      }
+
+      // Add account type filter if selected
+      if (accountTypeFilter) {
+        params.append('account_type', accountTypeFilter);
       }
 
       // Only add resource_type if types are selected
@@ -194,6 +203,11 @@ const ListDocIds = () => {
         });
         setResourceTypeCounts(countsByName);
       }
+
+      // Use backend account type counts
+      if (response.data.account_type_counts) {
+        setAccountTypeCounts(response.data.account_type_counts);
+      }
     } catch (error) {
       console.error('Error fetching publications:', error);
       setPublications([]);
@@ -206,7 +220,7 @@ const ListDocIds = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTypes, pagination.page_size, resourceTypesLoaded, stableResourceTypesList]);
+  }, [selectedTypes, pagination.page_size, resourceTypesLoaded, stableResourceTypesList, searchField, accountTypeFilter]);
 
   // Effect for initial load and when filter dependencies change
   useEffect(() => {
@@ -265,6 +279,21 @@ const ListDocIds = () => {
   // Update clear search handler
   const handleClearSearch = () => {
     setSearchQuery('');
+  };
+
+  // Handle search field change
+  const handleSearchFieldChange = (event) => {
+    setSearchField(event.target.value);
+    // If there's already a search query, reset to page 1 (useCallback dependency triggers re-fetch)
+    if (searchQuery.trim()) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
+  };
+
+  // Handle account type filter change
+  const handleAccountTypeChange = (event) => {
+    setAccountTypeFilter(event.target.value);
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // Update clear filter handler
@@ -479,10 +508,40 @@ const ListDocIds = () => {
 
             {/* Search and Filter Section */}
             <Grid container spacing={2}>
-              <Grid item xs={12} md={8}>
+              {/* Search Field Selector */}
+              <Grid item xs={12} sm={3} md={2}>
+                <FormControl fullWidth>
+                  <Select
+                    value={searchField}
+                    onChange={handleSearchFieldChange}
+                    disabled={isLoading}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f8f9fa',
+                      '& .MuiSelect-select': {
+                        color: theme.palette.mode === 'dark' ? 'white' : 'inherit'
+                      }
+                    }}
+                  >
+                    <MenuItem value="all">{t('docid.search_all_fields')}</MenuItem>
+                    <MenuItem value="title">{t('docid.search_title')}</MenuItem>
+                    <MenuItem value="author">{t('docid.search_author')}</MenuItem>
+                    <MenuItem value="institution">{t('docid.search_institution')}</MenuItem>
+                    <MenuItem value="keywords">{t('docid.search_keywords')}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* Search Input */}
+              <Grid item xs={12} sm={9} md={6}>
                 <TextField
                   fullWidth
-                  placeholder={t('docid.search_placeholder')}
+                  placeholder={
+                    searchField === 'all' ? t('docid.search_placeholder_all') :
+                    searchField === 'title' ? t('docid.search_placeholder_title') :
+                    searchField === 'author' ? t('docid.search_placeholder_author') :
+                    searchField === 'institution' ? t('docid.search_placeholder_institution') :
+                    t('docid.search_placeholder_keywords')
+                  }
                   value={searchQuery}
                   onChange={handleSearchChange}
                   disabled={isLoading}
@@ -523,6 +582,7 @@ const ListDocIds = () => {
                   }}
                 />
               </Grid>
+              {/* Resource Type Filter */}
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth error={resourceTypesList.length === 0}>
                   <Select
@@ -615,6 +675,32 @@ const ListDocIds = () => {
                 </FormControl>
               </Grid>
             </Grid>
+
+            {/* Account Type Filter (Individual vs Institutional) */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                {t('docid.filter_by_account_type')}:
+              </Typography>
+              {['', 'Individual', 'Institution'].map((filterValue) => {
+                const label = filterValue === '' ? t('docid.all') :
+                  filterValue === 'Individual' ? `${t('docid.individual')} (${accountTypeCounts['Individual'] || 0})` :
+                  `${t('docid.institutional')} (${accountTypeCounts['Institution'] || 0})`;
+                const isActive = accountTypeFilter === filterValue;
+                return (
+                  <Chip
+                    key={filterValue || 'all'}
+                    label={label}
+                    onClick={() => {
+                      setAccountTypeFilter(filterValue);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    variant={isActive ? 'filled' : 'outlined'}
+                    color={isActive ? 'primary' : 'default'}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                );
+              })}
+            </Box>
           </Box>
 
           {/* Main Content Area */}
