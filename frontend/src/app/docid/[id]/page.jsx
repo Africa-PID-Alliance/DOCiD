@@ -889,7 +889,9 @@ const DocIDPage = ({ params }) => {
               >
                 <img
                   src={docData.publication_poster_url
-                    ? `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL}/${docData.publication_poster_url}`
+                    ? (docData.publication_poster_url.startsWith('http')
+                      ? docData.publication_poster_url
+                      : `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || ''}/${docData.publication_poster_url}`)
                     : (docData.avatar || '/assets/images/logo2.png')}
                   alt="DOCiD"
                   onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}

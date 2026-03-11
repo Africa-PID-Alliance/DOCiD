@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-
-const ANALYTICS_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5001/api';
+import { BACKEND_API_URL as ANALYTICS_API_URL } from '@/lib/backendUrl';
 
 export async function GET(request, { params }) {
   const { id } = (await params);

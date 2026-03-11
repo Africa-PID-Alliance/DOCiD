@@ -137,6 +137,17 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
     });
   };
 
+  const handleOrganizationFieldChange = (index, field) => (event) => {
+    const updatedOrganizations = organizations.map((org, i) =>
+      i === index ? { ...org, [field]: event.target.value } : org
+    );
+    setOrganizations(updatedOrganizations);
+    updateFormData({
+      ...formData,
+      organizations: updatedOrganizations
+    });
+  };
+
   const handleSearchRor = async () => {
     // Different validation and search logic based on active tab
     if (activeTab === 0) { // ID tab (ROR ID or ISNI ID or Ringgold ID)
@@ -570,13 +581,9 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                   <TextField
                     fullWidth
                     label={t('assign_docid.organizations_form.organization_type')}
-                    value={organization.type || 'N/A'}
-                    InputProps={{
-                      readOnly: true,
-                      sx: { 
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                      }
-                    }}
+                    value={organization.type || ''}
+                    onChange={handleOrganizationFieldChange(index, 'type')}
+                    placeholder="e.g. Education, Healthcare, Company"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>

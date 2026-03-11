@@ -13,6 +13,7 @@ from app.service_dspace_legacy import DSpaceLegacyClient, DSpaceLegacyMetadataMa
 from app.service_identifiers import IdentifierService
 from datetime import datetime
 import os
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,12 @@ def get_dspace_legacy_client():
     )
 
 
+def _strip_date_from_name(name):
+    """Remove date ranges like ', 1894-1979', ', 1909-', '1870-1950.' from DSpace author names."""
+    cleaned = re.sub(r',?\s*\d{4}-?\d{0,4}\.?\s*$', '', name).strip()
+    return cleaned if cleaned else name
+
+
 def _save_legacy_creators(publication_id, creators_data, author_role_id=None):
     """Save creators for a legacy DSpace publication."""
     if not creators_data:
@@ -47,14 +54,14 @@ def _save_legacy_creators(publication_id, creators_data, author_role_id=None):
         return
 
     for creator_data in creators_data:
-        full_name = creator_data.get('creator_name', '')
+        full_name = _strip_date_from_name(creator_data.get('creator_name', ''))
         name_parts = full_name.split(',', 1) if ',' in full_name else full_name.rsplit(' ', 1)
 
         if len(name_parts) == 2:
-            family_name = name_parts[0].strip()
-            given_name = name_parts[1].strip()
+            family_name = _strip_date_from_name(name_parts[0].strip())
+            given_name = _strip_date_from_name(name_parts[1].strip())
         else:
-            family_name = full_name.strip()
+            family_name = _strip_date_from_name(full_name.strip())
             given_name = ''
 
         identifier_value = creator_data.get('orcid_id', '') or ''

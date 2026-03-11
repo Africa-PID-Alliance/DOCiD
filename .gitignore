@@ -18,8 +18,8 @@ dist/
 backend/downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -164,8 +164,8 @@ backend/ringgold_institutions.sql
 .claude/
 frontend/CLAUDE.md
 
-# Integration response documents (sensitive/internal)
-docs/stellenbosch_integration_response.txt
+# Internal docs (local only)
+docs/
 
 # Meeting notes (private/local only)
 meeting-notes/**/*

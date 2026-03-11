@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { BACKEND_API_URL } from '@/lib/backendUrl';
 
 export async function POST(request, { params }) {
   const { fileId } = (await params);
   const body = await request.json();
 
-  const baseUrl = process.env.BACKEND_API_URL || 'http://127.0.0.1:5001/api';
-  const fullUrl = `${baseUrl}/publications/files/${fileId}/downloads`;
-
-  console.log('[DEBUG] Using axios - Base URL:', baseUrl);
-  console.log('[DEBUG] Using axios - Full URL:', fullUrl);
+  const fullUrl = `${BACKEND_API_URL}/publications/files/${fileId}/downloads`;
 
   try {
     const response = await axios.post(fullUrl, body, {

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const ANALYTICS_API_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:6000/api';
+import { BACKEND_API_URL as ANALYTICS_API_URL } from '@/lib/backendUrl';
 
 export async function GET(request, { params }) {
   const { id } = (await params);

@@ -50,7 +50,7 @@ export async function POST(request) {
       return NextResponse.json(
         { 
           error: 'Publication submission failed',
-          message: errorData.message || 'Unknown error occurred',
+          message: errorData.message || errorData.error || 'Unknown error occurred',
           details: errorData
         },
         { 
