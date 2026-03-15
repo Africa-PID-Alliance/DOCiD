@@ -43,6 +43,7 @@ import DocIDForm from './components/DocIDForm';
 import PublicationsForm from './components/PublicationsForm';
 import DocumentsForm from './components/DocumentsForm';
 import CreatorsForm from './components/CreatorsForm';
+import CreatorsNationalIdForm from './components/CreatorsNationalIdForm';
 import OrganizationsForm from './components/OrganizationsForm';
 import FundersForm from './components/FundersForm';
 import ProjectForm from './components/ProjectForm';
@@ -405,10 +406,36 @@ const AssignDocID = () => {
         );
       case 3:
         return (
-          <CreatorsForm
-            formData={formData.creators}
-            updateFormData={(data) => updateFormData('creators', data)}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <CreatorsForm
+                formData={formData.creators}
+                updateFormData={(data) => updateFormData('creators', data)}
+              />
+            </Paper>
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: theme.palette.background.paper
+              }}
+            >
+              <CreatorsNationalIdForm
+                formData={{ creators: [] }}
+                updateFormData={() => {}}
+              />
+            </Paper>
+          </Box>
         );
       case 4:
         return (

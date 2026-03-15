@@ -453,8 +453,8 @@ const CreatorsForm = ({ formData, updateFormData }) => {
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 2
+        alignItems: 'center', 
+        mb: 2 
       }}>
         <Typography 
           variant="h6" 
@@ -464,7 +464,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
             fontSize: '1.25rem'
           }}
         >
-          {t('assign_docid.creators_form.title')}
+          Creators (ORCID)
         </Typography>
         <Button
           variant="contained"
