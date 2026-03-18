@@ -584,9 +584,12 @@ const AssignDocID = () => {
       setActiveStep(0);
       setNotification({ open: true, message: "Document description is required!", severity: 'error' });
       return;
-    } else if (!formData.creators?.creators || formData.creators.creators.length === 0) {
+    } else if (
+      (!formData.creators?.creators || formData.creators.creators.length === 0) &&
+      (!formData.creatorsNationalId?.creators || formData.creatorsNationalId.creators.length === 0)
+    ) {
       setActiveStep(3);
-      setNotification({ open: true, message: "Creator(s) are required!", severity: 'error' });
+      setNotification({ open: true, message: "Creator(s) are required! Add at least one ORCID or National ID creator.", severity: 'error' });
       return;
     }
 
