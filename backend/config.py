@@ -36,6 +36,11 @@ class Config:
     RAID_USERNAME = os.getenv('RAID_USERNAME')
     RAID_PASSWORD = os.getenv('RAID_PASSWORD')
 
+    # Metadata Enrichment Configuration
+    OPENALEX_CONTACT_EMAIL = os.getenv('OPENALEX_CONTACT_EMAIL', 'admin@docid.africapidalliance.org')
+    UNPAYWALL_CONTACT_EMAIL = os.getenv('UNPAYWALL_CONTACT_EMAIL', 'admin@docid.africapidalliance.org')
+    SEMANTIC_SCHOLAR_API_KEY = os.getenv('SEMANTIC_SCHOLAR_API_KEY', '')
+
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # 24 hours in seconds (default)

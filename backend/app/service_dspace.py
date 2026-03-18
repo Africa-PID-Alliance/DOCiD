@@ -104,6 +104,51 @@ class DSpaceClient:
             print(f"Error getting items: {e}")
             return {}
 
+    def search_items(self, page: int = 0, size: int = 20, query: str = None) -> Dict:
+        """
+        Search items via /api/discover/search/objects (public, no auth needed).
+        Use this when /api/core/items requires authentication (e.g., UNILAG DSpace 9).
+
+        Args:
+            page: Page number (0-indexed)
+            size: Number of items per page
+            query: Optional search query string
+
+        Returns:
+            Dictionary with 'items' list extracted from nested discover response
+        """
+        try:
+            url = f"{self.api_url}/discover/search/objects"
+            params = {'page': page, 'size': size}
+            if query:
+                params['query'] = query
+
+            response = self.session.get(url, params=params, timeout=30)
+
+            if response.status_code != 200:
+                print(f"Failed to search items: {response.status_code}")
+                return {'_embedded': {'items': []}}
+
+            data = response.json()
+
+            # Extract items from nested discover response structure:
+            # _embedded.searchResult._embedded.objects[]._embedded.indexableObject
+            search_result = data.get('_embedded', {}).get('searchResult', {})
+            search_objects = search_result.get('_embedded', {}).get('objects', [])
+
+            items = []
+            for search_object in search_objects:
+                indexable_object = search_object.get('_embedded', {}).get('indexableObject', {})
+                if indexable_object and indexable_object.get('type') == 'item':
+                    items.append(indexable_object)
+
+            # Return in same format as get_items() for compatibility
+            return {'_embedded': {'items': items}}
+
+        except Exception as search_error:
+            print(f"Error searching items: {search_error}")
+            return {'_embedded': {'items': []}}
+
     def get_item(self, uuid: str) -> Optional[Dict]:
         """
         Get single item by UUID
@@ -282,6 +327,28 @@ class DSpaceMetadataMapper:
         # Extract identifiers
         identifier_uri = cls._get_metadata_value(metadata, 'dc.identifier.uri')
 
+        # Extract DOI from multiple possible fields (handles UNILAG's dc.identifier.other)
+        extracted_doi = None
+        doi_fields = ['dc.identifier.doi', 'dc.identifier.other', 'dc.identifier']
+        for doi_field in doi_fields:
+            doi_candidates = cls._get_metadata_values(metadata, doi_field)
+            for candidate in doi_candidates:
+                if not candidate:
+                    continue
+                cleaned_candidate = candidate.strip()
+                # Strip common prefixes
+                for prefix in ['doi:', 'DOI:', 'https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/']:
+                    if cleaned_candidate.startswith(prefix):
+                        cleaned_candidate = cleaned_candidate[len(prefix):].strip()
+                # Strip trailing period
+                cleaned_candidate = cleaned_candidate.rstrip('.')
+                # Validate: DOIs start with 10.
+                if cleaned_candidate.startswith('10.') and '/' in cleaned_candidate:
+                    extracted_doi = cleaned_candidate
+                    break
+            if extracted_doi:
+                break
+
         # Extract language
         language = cls._get_metadata_value(metadata, 'dc.language')
         language_iso = cls._get_metadata_value(metadata, 'dc.language.iso')
@@ -299,6 +366,7 @@ class DSpaceMetadataMapper:
             'document_description': description,
             'published_date': cls._parse_date(date_issued),
             'resource_type': resource_type,
+            'doi': extracted_doi,
             'dspace_handle': dspace_item.get('handle'),
             'dspace_uuid': dspace_item.get('uuid'),
         }

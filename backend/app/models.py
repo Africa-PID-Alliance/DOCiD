@@ -1671,3 +1671,81 @@ class EnrichmentRun(db.Model):
             'publications_failed': self.publications_failed,
             'error_summary': self.error_summary,
         }
+
+
+class HarvestSource(db.Model):
+    """
+    Stores connection details for institutional repository sources.
+    Each university/repository has its own entry with DSpace version,
+    API type, authentication credentials (encrypted), and harvest schedule.
+    """
+    __tablename__ = 'harvest_sources'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    base_url = db.Column(db.String(500), nullable=False)
+    dspace_version = db.Column(db.String(20), nullable=True)
+    api_type = db.Column(db.String(20), nullable=False)  # legacy|modern|figshare|ojs
+    auth_required = db.Column(db.Boolean, default=False)
+    encrypted_username = db.Column(db.Text, nullable=True)
+    encrypted_password = db.Column(db.Text, nullable=True)
+    owner_name = db.Column(db.String(255), nullable=False)
+    harvest_frequency = db.Column(db.String(20), default='weekly')  # daily|weekly|biweekly|monthly
+    is_active = db.Column(db.Boolean, default=True)
+    last_harvested_at = db.Column(db.DateTime, nullable=True)
+    total_items_synced = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
+
+    field_mappings = relationship(
+        'HarvestSourceFieldMapping',
+        back_populates='source',
+        cascade='all, delete-orphan'
+    )
+
+    def __repr__(self):
+        return f"<HarvestSource(id={self.id}, name='{self.name}', api_type='{self.api_type}')>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'base_url': self.base_url,
+            'dspace_version': self.dspace_version,
+            'api_type': self.api_type,
+            'auth_required': self.auth_required,
+            'owner_name': self.owner_name,
+            'harvest_frequency': self.harvest_frequency,
+            'is_active': self.is_active,
+            'last_harvested_at': self.last_harvested_at.isoformat() if self.last_harvested_at else None,
+            'total_items_synced': self.total_items_synced,
+        }
+
+
+class HarvestSourceFieldMapping(db.Model):
+    """
+    Per-source metadata field mappings. Maps DOCiD fields to DSpace/repository
+    metadata fields. Priority determines which source field is tried first
+    when multiple fields can provide the same DOCiD field value.
+    """
+    __tablename__ = 'harvest_source_field_mappings'
+    __table_args__ = (
+        db.UniqueConstraint('harvest_source_id', 'docid_field', 'source_field',
+                            name='uq_source_docid_field_mapping'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    harvest_source_id = db.Column(
+        db.Integer,
+        db.ForeignKey('harvest_sources.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True
+    )
+    docid_field = db.Column(db.String(100), nullable=False)   # doi, document_title, etc.
+    source_field = db.Column(db.String(200), nullable=False)  # dc.identifier.other, dc.title, etc.
+    priority = db.Column(db.Integer, default=0)               # higher = tried first
+
+    source = relationship('HarvestSource', back_populates='field_mappings')
+
+    def __repr__(self):
+        return f"<FieldMapping(source_id={self.harvest_source_id}, {self.docid_field} <- {self.source_field}, pri={self.priority})>"

@@ -297,6 +297,28 @@ const DocIDPage = ({ params }) => {
     }
   ];
 
+  const getOpenAccessColor = (status) => {
+    const colorMap = {
+      gold: '#F2A900',
+      green: '#4CAF50',
+      hybrid: '#FF9800',
+      bronze: '#CD7F32',
+      closed: '#9E9E9E',
+    };
+    return colorMap[status] || '#9E9E9E';
+  };
+
+  const getOpenAccessLabel = (status) => {
+    const labelMap = {
+      gold: 'Gold Open Access',
+      green: 'Green Open Access',
+      hybrid: 'Hybrid Open Access',
+      bronze: 'Bronze Open Access',
+      closed: 'Closed Access',
+    };
+    return labelMap[status] || status;
+  };
+
   const identifiers = [
     {
       label: 'APA Handle iD',
@@ -830,11 +852,36 @@ const DocIDPage = ({ params }) => {
                   </Link>
                 </Box>
               )}
+              {/* Enrichment Metadata Badges */}
+              {(docData.open_access_status || docData.citation_count != null || docData.openalex_topics?.length > 0) && (
+                <Box display="flex" flexWrap="wrap" gap={1} mb={2} alignItems="center">
+                  {docData.open_access_status && (
+                    <Chip
+                      label={getOpenAccessLabel(docData.open_access_status)}
+                      size="small"
+                      component={docData.open_access_url ? 'a' : 'span'}
+                      href={docData.open_access_url || undefined}
+                      target="_blank"
+                      clickable={!!docData.open_access_url}
+                      sx={{ bgcolor: getOpenAccessColor(docData.open_access_status), color: '#fff', fontWeight: 600 }}
+                    />
+                  )}
+                  {docData.citation_count != null && (
+                    <Chip label={`${docData.citation_count} citations`} size="small" variant="outlined" />
+                  )}
+                  {docData.influential_citation_count > 0 && (
+                    <Chip label={`${docData.influential_citation_count} influential`} size="small" variant="outlined" color="primary" />
+                  )}
+                  {docData.openalex_topics?.slice(0, 3).map((topic, topicIndex) => (
+                    <Chip key={topicIndex} label={topic.name} size="small" variant="outlined" color="secondary" />
+                  ))}
+                </Box>
+              )}
               {/* Main Image */}
-              <Box 
-                display="flex" 
-                justifyContent="center" 
-                mb={2} 
+              <Box
+                display="flex"
+                justifyContent="center"
+                mb={2}
                 sx={{
                   width: '100%',
                   bgcolor: '#f5f5f5',
@@ -862,6 +909,15 @@ const DocIDPage = ({ params }) => {
               </Box>
               {/* Description */}
               <Typography align="left" mb={2} dangerouslySetInnerHTML={{ __html: docData.document_description }} />
+              {/* Abstract (from Semantic Scholar / OpenAlex enrichment) */}
+              {docData.abstract_text && (
+                <Box mb={2} p={2} bgcolor="grey.50" borderRadius={2}>
+                  <Typography variant="subtitle2" fontWeight={600} mb={0.5}>Abstract</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {docData.abstract_text}
+                  </Typography>
+                </Box>
+              )}
               {/* Like, View, Share Row */}
               <Box display="flex" justifyContent="space-between" alignItems="center" gap={4} mb={2}>
                 <Button startIcon={<ThumbUpOutlined sx={{ fontSize: 80 }} />} size="large" onClick={handleLikeClick}>0</Button>

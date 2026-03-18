@@ -494,10 +494,16 @@ def sync_batch():
         if force_remap:
             update_existing = True
 
-        # Get items from DSpace
+        # Get items from DSpace (try /api/core/items first, fallback to discover/search)
         client = get_dspace_client()
         items_data = client.get_items(page=page, size=size)
         items = items_data.get('_embedded', {}).get('items', [])
+
+        # Fallback: if /api/core/items returns empty (auth required on some DSpace 9 instances),
+        # use the public /api/discover/search/objects endpoint instead
+        if not items:
+            items_data = client.search_items(page=page, size=size)
+            items = items_data.get('_embedded', {}).get('items', [])
 
         # --- Prefetch existing mappings to avoid N+1 ---
         incoming_uuids = [item.get('uuid') for item in items if item.get('uuid')]

@@ -64,6 +64,7 @@ virtualenv==20.26.6
 Werkzeug==3.0.3
 zipp==3.18.2
 gunicorn==20.1.0
+cryptography
 flask_mailman 
 flask-limiter==3.8.0
 flask-caching==2.3.0
