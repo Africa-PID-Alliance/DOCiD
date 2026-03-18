@@ -659,7 +659,10 @@ def get_publication(publication_id):
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
                           'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
-                          'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'publication_poster_url', 'doi', 'published', 'handle_url',
+                          'citation_count', 'influential_citation_count',
+                          'open_access_status', 'open_access_url',
+                          'openalex_topics', 'abstract_text']
 
         # Log publication details
         logger.info(f"Fetching publication details for ID: {publication_id}, User ID: {getattr(data, 'user_id', 'unknown')}")
@@ -820,7 +823,10 @@ def get_publication_by_docid_prefix():
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
                           'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
-                          'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'publication_poster_url', 'doi', 'published', 'handle_url',
+                          'citation_count', 'influential_citation_count',
+                          'open_access_status', 'open_access_url',
+                          'openalex_topics', 'abstract_text']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:
@@ -985,7 +991,10 @@ def get_publication_by_docid_simple(document_docid):
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
                           'resource_type_id', 'user_id', 'avatar', 'owner', 'collection_name',
-                          'publication_poster_url', 'doi', 'published', 'handle_url']
+                          'publication_poster_url', 'doi', 'published', 'handle_url',
+                          'citation_count', 'influential_citation_count',
+                          'open_access_status', 'open_access_url',
+                          'openalex_topics', 'abstract_text']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:
@@ -1442,6 +1451,7 @@ def create_publication():
           publication_type = request.form.get(f'filesDocuments[{index}][publication_type]')
           identifier_type_id = request.form.get(f'filesDocuments[{index}][identifier]')
           generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
+          rrid_value = (request.form.get(f'filesDocuments[{index}][rrid]') or '').strip() or None
           file = request.files.get(f'filesDocuments_{index}_file')
           
           logger.info(f"PublicationDocument [{index}]:")
@@ -1523,7 +1533,8 @@ def create_publication():
                   generated_identifier=generated_identifier,
                   handle_identifier=handle_id,
                   external_identifier=external_id,
-                  external_identifier_type=external_id_type
+                  external_identifier_type=external_id_type,
+                  rrid=rrid_value
               ))
               
               # CORDRA push has been moved to separate script push_to_cordra.py
@@ -3213,6 +3224,7 @@ def create_version():
             doc_type = request.form.get(f'filesDocuments[{index}][publication_type]')
             doc_identifier = request.form.get(f'filesDocuments[{index}][identifier]')
             doc_generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
+            doc_rrid = (request.form.get(f'filesDocuments[{index}][rrid]') or '').strip() or None
             doc_file = request.files.get(f'filesDocuments_{index}_file')
 
             doc_file_url = ''
@@ -3229,7 +3241,8 @@ def create_version():
                 publication_type_id=int(doc_type) if doc_type else 1,
                 file_url=doc_file_url,
                 identifier_type_id=int(doc_identifier) if doc_identifier else None,
-                generated_identifier=doc_generated_identifier or ''
+                generated_identifier=doc_generated_identifier or '',
+                rrid=doc_rrid
             )
             db.session.add(pub_doc)
             files_documents.append(pub_doc)

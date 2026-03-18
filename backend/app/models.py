@@ -496,6 +496,17 @@ class Publications(db.Model):
     parent_id = Column(Integer, ForeignKey('publications.id', ondelete='SET NULL'), nullable=True, index=True)
     version_number = Column(Integer, nullable=True, default=None)
 
+    # Metadata enrichment fields
+    citation_count = Column(Integer, nullable=True)
+    influential_citation_count = Column(Integer, nullable=True)
+    open_access_status = Column(String(20), nullable=True)  # gold|green|hybrid|bronze|closed
+    open_access_url = Column(String(500), nullable=True)
+    openalex_topics = Column(JSONB, nullable=True)  # [{name, score}]
+    openalex_id = Column(String(100), nullable=True)
+    semantic_scholar_id = Column(String(100), nullable=True)
+    abstract_text = Column(Text, nullable=True)
+    openaire_id = Column(String(100), nullable=True)
+
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
@@ -554,6 +565,7 @@ class PublicationDocuments(db.Model):
     handle_identifier = Column(String(100), nullable=True)  # Handle for CORDRA
     external_identifier = Column(String(100), nullable=True)  # DOI from DataCite/Crossref
     external_identifier_type = Column(String(50), nullable=True)  # Type of external identifier (DOI, etc.)
+    rrid = Column(String(100), nullable=True)  # Optional RRID e.g. "RRID:SCR_012345"
 
     # Relationships
     publication = relationship('Publications', back_populates='publication_documents')
@@ -1581,3 +1593,81 @@ class DocidRrid(db.Model):
             DocidRrid or None: First matching record
         """
         return cls.query.filter_by(rrid=rrid_value).first()
+
+
+class PublicationEnrichment(db.Model):
+    """
+    Tracks per-publication, per-source enrichment status for idempotency.
+    Each record represents one enrichment attempt from a specific source.
+    """
+    __tablename__ = 'publication_enrichments'
+    __table_args__ = (
+        db.UniqueConstraint('publication_id', 'source_name', name='uq_publication_source_enrichment'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, index=True)
+    source_name = db.Column(db.String(50), nullable=False, index=True)  # openalex|unpaywall|semantic_scholar|openaire
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending|enriched|not_found|error|skipped
+    enriched_at = db.Column(db.DateTime, nullable=True)
+    raw_response = db.Column(JSONB, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    retry_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    publication = db.relationship('Publications', backref=db.backref('enrichments', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f"<PublicationEnrichment(id={self.id}, pub={self.publication_id}, source='{self.source_name}', status='{self.status}')>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'publication_id': self.publication_id,
+            'source_name': self.source_name,
+            'status': self.status,
+            'enriched_at': self.enriched_at.isoformat() if self.enriched_at else None,
+            'error_message': self.error_message,
+            'retry_count': self.retry_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class EnrichmentRun(db.Model):
+    """
+    Tracks each cron execution of the enrichment/harvest pipeline for auditability and resumability.
+    """
+    __tablename__ = 'enrichment_runs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    run_type = db.Column(db.String(50), nullable=False, index=True)  # harvest|enrich
+    source_name = db.Column(db.String(50), nullable=False, index=True)  # openalex|unpaywall|semantic_scholar|openaire|dspace|figshare|ojs
+    status = db.Column(db.String(20), nullable=False, default='running')  # running|completed|failed|interrupted
+    started_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    publications_processed = db.Column(db.Integer, default=0)
+    publications_enriched = db.Column(db.Integer, default=0)
+    publications_skipped = db.Column(db.Integer, default=0)
+    publications_failed = db.Column(db.Integer, default=0)
+    error_summary = db.Column(db.Text, nullable=True)
+    last_processed_publication_id = db.Column(db.Integer, nullable=True)
+
+    def __repr__(self):
+        return f"<EnrichmentRun(id={self.id}, type='{self.run_type}', source='{self.source_name}', status='{self.status}')>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'run_type': self.run_type,
+            'source_name': self.source_name,
+            'status': self.status,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'publications_processed': self.publications_processed,
+            'publications_enriched': self.publications_enriched,
+            'publications_skipped': self.publications_skipped,
+            'publications_failed': self.publications_failed,
+            'error_summary': self.error_summary,
+        }

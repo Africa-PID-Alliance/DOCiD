@@ -388,21 +388,6 @@ const AssignDocID = () => {
                 updateFormData={(data) => updateFormData('documents', data)}
               />
             </Paper>
-            <Paper
-              elevation={2}
-              sx={{
-                p: 3,
-                borderRadius: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                bgcolor: theme.palette.background.paper
-              }}
-            >
-              <RridForm
-                formData={formData.researchResources || { resources: [] }}
-                updateFormData={(data) => updateFormData('researchResources', data)}
-                allowedResourceTypes={['software', 'antibody', 'cell_line']}
-              />
-            </Paper>
           </Box>
         );
       case 3:
@@ -651,6 +636,7 @@ const AssignDocID = () => {
           submitData.append(`filesDocuments[${index}][identifier]`, file.metadata.identifier);
           submitData.append(`filesDocuments[${index}][publication_type]`, formData.documents.documentType);
           submitData.append(`filesDocuments[${index}][generated_identifier]`, file.metadata.generated_identifier);
+          submitData.append(`filesDocuments[${index}][rrid]`, file.metadata.rrid || '');
           submitData.append(`filesDocuments_${index}_file`, file.file);
         });
       }

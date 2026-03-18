@@ -219,10 +219,11 @@ def push_publication_documents_to_cordra(publication):
                 "publicationType": pub_type_name,
                 "identifierType": identifier_type_name,
                 "identifierCstr": identifier_cstr_url,  # Full resolvable CSTR URL
+                "rrid": doc.rrid,
                 "parentId": publication.doi,
                 "createdOn": int(datetime.now().timestamp())
             }
-            
+
             if doc.external_identifier:
                 metadata["externalIdentifier"] = doc.external_identifier
                 metadata["externalIdentifierType"] = doc.external_identifier_type

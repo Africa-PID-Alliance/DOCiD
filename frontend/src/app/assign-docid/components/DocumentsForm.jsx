@@ -41,6 +41,10 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import Chip from '@mui/material/Chip';
+import SearchIcon from '@mui/icons-material/Search';
+import ScienceIcon from '@mui/icons-material/Science';
+import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
 const documentTypes = [
   { id: 1, type: 'Video', extensions: '.mp4, .mov, .avi, .mkv', icon: VideoIcon, enabled: true },
@@ -83,6 +87,8 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   const [findingError, setFindingError] = useState(false);
   const [findingErrorText, setFindingErrorText] = useState('');
   const [cstrIdentifier, setCstrIdentifier] = useState('');
+  const [rridModalOpen, setRridModalOpen] = useState(false);
+  const [rridModalFileIndex, setRridModalFileIndex] = useState(null);
 
   // Effect to sync state with parent when formData changes
   useEffect(() => {
@@ -234,7 +240,8 @@ const DocumentsForm = ({ formData, updateFormData }) => {
         description: '',
         identifier: '',
         identifierType: '',
-        generated_identifier: ''
+        generated_identifier: '',
+        rrid: ''
       }
     }));
 
@@ -770,6 +777,34 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                         />
                       )}
                 </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScienceIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Research Resource (RRID) — Optional
+                    </Typography>
+                  </Box>
+                  {file.metadata.rrid ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <Chip
+                        label={file.metadata.rrid}
+                        color="primary"
+                        variant="outlined"
+                        onDelete={() => handleMetadataChange(index, 'rrid', '')}
+                      />
+                    </Box>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<SearchIcon />}
+                      onClick={() => { setRridModalFileIndex(index); setRridModalOpen(true); }}
+                      sx={{ mt: 1 }}
+                    >
+                      Search RRID
+                    </Button>
+                  )}
+                </Grid>
               </Grid>
             </Paper>
           </Grid>
@@ -796,6 +831,20 @@ const DocumentsForm = ({ formData, updateFormData }) => {
           </Grid>
         )}
       </Grid>
+
+      {/* RRID Search Modal */}
+      <RridSearchModal
+        open={rridModalOpen}
+        onClose={() => { setRridModalOpen(false); setRridModalFileIndex(null); }}
+        collectOnly={true}
+        onSelectRrid={(rridData) => {
+          if (rridModalFileIndex !== null) {
+            handleMetadataChange(rridModalFileIndex, 'rrid', rridData.rrid);
+          }
+          setRridModalOpen(false);
+          setRridModalFileIndex(null);
+        }}
+      />
 
       {/* Preview Modal */}
       <Modal
