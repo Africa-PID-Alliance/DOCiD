@@ -838,7 +838,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
         onClose={() => { setRridModalOpen(false); setRridModalFileIndex(null); }}
         collectOnly={true}
         onSelectRrid={(rridData) => {
-          if (rridModalFileIndex !== null) {
+          if (rridModalFileIndex !== null && rridData?.rrid) {
             handleMetadataChange(rridModalFileIndex, 'rrid', rridData.rrid);
           }
           setRridModalOpen(false);
@@ -887,8 +887,11 @@ const DocumentsForm = ({ formData, updateFormData }) => {
               <CloseIcon />
             </IconButton>
           </Box>
+          {(() => {
+            const previewTypeName = documentTypes.find(dt => dt.id === selectedType)?.type || '';
+            return (
           <Box sx={{ height: 'calc(90vh - 64px)', width: '100%' }}>
-            {selectedType === 'Image' || selectedType === 'Gif' ? (
+            {previewTypeName === 'Image' || previewTypeName === 'Gif' ? (
               <Box
                 component="img"
                 src={selectedFileUrl}
@@ -899,7 +902,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   objectFit: 'contain'
                 }}
               />
-            ) : selectedType === 'Video' ? (
+            ) : previewTypeName === 'Video' ? (
               <video
                 src={selectedFileUrl}
                 controls
@@ -909,7 +912,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   objectFit: 'contain'
                 }}
               />
-            ) : selectedType === 'Audio' ? (
+            ) : previewTypeName === 'Audio' ? (
               <Box sx={{ p: 4, textAlign: 'center' }}>
                 <audio
                   src={selectedFileUrl}
@@ -927,6 +930,8 @@ const DocumentsForm = ({ formData, updateFormData }) => {
               />
             )}
           </Box>
+            );
+          })()}
         </Box>
       </Modal>
     </Box>

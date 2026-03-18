@@ -1460,8 +1460,9 @@ def create_publication():
           logger.info(f"  publication_type: {publication_type}")
           logger.info(f"  identifier_type_id: {identifier_type_id}")
           logger.info(f"  generated_identifier: {generated_identifier}")
+          logger.info(f"  rrid: {rrid_value}")
           logger.info(f"  file: {file.filename if file else 'None'}")
-          
+
           try:
               publication_type = int(publication_type) if publication_type else None
           except ValueError:
