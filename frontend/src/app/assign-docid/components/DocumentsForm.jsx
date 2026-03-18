@@ -837,6 +837,7 @@ const DocumentsForm = ({ formData, updateFormData }) => {
         open={rridModalOpen}
         onClose={() => { setRridModalOpen(false); setRridModalFileIndex(null); }}
         collectOnly={true}
+        allowedResourceTypes={['software', 'antibody', 'cell_line']}
         onSelectRrid={(rridData) => {
           if (rridModalFileIndex !== null && rridData?.rrid) {
             handleMetadataChange(rridModalFileIndex, 'rrid', rridData.rrid);
