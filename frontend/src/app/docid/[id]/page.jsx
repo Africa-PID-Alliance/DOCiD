@@ -40,7 +40,6 @@ import {
   InfoOutlined,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
-  Science as ScienceIcon,
   Add as AddIcon,
   History as HistoryIcon,
 } from '@mui/icons-material';
@@ -56,7 +55,7 @@ import { useTheme } from '@mui/material/styles';
 import { formatDocIdForDisplay, formatDocIdForUrl } from '@/utils/docidUtils';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import RridSearchModal from '@/components/RridSearch/RridSearchModal';
+
 import LocalContextsLabels from '@/components/LocalContexts/LocalContextsLabels';
 
 const DocIDPage = ({ params }) => {
@@ -83,10 +82,6 @@ const DocIDPage = ({ params }) => {
   const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
   const [filesStats, setFilesStats] = useState({ files: [], documents: [] });
 
-  // RRID state
-  const [rridModalOpen, setRridModalOpen] = useState(false);
-  const [attachedRrids, setAttachedRrids] = useState([]);
-
   // Version history state
   const [versionHistory, setVersionHistory] = useState(null);
 
@@ -101,45 +96,6 @@ const DocIDPage = ({ params }) => {
   const { t } = useTranslation();
 
   // Fetch comments for this DOCiD
-  // Fetch attached RRIDs for this publication
-  const fetchAttachedRrids = async (pubId) => {
-    try {
-      const response = await axios.get('/api/rrid/entity', {
-        params: { entity_type: 'publication', entity_id: pubId },
-      });
-      setAttachedRrids(response.data || []);
-    } catch (error) {
-      console.error('Error fetching attached RRIDs:', error);
-      setAttachedRrids([]);
-    }
-  };
-
-  // Handle RRID attach success
-  const handleRridAttachSuccess = (newRridRecord) => {
-    setAttachedRrids((previousRrids) => [newRridRecord, ...previousRrids]);
-  };
-
-  // Handle RRID detach
-  const handleDetachRrid = async (rridRecordId) => {
-    try {
-      await axios.delete(`/api/rrid/${rridRecordId}`);
-      setAttachedRrids((previousRrids) =>
-        previousRrids.filter((rridRecord) => rridRecord.id !== rridRecordId)
-      );
-    } catch (error) {
-      console.error('Error detaching RRID:', error);
-    }
-  };
-
-  // Get chip color based on RRID type prefix
-  const getRridChipColor = (rridValue) => {
-    if (!rridValue) return 'default';
-    if (rridValue.includes('SCR_')) return 'primary';    // blue for software/tools
-    if (rridValue.includes('AB_')) return 'error';       // red for antibodies
-    if (rridValue.includes('CVCL_')) return 'success';   // green for cell lines
-    return 'default';
-  };
-
   const fetchComments = async () => {
     if (!publicationId) return;
 
@@ -192,7 +148,6 @@ const DocIDPage = ({ params }) => {
           console.log('Published_isoformat field:', response.data.published_isoformat);
           setPublicationId(response.data.id);
           setDocData(response.data);
-          fetchAttachedRrids(response.data.id);
 
           // Fetch version history
           try {
@@ -1433,59 +1388,6 @@ const DocIDPage = ({ params }) => {
               </Box>
               ))}
 
-              {/* RRID Section */}
-              <Box mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <ScienceIcon color="primary" fontSize="small" />
-                    <Typography fontWeight={600}>Research Resources (RRIDs)</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {attachedRrids.length} attached
-                    </Typography>
-                  </Box>
-                  {isAuthenticated && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => setRridModalOpen(true)}
-                    >
-                      Add RRID
-                    </Button>
-                  )}
-                </Box>
-                {attachedRrids.length > 0 && (
-                  <Box display="flex" flexWrap="wrap" gap={1}>
-                    {attachedRrids.map((rridRecord) => (
-                      <Chip
-                        key={rridRecord.id}
-                        label={`${rridRecord.rrid_name || rridRecord.rrid}`}
-                        color={getRridChipColor(rridRecord.rrid)}
-                        variant="outlined"
-                        size="small"
-                        component="a"
-                        href={`https://scicrunch.org/resolver/${rridRecord.rrid}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        clickable
-                        onDelete={isAuthenticated ? () => handleDetachRrid(rridRecord.id) : undefined}
-                        sx={{ '& .MuiChip-label': { maxWidth: 200 } }}
-                      />
-                    ))}
-                  </Box>
-                )}
-              </Box>
-
-              {/* RRID Search Modal */}
-              {publicationId && (
-                <RridSearchModal
-                  open={rridModalOpen}
-                  onClose={() => setRridModalOpen(false)}
-                  entityType="publication"
-                  entityId={publicationId}
-                  onAttachSuccess={handleRridAttachSuccess}
-                />
-              )}
 
               {/* Local Contexts TK/BC Labels Section */}
               {publicationId && (
