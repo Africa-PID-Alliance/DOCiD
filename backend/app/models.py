@@ -581,6 +581,39 @@ class PublicationCreators(db.Model):
     def __repr__(self):
         return f"<PublicationCreators(id={self.id}, family_name='{self.family_name}', publication_id={self.publication_id})>"
 
+
+class NationalIdResearcher(db.Model):
+    """
+    Registry of researchers identified by National ID or Passport Number.
+    Acts as a local researcher database (mirror of ORCID for non-ORCID researchers).
+    """
+    __tablename__ = 'national_id_researchers'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(500), nullable=False)
+    national_id_number = Column(String(100), nullable=False, index=True)
+    country = Column(String(100), nullable=False, index=True)
+    created_at = Column(DateTime, server_default=db.func.now())
+    updated_at = Column(DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint('national_id_number', 'country', name='uq_national_id_country'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'national_id_number': self.national_id_number,
+            'country': self.country,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<NationalIdResearcher(id={self.id}, name='{self.name}', country='{self.country}')>"
+
+
 class PublicationOrganization(db.Model):
     """
     Organizations related to publications

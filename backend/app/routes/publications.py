@@ -5,7 +5,7 @@ import os
 from flask import Blueprint, jsonify, request, Response, abort
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from app import db
-from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid
+from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
 # from app.service_codra import push_apa_metadata
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
@@ -1631,6 +1631,56 @@ def create_publication():
         if creators:
             db.session.bulk_save_objects(creators)
             logger.info(f"Saved {len(creators)} PublicationCreators")
+
+        # Save National ID Creators
+        logger.info("Processing National ID Creators...")
+        national_id_creators = []
+        national_id_creators_index = 0
+        while True:
+            creator_name = request.form.get(f'creatorsNationalId[{national_id_creators_index}][name]')
+            if creator_name is None:
+                break
+
+            national_id_number = request.form.get(f'creatorsNationalId[{national_id_creators_index}][national_id_number]', '').strip()
+            creator_country = request.form.get(f'creatorsNationalId[{national_id_creators_index}][country]', '').strip()
+            creator_name = creator_name.strip()
+
+            logger.info(f"NationalIdCreator [{national_id_creators_index}]: name={creator_name}, national_id={national_id_number}, country={creator_country}")
+
+            if creator_name and national_id_number and creator_country:
+                # Upsert into NationalIdResearcher registry
+                existing_researcher = NationalIdResearcher.query.filter_by(
+                    national_id_number=national_id_number,
+                    country=creator_country
+                ).first()
+
+                if not existing_researcher:
+                    new_researcher = NationalIdResearcher(
+                        name=creator_name,
+                        national_id_number=national_id_number,
+                        country=creator_country
+                    )
+                    db.session.add(new_researcher)
+                    db.session.flush()
+                    logger.info(f"Registered new National ID researcher: {creator_name}")
+                elif existing_researcher.name != creator_name:
+                    existing_researcher.name = creator_name
+
+                # Save as PublicationCreators with identifier_type='national_id'
+                national_id_creators.append(PublicationCreators(
+                    publication_id=publication_id,
+                    family_name=creator_name,
+                    given_name='',
+                    identifier=national_id_number,
+                    identifier_type='national_id',
+                    role_id='creator'
+                ))
+
+            national_id_creators_index += 1
+
+        if national_id_creators:
+            db.session.bulk_save_objects(national_id_creators)
+            logger.info(f"Saved {len(national_id_creators)} National ID PublicationCreators")
 
         # Save PublicationOrganization records
         logger.info("Processing PublicationOrganizations...")

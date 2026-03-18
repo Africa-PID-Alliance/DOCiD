@@ -71,6 +71,7 @@ const AssignDocID = () => {
       files: []
     },
     creators: { creators: [] },
+    creatorsNationalId: { creators: [] },
     organizationsRor: { organizations: [] },
     organizationsIsni: { organizations: [] },
     researchResources: { resources: [] },
@@ -431,8 +432,8 @@ const AssignDocID = () => {
               }}
             >
               <CreatorsNationalIdForm
-                formData={{ creators: [] }}
-                updateFormData={() => {}}
+                formData={formData.creatorsNationalId}
+                updateFormData={(data) => updateFormData('creatorsNationalId', data)}
               />
             </Paper>
           </Box>
@@ -659,6 +660,15 @@ const AssignDocID = () => {
           submitData.append(`creators[${index}][identifier]`, creator.identifier_type);
           submitData.append(`creators[${index}][role]`, creator.role);
           submitData.append(`creators[${index}][orcid_id]`, creator.orcidId || '');
+        });
+      }
+
+      // 4b. Creators (National ID)
+      if (formData.creatorsNationalId?.creators?.length > 0) {
+        formData.creatorsNationalId.creators.forEach((creator, index) => {
+          submitData.append(`creatorsNationalId[${index}][name]`, creator.name);
+          submitData.append(`creatorsNationalId[${index}][national_id_number]`, creator.nationalIdNumber);
+          submitData.append(`creatorsNationalId[${index}][country]`, creator.country);
         });
       }
 
