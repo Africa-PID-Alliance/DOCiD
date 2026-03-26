@@ -42,15 +42,8 @@ jobs:
             export FLASK_APP=run.py
             flask db upgrade || echo "Warning: Migration failed - may need manual intervention"
 
-            # Graceful reload gunicorn (send HUP to master process)
-            # Use kill directly to avoid signal propagation issues
-            GUNICORN_PID=$(pgrep -f 'gunicorn.*backend-v2.*wsgi:app' | head -1)
-            if [ -n "$GUNICORN_PID" ]; then
-              kill -HUP "$GUNICORN_PID" || true
-              echo "Gunicorn reloaded (PID: $GUNICORN_PID)"
-            else
-              echo "Warning: Gunicorn master process not found"
-            fi
+            # Restart backend via supervisor (avoids HUP signal propagation killing SSH session)
+            sudo supervisorctl restart docid && echo "Backend restarted via supervisor" || echo "Warning: supervisor restart failed"
 
             echo "=== Deploying Frontend ==="
             rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
