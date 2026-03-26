@@ -46,7 +46,8 @@ jobs:
             # Use kill directly to avoid signal propagation issues
             GUNICORN_PID=$(pgrep -f 'gunicorn.*backend-v2.*wsgi:app' | head -1)
             if [ -n "$GUNICORN_PID" ]; then
-              kill -HUP "$GUNICORN_PID" && echo "Gunicorn reloaded (PID: $GUNICORN_PID)"
+              kill -HUP "$GUNICORN_PID" || true
+              echo "Gunicorn reloaded (PID: $GUNICORN_PID)"
             else
               echo "Warning: Gunicorn master process not found"
             fi
