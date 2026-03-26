@@ -127,6 +127,84 @@ class TestSearchEndpoint:
         assert response.status_code == 502
         assert "unavailable" in response.get_json()["error"].lower()
 
+    def test_search_antibody_uses_antibody_index(self, authenticated_client):
+        """Antibody search hits RIN_Antibody_pr index, not RIN_Tool_pr."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=antibody")
+
+        called_url = mock_post.call_args[0][0]
+        assert "RIN_Antibody_pr" in called_url
+        assert "RIN_Tool_pr" not in called_url
+
+    def test_search_cell_line_uses_cell_line_index(self, authenticated_client):
+        """Cell line search hits RIN_CellLine_pr index, not RIN_Tool_pr."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=cell_line")
+
+        called_url = mock_post.call_args[0][0]
+        assert "RIN_CellLine_pr" in called_url
+        assert "RIN_Tool_pr" not in called_url
+
+    def test_search_core_facility_uses_tool_index(self, authenticated_client):
+        """Core facility search hits RIN_Tool_pr index."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=core_facility")
+
+        called_url = mock_post.call_args[0][0]
+        assert "RIN_Tool_pr" in called_url
+
+    def test_search_antibody_has_no_type_filter(self, authenticated_client):
+        """Antibody search query body should NOT contain a type filter clause."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=antibody")
+
+        query_body = mock_post.call_args[1]["json"]
+        bool_clause = query_body["query"]["bool"]
+        assert "filter" not in bool_clause
+
+    def test_search_core_facility_uses_aggregate_filter(self, authenticated_client):
+        """Core facility search uses item.types.name.aggregate for exact matching."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=core_facility")
+
+        query_body = mock_post.call_args[1]["json"]
+        filter_clauses = query_body["query"]["bool"]["filter"]
+        assert len(filter_clauses) == 1
+        assert "item.types.name.aggregate" in str(filter_clauses[0])
+
+    def test_search_includes_record_valid_exclusion(self, authenticated_client):
+        """All searches include must_not recordValid:false."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = MOCK_SCICRUNCH_SEARCH_RESPONSE
+
+        with patch("app.service_scicrunch.scicrunch_http_session.post", return_value=mock_response) as mock_post:
+            authenticated_client.get("/api/v1/rrid/search?q=test&type=antibody")
+
+        query_body = mock_post.call_args[1]["json"]
+        must_not = query_body["query"]["bool"]["must_not"]
+        assert any("recordValid" in str(clause) for clause in must_not)
+
 
 # ===================================================================
 # 2. Resolve endpoint

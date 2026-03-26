@@ -27,8 +27,20 @@ logger = logging.getLogger(__name__)
 SCICRUNCH_SEARCH_BASE = "https://api.scicrunch.io/elastic/v1"
 SCICRUNCH_RESOLVER_BASE = "https://scicrunch.org"
 
-# Elasticsearch index used by SciCrunch for resource registry
-SCICRUNCH_ES_INDEX = "RIN_Tool_pr"
+# ---------------------------------------------------------------------------
+# Per-type Elasticsearch index mapping
+# Antibodies and cell lines have dedicated indices; core facilities and
+# software share RIN_Tool_pr but use different type filter values.
+# ---------------------------------------------------------------------------
+RESOURCE_TYPE_INDEX_MAP = {
+    "core_facility": "RIN_Tool_pr",
+    "software": "RIN_Tool_pr",
+    "antibody": "RIN_Antibody_pr",
+    "cell_line": "RIN_CellLine_pr",
+}
+
+# Indices that are inherently type-scoped — no type filter clause needed
+TYPE_SCOPED_INDICES = {"RIN_Antibody_pr", "RIN_CellLine_pr"}
 
 # ---------------------------------------------------------------------------
 # RRID validation pattern
@@ -162,6 +174,7 @@ def search_rrid_resources(query, resource_type=None):
         )
 
     resource_type_filter_value = RESOURCE_TYPE_MAP[resource_type]
+    elasticsearch_index = RESOURCE_TYPE_INDEX_MAP[resource_type]
 
     # --- API key ---
     api_key = _get_api_key()
@@ -169,6 +182,18 @@ def search_rrid_resources(query, resource_type=None):
         return (None, {"error": "SciCrunch API key not configured"})
 
     # --- Build Elasticsearch query body ---
+    # Type-scoped indices (antibody, cell_line) don't need a type filter;
+    # shared indices (RIN_Tool_pr) use the .aggregate keyword field for
+    # exact type matching per SciCrunch documentation.
+    if elasticsearch_index in TYPE_SCOPED_INDICES:
+        filter_clauses = []
+    else:
+        filter_clauses = [
+            {"terms": {"item.types.name.aggregate": [resource_type_filter_value]}}
+        ]
+
+    must_not_clauses = [{"term": {"recordValid": False}}]
+
     is_rrid_lookup = bool(RRID_PATTERN.match(query.strip()))
 
     if is_rrid_lookup:
@@ -180,37 +205,31 @@ def search_rrid_resources(query, resource_type=None):
         # Strip the "RRID:" prefix for the term lookup on the curie field
         rrid_identifier = validated_rrid.replace("RRID:", "")
 
-        elasticsearch_query_body = {
-            "size": SEARCH_RESULT_LIMIT,
-            "query": {
-                "bool": {
-                    "must": [
-                        {"term": {"item.curie": rrid_identifier}},
-                    ],
-                    "filter": [
-                        {"match_phrase": {"item.types.name": resource_type_filter_value}},
-                    ],
-                }
-            },
+        bool_query = {
+            "must": [
+                {"term": {"item.curie": rrid_identifier}},
+            ],
+            "must_not": must_not_clauses,
         }
     else:
         # Free-text keyword search
-        elasticsearch_query_body = {
-            "size": SEARCH_RESULT_LIMIT,
-            "query": {
-                "bool": {
-                    "must": [
-                        {"query_string": {"query": query}},
-                    ],
-                    "filter": [
-                        {"match_phrase": {"item.types.name": resource_type_filter_value}},
-                    ],
-                }
-            },
+        bool_query = {
+            "must": [
+                {"query_string": {"query": query}},
+            ],
+            "must_not": must_not_clauses,
         }
 
+    if filter_clauses:
+        bool_query["filter"] = filter_clauses
+
+    elasticsearch_query_body = {
+        "size": SEARCH_RESULT_LIMIT,
+        "query": {"bool": bool_query},
+    }
+
     # --- Execute search request ---
-    search_url = f"{SCICRUNCH_SEARCH_BASE}/{SCICRUNCH_ES_INDEX}/_search"
+    search_url = f"{SCICRUNCH_SEARCH_BASE}/{elasticsearch_index}/_search"
     request_headers = {
         "apikey": api_key,
         "Content-Type": "application/json",
