@@ -34,10 +34,10 @@ import {
 import axios from 'axios';
 
 const RESOURCE_TYPES = [
-  { value: 'core_facility', label: 'Core Facility' },
-  { value: 'software', label: 'Software' },
-  { value: 'antibody', label: 'Antibody' },
-  { value: 'cell_line', label: 'Cell Line' },
+  { value: 'core_facility', label: 'Core Facility', placeholder: 'e.g. flow cytometry, microscopy, sequencing...' },
+  { value: 'software', label: 'Software', placeholder: 'e.g. ImageJ, MATLAB, R, SPSS...' },
+  { value: 'antibody', label: 'Antibody', placeholder: 'e.g. anti-GFP, anti-CD4, rabbit polyclonal...' },
+  { value: 'cell_line', label: 'Cell Line', placeholder: 'e.g. HeLa, HEK293, Jurkat, MCF-7...' },
 ];
 
 const DEBOUNCE_DELAY_MS = 400;
@@ -256,7 +256,7 @@ const RridSearchModal = ({
             <TextField
               fullWidth
               label="Search RRID resources"
-              placeholder="e.g. flow cytometry, microscopy..."
+              placeholder={availableResourceTypes.find((t) => t.value === resourceType)?.placeholder || 'Search...'}
               value={searchQuery}
               onChange={handleSearchQueryChange}
               InputProps={{
