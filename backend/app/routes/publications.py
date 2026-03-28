@@ -699,7 +699,6 @@ def get_publication(publication_id):
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'handle_identifier': getattr(doc, 'handle_identifier', None),
                 'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
@@ -862,7 +861,6 @@ def get_publication_by_docid_prefix():
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'handle_identifier': getattr(doc, 'handle_identifier', None),
                 'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
@@ -1032,7 +1030,6 @@ def get_publication_by_docid_simple(document_docid):
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'handle_identifier': getattr(doc, 'handle_identifier', None),
                 'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
