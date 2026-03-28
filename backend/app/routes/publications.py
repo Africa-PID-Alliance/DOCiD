@@ -698,7 +698,9 @@ def get_publication(publication_id):
                 'publication_type': doc.publication_type_id,
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
-                'generated_identifier': doc.generated_identifier
+                'generated_identifier': doc.generated_identifier,
+                'handle_identifier': getattr(doc, 'handle_identifier', None),
+                'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
 
@@ -859,7 +861,9 @@ def get_publication_by_docid_prefix():
                 'publication_type': doc.publication_type_id,
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
-                'generated_identifier': doc.generated_identifier
+                'generated_identifier': doc.generated_identifier,
+                'handle_identifier': getattr(doc, 'handle_identifier', None),
+                'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
 
@@ -1027,7 +1031,9 @@ def get_publication_by_docid_simple(document_docid):
                 'publication_type': doc.publication_type_id,
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
-                'generated_identifier': doc.generated_identifier
+                'generated_identifier': doc.generated_identifier,
+                'handle_identifier': getattr(doc, 'handle_identifier', None),
+                'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
 
@@ -2696,7 +2702,8 @@ def get_publication_for_edit(publication_id):
                 'generated_identifier': doc.generated_identifier,
                 'handle_identifier': getattr(doc, 'handle_identifier', None),
                 'external_identifier': getattr(doc, 'external_identifier', None),
-                'external_identifier_type': getattr(doc, 'external_identifier_type', None)
+                'external_identifier_type': getattr(doc, 'external_identifier_type', None),
+                'rrid': getattr(doc, 'rrid', None)
             } for doc in data.publication_documents
         ]
         

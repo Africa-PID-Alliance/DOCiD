@@ -1618,6 +1618,37 @@ const DocIDPage = ({ params }) => {
                                     </Box>
                                   </Grid>
                                 )}
+                                {item.rrid && (
+                                  <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                      Research Resource (RRID)
+                                    </Typography>
+                                    <Box display="flex" gap={1}>
+                                      <TextField
+                                        fullWidth
+                                        value={item.rrid}
+                                        InputProps={{
+                                          readOnly: true,
+                                          disableUnderline: true,
+                                        }}
+                                        variant="filled"
+                                        size="small"
+                                        sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                      />
+                                      <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => {
+                                          const rridUrl = `https://scicrunch.org/resolver/${item.rrid}`;
+                                          window.open(rridUrl, '_blank', 'noopener,noreferrer');
+                                        }}
+                                        sx={{ minWidth: 'auto', px: 2 }}
+                                      >
+                                        View
+                                      </Button>
+                                    </Box>
+                                  </Grid>
+                                )}
                               </Grid>
                             </Box>
                           </Box>
