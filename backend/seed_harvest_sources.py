@@ -54,6 +54,7 @@ SOURCES = [
     {
         'name': 'University of Lagos',
         'base_url': 'https://api-ir.unilag.edu.ng/server',
+        'ui_base_url': 'https://ir.unilag.edu.ng',
         'dspace_version': '9.1',
         'api_type': 'modern',
         'auth_required': False,
@@ -99,6 +100,7 @@ def seed_sources(dry_run=False):
         harvest_source = HarvestSource(
             name=source_config['name'],
             base_url=source_config['base_url'],
+            ui_base_url=source_config.get('ui_base_url'),
             dspace_version=source_config.get('dspace_version'),
             api_type=source_config['api_type'],
             auth_required=source_config.get('auth_required', False),

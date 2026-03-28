@@ -485,34 +485,47 @@ class DSpaceMetadataMapper:
         return None
 
     @classmethod
+    def _parse_author_name(cls, full_name: str) -> tuple:
+        """Parse a full author name into (family_name, given_name).
+
+        DSpace authors are typically "LastName, FirstName" format.
+        Falls back to rsplit on space for "FirstName LastName" format.
+        """
+        name_parts = full_name.split(',', 1) if ',' in full_name else full_name.rsplit(' ', 1)
+        if len(name_parts) == 2:
+            return name_parts[0].strip(), name_parts[1].strip()
+        return full_name.strip(), ''
+
+    @classmethod
     def _extract_creators(cls, metadata: Dict) -> List[Dict]:
         """
-        Extract creators/authors from metadata
+        Extract creators/authors from metadata.
 
         Returns:
-            List of creator dictionaries with name and role
+            List of creator dicts with family_name, given_name, and role keys
+            matching what harvest_repositories.py expects.
         """
         creators = []
 
         # Get authors
         authors = cls._get_metadata_values(metadata, 'dc.contributor.author')
         for author in authors:
+            family_name, given_name = cls._parse_author_name(author)
             creators.append({
-                'creator_name': author,
-                'creator_role': 'Author',  # Will map to CreatorsRoles table
-                'orcid_id': None,  # Can be enhanced later
-                'affiliation': None
+                'family_name': family_name,
+                'given_name': given_name,
+                'creator_role': 'Author',
             })
 
         # Get other contributors
         contributors = cls._get_metadata_values(metadata, 'dc.contributor')
         for contributor in contributors:
             if contributor not in authors:  # Avoid duplicates
+                family_name, given_name = cls._parse_author_name(contributor)
                 creators.append({
-                    'creator_name': contributor,
+                    'family_name': family_name,
+                    'given_name': given_name,
                     'creator_role': 'Contributor',
-                    'orcid_id': None,
-                    'affiliation': None
                 })
 
         return creators

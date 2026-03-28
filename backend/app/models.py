@@ -1684,6 +1684,7 @@ class HarvestSource(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
     base_url = db.Column(db.String(500), nullable=False)
+    ui_base_url = db.Column(db.String(500), nullable=True)  # UI URL when different from API (e.g. ir.unilag.edu.ng vs api-ir.unilag.edu.ng)
     dspace_version = db.Column(db.String(20), nullable=True)
     api_type = db.Column(db.String(20), nullable=False)  # legacy|modern|figshare|ojs
     auth_required = db.Column(db.Boolean, default=False)

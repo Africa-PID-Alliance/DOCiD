@@ -187,11 +187,11 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                 resource_type_name = publication_data.get('resource_type', 'Text')
                 resource_type_id = resource_type_cache.get(resource_type_name, default_resource_type_id)
 
-                # Build handle URL
+                # Build handle URL — use ui_base_url when API and UI domains differ
                 item_handle = full_item.get('handle')
                 handle_url = None
                 if item_handle:
-                    repository_base = source.base_url.replace('/server', '').replace('/rest', '')
+                    repository_base = source.ui_base_url or source.base_url.replace('/server', '').replace('/rest', '')
                     handle_url = f"{repository_base}/handle/{item_handle}"
 
                 # Create publication
