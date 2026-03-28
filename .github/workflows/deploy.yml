@@ -9,19 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
+      - name: Deploy Backend
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          command_timeout: 25m
+          command_timeout: 5m
           script_stop: true
           script: |
             set -e
 
-            echo "=== Cloning/updating repo ==="
+            echo "=== Cloning repo ==="
             REPO_DIR="/tmp/docid-deploy"
             rm -rf "$REPO_DIR"
             git clone --depth 1 https://github.com/Africa-PID-Alliance/DOCiD.git "$REPO_DIR"
@@ -42,8 +42,21 @@ jobs:
             export FLASK_APP=run.py
             flask db upgrade || echo "Warning: Migration failed - may need manual intervention"
 
-            # Restart backend via supervisor (avoids HUP signal propagation killing SSH session)
             sudo supervisorctl restart docid && echo "Backend restarted via supervisor" || echo "Warning: supervisor restart failed"
+
+      - name: Deploy Frontend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 25m
+          script_stop: true
+          script: |
+            set -e
+
+            REPO_DIR="/tmp/docid-deploy"
 
             echo "=== Deploying Frontend ==="
             rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
@@ -53,7 +66,6 @@ jobs:
               --exclude='logs' \
               "$REPO_DIR/frontend/" /var/www/html/fe/
 
-            # Load NVM for Node.js
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
