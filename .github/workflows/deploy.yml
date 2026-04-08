@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Deploy Backend
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SUDO_PASS: ${{ secrets.SUDO_PASS }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -18,6 +20,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           command_timeout: 5m
           script_stop: true
+          envs: SUDO_PASS
           script: |
             set -e
 
@@ -40,9 +43,29 @@ jobs:
             pip install -r requirements.txt --quiet
 
             export FLASK_APP=run.py
-            flask db upgrade || echo "Warning: Migration failed - may need manual intervention"
+            flask db upgrade
+            echo "Migration step completed"
 
-            sudo supervisorctl restart docid && echo "Backend restarted via supervisor" || echo "Warning: supervisor restart failed"
+            echo "=== Restarting Backend ==="
+            OLD_GUNICORN_PID=$(pgrep -fo 'gunicorn.*wsgi:app' || echo "")
+            echo "Pre-restart gunicorn master PID: $OLD_GUNICORN_PID"
+
+            echo "$SUDO_PASS" | sudo -S supervisorctl restart docid
+            echo "supervisorctl restart docid returned exit 0"
+
+            sleep 4
+            NEW_GUNICORN_PID=$(pgrep -fo 'gunicorn.*wsgi:app' || echo "")
+            echo "Post-restart gunicorn master PID: $NEW_GUNICORN_PID"
+
+            if [ -z "$NEW_GUNICORN_PID" ]; then
+              echo "ERROR: gunicorn is not running after restart" >&2
+              exit 1
+            fi
+            if [ "$OLD_GUNICORN_PID" = "$NEW_GUNICORN_PID" ]; then
+              echo "ERROR: gunicorn PID unchanged ($OLD_GUNICORN_PID) — restart did NOT take effect, server still running stale code" >&2
+              exit 1
+            fi
+            echo "Backend restart confirmed: PID $OLD_GUNICORN_PID -> $NEW_GUNICORN_PID"
 
       - name: Deploy Frontend
         uses: appleboy/ssh-action@v1.0.3
