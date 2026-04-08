@@ -34,7 +34,7 @@ import {
 import axios from 'axios';
 
 const RESOURCE_TYPES = [
-  { value: 'core_facility', label: 'Core Facility', placeholder: 'e.g. flow cytometry, microscopy, sequencing...' },
+  { value: 'core_facility', label: 'Core Facility', placeholder: 'e.g. Genomics Core, Imaging Facility, Proteomics Core, Bioinformatics Core...' },
   { value: 'software', label: 'Software', placeholder: 'e.g. ImageJ, MATLAB, R, SPSS...' },
   { value: 'antibody', label: 'Antibody', placeholder: 'e.g. anti-GFP, anti-CD4, rabbit polyclonal...' },
   { value: 'cell_line', label: 'Cell Line', placeholder: 'e.g. HeLa, HEK293, Jurkat, MCF-7...' },

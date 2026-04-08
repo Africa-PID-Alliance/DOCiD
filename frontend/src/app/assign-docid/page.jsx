@@ -669,6 +669,7 @@ const AssignDocID = () => {
           submitData.append(`organizationRor[${index}][type]`, organization.type);
           submitData.append(`organizationRor[${index}][country]`, organization.country);
           submitData.append(`organizationRor[${index}][ror_id]`, organization.rorId || '');
+          submitData.append(`organizationRor[${index}][rrid]`, organization.rrid || '');
         });
       }
 
@@ -680,6 +681,7 @@ const AssignDocID = () => {
           submitData.append(`organizationIsni[${index}][type]`, organization.type);
           submitData.append(`organizationIsni[${index}][country]`, organization.country);
           submitData.append(`organizationIsni[${index}][ror_id]`, organization.rorId || '');
+          submitData.append(`organizationIsni[${index}][rrid]`, organization.rrid || '');
         });
       }
 
@@ -694,6 +696,7 @@ const AssignDocID = () => {
           submitData.append(`organizationRinggold[${index}][type]`, organization.type);
           submitData.append(`organizationRinggold[${index}][country]`, organization.country);
           submitData.append(`organizationRinggold[${index}][ringgold_id]`, organization.rorId || '');
+          submitData.append(`organizationRinggold[${index}][rrid]`, organization.rrid || '');
         });
       } else {
         console.log('No Ringgold organizations to submit');

@@ -5,7 +5,7 @@ import logging
 import xml.etree.ElementTree as ET
 from flask import jsonify, request, Response, abort
 from sqlalchemy.orm import joinedload
-from app.models import Publications
+from app.models import Publications, DocidRrid
 from app import db
 
 logger = logging.getLogger(__name__)
@@ -132,8 +132,21 @@ def setup_docid_root_route(app):
                     'name': org.name,
                     'type': org.type,
                     'other_name': org.other_name,
-                    'country': org.country
+                    'country': org.country,
+                    'rrid': getattr(org, 'rrid', None)
                 } for org in data.publication_organizations
+            ]
+
+            publication_dict['research_resources'] = [
+                {
+                    'id': r.id,
+                    'rrid': r.rrid,
+                    'rrid_name': r.rrid_name,
+                    'rrid_description': r.rrid_description,
+                    'rrid_resource_type': r.rrid_resource_type,
+                    'rrid_url': r.rrid_url,
+                }
+                for r in DocidRrid.get_rrids_for_entity('publication', data.id)
             ]
 
             publication_dict['publication_funders'] = [

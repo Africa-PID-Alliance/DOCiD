@@ -721,8 +721,21 @@ def get_publication(publication_id):
                 'other_name': org.other_name,
                 'country': org.country,
                 'identifier': org.identifier,
-                'identifier_type': org.identifier_type
+                'identifier_type': org.identifier_type,
+                'rrid': getattr(org, 'rrid', None)
             } for org in data.publication_organizations
+        ]
+
+        publication_dict['research_resources'] = [
+            {
+                'id': r.id,
+                'rrid': r.rrid,
+                'rrid_name': r.rrid_name,
+                'rrid_description': r.rrid_description,
+                'rrid_resource_type': r.rrid_resource_type,
+                'rrid_url': r.rrid_url,
+            }
+            for r in DocidRrid.get_rrids_for_entity('publication', data.id)
         ]
 
         publication_dict['publication_funders'] = [
@@ -883,8 +896,21 @@ def get_publication_by_docid_prefix():
                 'other_name': org.other_name,
                 'country': org.country,
                 'identifier': org.identifier,
-                'identifier_type': org.identifier_type
+                'identifier_type': org.identifier_type,
+                'rrid': getattr(org, 'rrid', None)
             } for org in data.publication_organizations
+        ]
+
+        publication_dict['research_resources'] = [
+            {
+                'id': r.id,
+                'rrid': r.rrid,
+                'rrid_name': r.rrid_name,
+                'rrid_description': r.rrid_description,
+                'rrid_resource_type': r.rrid_resource_type,
+                'rrid_url': r.rrid_url,
+            }
+            for r in DocidRrid.get_rrids_for_entity('publication', data.id)
         ]
 
         publication_dict['publication_funders'] = [
@@ -1052,8 +1078,21 @@ def get_publication_by_docid_simple(document_docid):
                 'other_name': org.other_name,
                 'country': org.country,
                 'identifier': org.identifier,
-                'identifier_type': org.identifier_type
+                'identifier_type': org.identifier_type,
+                'rrid': getattr(org, 'rrid', None)
             } for org in data.publication_organizations
+        ]
+
+        publication_dict['research_resources'] = [
+            {
+                'id': r.id,
+                'rrid': r.rrid,
+                'rrid_name': r.rrid_name,
+                'rrid_description': r.rrid_description,
+                'rrid_resource_type': r.rrid_resource_type,
+                'rrid_url': r.rrid_url,
+            }
+            for r in DocidRrid.get_rrids_for_entity('publication', data.id)
         ]
 
         publication_dict['publication_funders'] = [
@@ -1785,6 +1824,8 @@ def create_publication():
 
                 resolvable_identifier = format_organization_identifier(identifier_type, identifier_value)
 
+                rrid_value = (request.form.get(f'{source_prefix}[{index}][rrid]') or '').strip() or None
+
                 logger.info(f"PublicationOrganization [{source_prefix}][{index}]:")
                 logger.info(f"  name: {name}")
                 logger.info(f"  type: {org_type}")
@@ -1793,6 +1834,7 @@ def create_publication():
                 logger.info(f"  identifier_type: {identifier_type}")
                 logger.info(f"  identifier_value: {identifier_value}")
                 logger.info(f"  resolvable_identifier: {resolvable_identifier}")
+                logger.info(f"  rrid: {rrid_value}")
 
                 organizations.append(PublicationOrganization(
                     publication_id=publication_id,
@@ -1801,7 +1843,8 @@ def create_publication():
                     other_name=other_name,
                     country=country,
                     identifier=resolvable_identifier,
-                    identifier_type=identifier_type
+                    identifier_type=identifier_type,
+                    rrid=rrid_value
                 ))
                 index += 1
 
@@ -2723,10 +2766,23 @@ def get_publication_for_edit(publication_id):
                 'other_name': org.other_name,
                 'country': org.country,
                 'identifier': getattr(org, 'identifier', None),
-                'identifier_type': getattr(org, 'identifier_type', None)
+                'identifier_type': getattr(org, 'identifier_type', None),
+                'rrid': getattr(org, 'rrid', None)
             } for org in data.publication_organizations
         ]
-        
+
+        publication_dict['research_resources'] = [
+            {
+                'id': r.id,
+                'rrid': r.rrid,
+                'rrid_name': r.rrid_name,
+                'rrid_description': r.rrid_description,
+                'rrid_resource_type': r.rrid_resource_type,
+                'rrid_url': r.rrid_url,
+            }
+            for r in DocidRrid.get_rrids_for_entity('publication', data.id)
+        ]
+
         publication_dict['publication_funders'] = [
             {
                 'id': funder.id,
@@ -3290,7 +3346,8 @@ def create_version():
                 other_name=clean_undefined_string(request.form.get(f'organizationRor[{index}][other_name]')) or '',
                 country=request.form.get(f'organizationRor[{index}][country]') or '',
                 identifier=clean_undefined_string(request.form.get(f'organizationRor[{index}][ror_id]')) or '',
-                identifier_type='ror'
+                identifier_type='ror',
+                rrid=(request.form.get(f'organizationRor[{index}][rrid]') or '').strip() or None
             )
             db.session.add(org)
             index += 1
@@ -3309,7 +3366,8 @@ def create_version():
                 other_name=clean_undefined_string(request.form.get(f'organizationIsni[{index}][other_name]')) or '',
                 country=request.form.get(f'organizationIsni[{index}][country]') or '',
                 identifier=clean_undefined_string(request.form.get(f'organizationIsni[{index}][isni_id]')) or '',
-                identifier_type='isni'
+                identifier_type='isni',
+                rrid=(request.form.get(f'organizationIsni[{index}][rrid]') or '').strip() or None
             )
             db.session.add(org)
             index += 1
@@ -3328,7 +3386,8 @@ def create_version():
                 other_name=clean_undefined_string(request.form.get(f'organizationRinggold[{index}][other_name]')) or '',
                 country=request.form.get(f'organizationRinggold[{index}][country]') or '',
                 identifier=clean_undefined_string(request.form.get(f'organizationRinggold[{index}][ringgold_id]')) or '',
-                identifier_type='ringgold'
+                identifier_type='ringgold',
+                rrid=(request.form.get(f'organizationRinggold[{index}][rrid]') or '').strip() or None
             )
             db.session.add(org)
             index += 1

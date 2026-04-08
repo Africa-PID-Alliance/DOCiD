@@ -21,6 +21,7 @@ from app.models import (
     PublicationOrganization,
     PublicationFunders,
     PublicationProjects,
+    DocidRrid,
 )
 
 doi_bp = Blueprint('doi', __name__, url_prefix='/doi')
@@ -152,8 +153,21 @@ def handle_doi(prefix, suffix):
                 'name': org.name,
                 'type': org.type,
                 'other_name': org.other_name,
-                'country': org.country
+                'country': org.country,
+                'rrid': getattr(org, 'rrid', None)
             } for org in data.publication_organizations
+        ]
+
+        publication_dict['research_resources'] = [
+            {
+                'id': r.id,
+                'rrid': r.rrid,
+                'rrid_name': r.rrid_name,
+                'rrid_description': r.rrid_description,
+                'rrid_resource_type': r.rrid_resource_type,
+                'rrid_url': r.rrid_url,
+            }
+            for r in DocidRrid.get_rrids_for_entity('publication', data.id)
         ]
 
         publication_dict['publication_funders'] = [

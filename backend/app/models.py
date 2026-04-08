@@ -640,6 +640,7 @@ class PublicationOrganization(db.Model):
     country = Column(String(255))
     identifier = Column(String(500))  # Stores the full resolvable URL (e.g., https://ror.org/02nr0ka47)
     identifier_type = Column(String(50))  # Stores the type (e.g., 'ror', 'grid', 'isni')
+    rrid = Column(String(100), nullable=True)  # Optional RRID e.g. "RRID:SCR_012345"
 
     # Relationships
     publication = relationship('Publications', back_populates='publication_organizations')

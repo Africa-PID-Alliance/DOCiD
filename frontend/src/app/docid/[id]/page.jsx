@@ -277,13 +277,19 @@ const DocIDPage = ({ params }) => {
       count: docData.publication_creators?.length || 0,
       data: docData.publication_creators || []
     },
-    { 
+    {
       type: 'organizations',
-      label: t('docid_page.sections.organizations'), 
+      label: t('docid_page.sections.organizations'),
       count: docData.publication_organizations?.length || 0,
       data: docData.publication_organizations || []
     },
-    { 
+    {
+      type: 'research_resources',
+      label: 'Research Resources (RRID)',
+      count: docData.research_resources?.length || 0,
+      data: docData.research_resources || []
+    },
+    {
       type: 'funders',
       label: t('docid_page.sections.funders'), 
       count: docData.publication_funders?.length || 0,
@@ -1839,7 +1845,90 @@ const DocIDPage = ({ params }) => {
                                 )}
                               </Grid>
                             )}
+                            {item.rrid && (
+                              <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                  Research Resource (RRID)
+                                </Typography>
+                                <Box display="flex" gap={1}>
+                                  <TextField
+                                    fullWidth
+                                    value={item.rrid}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={() => {
+                                      const rridUrl = `https://scicrunch.org/resolver/${item.rrid}`;
+                                      window.open(rridUrl, '_blank', 'noopener,noreferrer');
+                                    }}
+                                    sx={{ minWidth: 'auto', px: 2 }}
+                                  >
+                                    View
+                                  </Button>
+                                </Box>
+                              </Grid>
+                            )}
                           </Grid>
+                        </Box>
+                      ))}
+                    </List>
+                  )}
+                  {selectedSection?.type === 'research_resources' && (
+                    <List sx={{ width: '100%', p: 0 }}>
+                      {selectedSection.data.length === 0 && (
+                        <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
+                          <Typography>No research resources attached</Typography>
+                        </Box>
+                      )}
+                      {selectedSection.data.map((item, index) => (
+                        <Box key={item.id || index} sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                            {item.rrid_name || item.rrid}
+                          </Typography>
+
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                            {item.rrid && (
+                              <Chip
+                                label={item.rrid}
+                                color="primary"
+                                variant="outlined"
+                                size="small"
+                              />
+                            )}
+                            {item.rrid_resource_type && (
+                              <Chip
+                                label={item.rrid_resource_type.replace(/_/g, ' ')}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            )}
+                          </Box>
+
+                          {item.rrid_description && (
+                            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                              {item.rrid_description.length > 300
+                                ? `${item.rrid_description.substring(0, 300)}...`
+                                : item.rrid_description}
+                            </Typography>
+                          )}
+
+                          <Box display="flex" gap={1}>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => {
+                                const rridUrl = `https://scicrunch.org/resolver/${item.rrid}`;
+                                window.open(rridUrl, '_blank', 'noopener,noreferrer');
+                              }}
+                            >
+                              View on SciCrunch
+                            </Button>
+                          </Box>
                         </Box>
                       ))}
                     </List>

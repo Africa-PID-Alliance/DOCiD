@@ -29,7 +29,9 @@ import {
   Close as CloseIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
+import Chip from '@mui/material/Chip';
 import { useTranslation } from 'react-i18next';
+import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
 
 const TabPanel = ({ children, value, index, ...other }) => (
@@ -61,12 +63,14 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
     role: '',
     rorId: '',
     city: '',
-    website: ''
+    website: '',
+    rrid: ''
   });
   const [isLoadingRor, setIsLoadingRor] = useState(false);
   const [showRorForm, setShowRorForm] = useState(false);
   const [rorError, setRorError] = useState('');
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const [rridModalOpen, setRridModalOpen] = useState(false);
 
   const handleModalOpen = () => {
     setIsModalOpen(true);
@@ -351,7 +355,8 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
       role: '',
       rorId: '',
       city: '',
-      website: ''
+      website: '',
+      rrid: ''
     });
   };
 
@@ -414,6 +419,28 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
             value={newOrganization.otherName}
             onChange={handleInputChange('otherName')}
           />
+        </Grid>
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+            Research Resource (RRID) — Optional
+          </Typography>
+          {newOrganization.rrid ? (
+            <Chip
+              label={newOrganization.rrid}
+              color="primary"
+              onDelete={() => setNewOrganization((prev) => ({ ...prev, rrid: '' }))}
+              sx={{ mb: 1 }}
+            />
+          ) : (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<SearchIcon />}
+              onClick={() => setRridModalOpen(true)}
+            >
+              Search RRID
+            </Button>
+          )}
         </Grid>
       </Grid>
       <Box sx={{ mt: 3 }}>
@@ -607,7 +634,22 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                       value={organization.otherName}
                       InputProps={{
                         readOnly: true,
-                        sx: { 
+                        sx: {
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
+                        }
+                      }}
+                    />
+                  </Grid>
+                )}
+                {organization.rrid && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Research Resource (RRID)"
+                      value={organization.rrid}
+                      InputProps={{
+                        readOnly: true,
+                        sx: {
                           bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
                         }
                       }}
@@ -767,7 +809,20 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         </Box>
       </Modal>
 
-   
+      {/* RRID Search Modal */}
+      <RridSearchModal
+        open={rridModalOpen}
+        onClose={() => setRridModalOpen(false)}
+        collectOnly={true}
+        allowedResourceTypes={['core_facility']}
+        onSelectRrid={(rridData) => {
+          if (rridData?.rrid) {
+            setNewOrganization((prev) => ({ ...prev, rrid: rridData.rrid }));
+          }
+          setRridModalOpen(false);
+        }}
+      />
+
     </Box>
   );
 };
