@@ -681,10 +681,10 @@ const ListDocIds = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
                 {t('docid.filter_by_account_type')}:
               </Typography>
-              {['', 'Individual', 'Institution'].map((filterValue) => {
+              {['', 'Individual', 'Institutional'].map((filterValue) => {
                 const label = filterValue === '' ? t('docid.all') :
                   filterValue === 'Individual' ? `${t('docid.individual')} (${accountTypeCounts['Individual'] || 0})` :
-                  `${t('docid.institutional')} (${accountTypeCounts['Institution'] || 0})`;
+                  `${t('docid.institutional')} (${accountTypeCounts['Institutional'] || 0})`;
                 const isActive = accountTypeFilter === filterValue;
                 return (
                   <Chip
