@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -35,10 +35,13 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { useSelector } from 'react-redux';
 
 const PublicationsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { user } = useSelector((state) => state.auth);
+  
   // Initialize state from props if available
   const [selectedType, setSelectedType] = useState(formData?.publicationType || '');
   const [uploadedFiles, setUploadedFiles] = useState(formData?.files || []);
@@ -58,26 +61,49 @@ const PublicationsForm = ({ formData, updateFormData }) => {
   const [loadingIdentifiers, setLoadingIdentifiers] = useState({});
   const [findingError, setFindingError] = useState(false);
   const [findingErrorText, setFindingErrorText] = useState('');
+  
+  // Get account type name from Redux store
+  const accountTypeName = user?.account_type_name || '';
+  
+  console.log('PublicationsForm - user:', user);
+  console.log('PublicationsForm - accountTypeName:', accountTypeName);
 
-  const identifiers = [
-    {
-      label: 'APA Handle iD',
-      value: 1
-    },
-    {
-      label: 'Datacite',
-      value: 2
-    },
-    {
-      label: 'CrossRef',
-      value: 3
-    },
-    {
-      label: 'DOI',
-      value: 4,
-      disabled: true
+  // Reorder identifiers based on account type - use useMemo to recalculate when accountTypeName changes
+  const identifiers = useMemo(() => {
+    console.log('PublicationsForm - useMemo identifiers - accountTypeName:', accountTypeName);
+    const baseIdentifiers = [
+      {
+        label: 'APA Handle iD',
+        value: 1
+      },
+      {
+        label: 'Datacite',
+        value: 2,
+        disabled: accountTypeName === 'Individual'
+      },
+      {
+        label: 'CrossRef',
+        value: 3
+      },
+      {
+        label: 'DOI',
+        value: 4,
+        disabled: true
+      }
+    ];
+
+    // If Individual account, move Datacite below CrossRef
+    if (accountTypeName === 'Individual') {
+      return [
+        baseIdentifiers[0], // APA Handle iD
+        baseIdentifiers[2], // CrossRef
+        baseIdentifiers[1], // Datacite (disabled)
+        baseIdentifiers[3]  // DOI
+      ];
     }
-  ]
+
+    return baseIdentifiers;
+  }, [accountTypeName])
 
   // Effect to sync state with parent when formData changes
   useEffect(() => {

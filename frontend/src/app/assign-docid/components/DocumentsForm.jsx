@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -45,6 +45,7 @@ import Chip from '@mui/material/Chip';
 import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
+import { useSelector } from 'react-redux';
 
 const documentTypes = [
   { id: 1, type: 'Video', extensions: '.mp4, .mov, .avi, .mkv', icon: VideoIcon, enabled: true },
@@ -73,6 +74,8 @@ const documentTypes = [
 const DocumentsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { user } = useSelector((state) => state.auth);
+  
   // Initialize state from props if available
   const [selectedType, setSelectedType] = useState(formData?.documentType || '');
   const [uploadedFiles, setUploadedFiles] = useState(formData?.files || []);
@@ -89,6 +92,12 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   const [cstrIdentifier, setCstrIdentifier] = useState('');
   const [rridModalOpen, setRridModalOpen] = useState(false);
   const [rridModalFileIndex, setRridModalFileIndex] = useState(null);
+  
+  // Get account type name from Redux store
+  const accountTypeName = user?.account_type_name || '';
+  
+  console.log('DocumentsForm - user:', user);
+  console.log('DocumentsForm - accountTypeName:', accountTypeName);
 
   // Effect to sync state with parent when formData changes
   useEffect(() => {
@@ -116,56 +125,63 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     return typeMap[documentType] || '*/*';
   };
 
-  const identifiers = [
-    {
-      label: 'APA Handle iD',
-      value: 1
-    },
-    {
-      label: 'Datacite',
-      value: 2
-    },
-    {
-      label: 'CrossRef',
-      value: 3
-    },
-    {
-      label: 'CSTR',
-      value: 4,
-      disabled: true
-    },
-    {
-      label: 'DOI',
-      value: 5,
-      disabled: true
-    },
-    {
-      label: 'ARK Keys',
-      value: 6,
-      disabled: true
-    },
-    {
-      label: 'ArXiv iD',
-      value: 7,
-      disabled: true
-    },
-    {
-      label: 'Handle iD',
-      value: 8,
-      disabled: true
-    },
-    {
-      label: 'Hand iD',
-      value: 9,
-      disabled: true
-    },
-    {
-      label: 'dPID',
-      value: 10,
-      disabled: true
-    },
+  // Get identifiers based on account type - use useMemo to recalculate when accountTypeName changes
+  const identifiers = useMemo(() => {
+    const isIndividual = accountTypeName === 'Individual';
     
-  ]
+    return [
+      {
+        label: 'APA Handle iD',
+        value: 1
+      },
+      {
+        label: 'Datacite',
+        value: 2,
+        disabled: isIndividual
+      },
+      {
+        label: 'CrossRef',
+        value: 3,
+        disabled: isIndividual
+      },
+      {
+        label: 'CSTR',
+        value: 4,
+        disabled: true
+      },
+      {
+        label: 'DOI',
+        value: 5,
+        disabled: true
+      },
+      {
+        label: 'ARK Keys',
+        value: 6,
+        disabled: true
+      },
+      {
+        label: 'ArXiv iD',
+        value: 7,
+        disabled: true
+      },
+      {
+        label: 'Handle iD',
+        value: 8,
+        disabled: true
+      },
+      {
+        label: 'Hand iD',
+        value: 9,
+        disabled: true
+      },
+      {
+        label: 'dPID',
+        value: 10,
+        disabled: true
+      },
+      
+    ];
+  }, [accountTypeName]);
 
   const getFileIcon = (type) => {
     const iconMap = {
