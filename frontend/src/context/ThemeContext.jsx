@@ -1,12 +1,14 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { ThemeProvider as MUIThemeProvider } from '@mui/material/styles';
 import { createAppTheme } from '@/theme/theme';
+import { useTenant } from '@/context/TenantContext';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
+  const tenant = useTenant();
   const [mode, setMode] = useState('light');
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -25,7 +27,12 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem('themeMode', newMode);
   };
 
-  const theme = createAppTheme(isHydrated ? mode : 'light');
+  // Rebuild the MUI theme only when mode or tenant changes — not on
+  // every render of every child component.
+  const theme = useMemo(
+    () => createAppTheme(isHydrated ? mode : 'light', tenant),
+    [mode, isHydrated, tenant],
+  );
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>

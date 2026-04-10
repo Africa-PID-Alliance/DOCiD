@@ -8,6 +8,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
+import { useTenant } from '@/context/TenantContext';
 
 
 const AboutDocid = () => {
@@ -17,6 +18,9 @@ const AboutDocid = () => {
   const { t } = useTranslation();
 
   const theme = useTheme();
+  const tenant = useTenant();
+  const tenantLogoSrc = tenant?.logo_url || '/assets/images/logo2.png';
+  const tenantLogoAlt = `${tenant?.display_name || 'DOCiD'} Logo`;
 
   const handleOpenModal = (imageSrc) => {
     setSelectedImage(imageSrc);
@@ -110,8 +114,8 @@ const AboutDocid = () => {
               }}
             >
               <Image
-                src="/assets/images/logo2.png"
-                alt="DOCiD Logo"
+                src={tenantLogoSrc}
+                alt={tenantLogoAlt}
                 fill
                 style={{
                   objectFit: 'contain'
@@ -253,8 +257,12 @@ const AboutDocid = () => {
                   }}
                 >
                   <Image
-                    src={theme.palette.mode === 'dark' ? '/assets/images/logo2.png' : '/assets/images/docid-dark.png'}
-                    alt="Who should use DOCiD"
+                    src={
+                      theme.palette.mode === 'dark'
+                        ? (tenant?.logo_dark_url || tenantLogoSrc)
+                        : tenantLogoSrc
+                    }
+                    alt={tenantLogoAlt}
                     width={200}
                     height={100}
                     style={{

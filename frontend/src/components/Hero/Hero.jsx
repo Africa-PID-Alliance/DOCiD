@@ -6,11 +6,15 @@ import Image from 'next/image';
 import { ArrowForward, KeyboardArrowDown } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { useTenant } from '@/context/TenantContext';
 
 const Hero = () => {
   const router = useRouter();
   const { t } = useTranslation('common');
   const theme = useTheme();
+  const tenant = useTenant();
+  const tenantLogoSrc = tenant?.logo_url || '/assets/images/logo2.png';
+  const tenantLogoAlt = `${tenant?.display_name || 'DOCiD™'} Logo`;
 
   const handleGetStarted = () => {
     router.push('/login');
@@ -85,8 +89,8 @@ const Hero = () => {
           }}
         >
           <Image
-            src="/assets/images/logo2.png"
-            alt="DOCiD™ Logo"
+            src={tenantLogoSrc}
+            alt={tenantLogoAlt}
             fill
             sizes="200px"
             style={{

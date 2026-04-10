@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar/Navbar';
 import I18nProvider from '@/i18n/I18nProvider';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { TenantProvider } from '@/context/TenantContext';
 import PreFooter from '@/components/PreFooter/PreFooter';
 import Footer from '@/components/Footer/Footer';
 import { Box } from '@mui/material';
@@ -26,11 +27,12 @@ function AuthRehydrator({ children }) {
     return children;
 }
 
-export default function ClientWrapper({ children }) {
+export default function ClientWrapper({ children, tenant }) {
     return (
         <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
                 <AuthRehydrator>
+                    <TenantProvider value={tenant}>
                     <ThemeProvider>
                     <CssBaseline />
                     <I18nProvider>
@@ -68,8 +70,9 @@ export default function ClientWrapper({ children }) {
                         <LanguageSelectionModal />
                     </I18nProvider>
                 </ThemeProvider>
+                </TenantProvider>
                 </AuthRehydrator>
             </PersistGate>
         </Provider>
     );
-} 
+}

@@ -648,6 +648,84 @@ class PublicationOrganization(db.Model):
     def __repr__(self):
         return f"<PublicationOrganization(id={self.id}, name='{self.name}', publication_id={self.publication_id})>"
 
+
+class Tenant(db.Model):
+    """
+    Per-client branding config. Each row controls one subdomain's visual
+    identity (logo, title, colors, footer). All tenants share the same
+    underlying data — this is PURE whitelabel, not data scoping.
+
+    Resolved at request time by the Next.js frontend middleware, which
+    parses the Host header (e.g. `stellenbosch.africapidalliance.test`
+    locally or `stellenbosch.africapidalliance.org` in prod), extracts
+    the first dot-segment as the slug, and fetches config from
+    GET /api/v1/tenants/<slug>.
+    """
+    __tablename__ = 'tenants'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    slug = Column(String(64), nullable=False, unique=True, index=True)
+    display_name = Column(String(255), nullable=False)
+
+    # Visual assets — URLs relative to Next.js /public dir or absolute
+    logo_url = Column(String(500), nullable=True)
+    logo_dark_url = Column(String(500), nullable=True)
+    favicon_url = Column(String(500), nullable=True)
+    og_image_url = Column(String(500), nullable=True)
+
+    # Colors (hex strings, e.g. "#780000"). NULL = inherit default theme.
+    primary_color = Column(String(9), nullable=True)
+    primary_color_dark = Column(String(9), nullable=True)
+    accent_color = Column(String(9), nullable=True)
+
+    # Copy overrides (all optional, fall back to default DOCiD copy)
+    page_title = Column(String(255), nullable=True)
+    page_description = Column(Text, nullable=True)
+    hero_tagline = Column(String(500), nullable=True)
+    footer_copyright = Column(String(255), nullable=True)
+
+    # Contact overrides
+    contact_email = Column(String(255), nullable=True)
+    email_from_name = Column(String(255), nullable=True)
+
+    # Extensibility without migrations
+    feature_flags = Column(JSONB, nullable=True)
+
+    # Lifecycle
+    is_active = Column(Boolean, nullable=False, default=True, server_default='true')
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    def to_dict(self):
+        return {
+            'slug': self.slug,
+            'display_name': self.display_name,
+            'logo_url': self.logo_url,
+            'logo_dark_url': self.logo_dark_url,
+            'favicon_url': self.favicon_url,
+            'og_image_url': self.og_image_url,
+            'primary_color': self.primary_color,
+            'primary_color_dark': self.primary_color_dark,
+            'accent_color': self.accent_color,
+            'page_title': self.page_title,
+            'page_description': self.page_description,
+            'hero_tagline': self.hero_tagline,
+            'footer_copyright': self.footer_copyright,
+            'contact_email': self.contact_email,
+            'email_from_name': self.email_from_name,
+            'feature_flags': self.feature_flags or {},
+            'is_active': self.is_active,
+        }
+
+    def __repr__(self):
+        return f"<Tenant(id={self.id}, slug='{self.slug}', display_name='{self.display_name}')>"
+
+
 class PublicationFunders(db.Model):
     """
     Funders related to publications

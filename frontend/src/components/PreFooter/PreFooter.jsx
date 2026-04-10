@@ -15,10 +15,15 @@ import {
   AccessTime,
   KeyboardArrowRight
 } from '@mui/icons-material';
+import { useTenant } from '@/context/TenantContext';
 
 const PreFooter = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const tenant = useTenant();
+  const tenantLogoSrc = tenant?.logo_url || '/assets/images/logo2.png';
+  const tenantLogoAlt = `${tenant?.display_name || 'DOCiD™'} Logo`;
+  const tenantContactEmail = tenant?.contact_email || 'info@africapidalliance.org';
   
   const socialLinks = [
     { icon: <Facebook />, url: 'https://docid.africapidalliance.org/#', label: 'Facebook', color: '#1877F2' },
@@ -61,10 +66,13 @@ const PreFooter = () => {
   );
 
   return (
-    <Box 
-      sx={{ 
-        bgcolor: '#1565c0', 
-        color: 'white', 
+    <Box
+      sx={{
+        // Tenant-aware background: pulls from the MUI theme populated
+        // with the current tenant's primary_color (e.g. Stellenbosch
+        // maroon #780000). Fallback handled by the theme factory.
+        bgcolor: theme.palette.background.navbar,
+        color: 'white',
         py: { xs: 6, md:3 },
         position: 'relative',
         '&:before': {
@@ -95,8 +103,8 @@ const PreFooter = () => {
               }}
             >
               <Image
-                src="/assets/images/logo2.png"
-                alt="Logo"
+                src={tenantLogoSrc}
+                alt={tenantLogoAlt}
                 fill
                 style={{
                   objectFit: 'contain'
@@ -177,20 +185,20 @@ const PreFooter = () => {
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Email sx={{ color: 'rgba(255, 255, 255, 0.8)' }} />
-                <Link 
-                  href="mailto:info@africapidalliance.org"
-                  sx={{ 
-                    color: 'white', 
-                    textDecoration: 'none', 
+                <Link
+                  href={`mailto:${tenantContactEmail}`}
+                  sx={{
+                    color: 'white',
+                    textDecoration: 'none',
                     opacity: 0.9,
                     transition: 'all 0.2s ease',
-                    '&:hover': { 
+                    '&:hover': {
                       opacity: 1,
                       transform: 'translateX(4px)'
-                    } 
+                    }
                   }}
                 >
-                  info@africapidalliance.org
+                  {tenantContactEmail}
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
