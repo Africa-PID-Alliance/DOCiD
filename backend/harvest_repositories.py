@@ -29,6 +29,7 @@ from app.models import (
     Publications, DSpaceMapping, ResourceTypes, CreatorsRoles, PublicationCreators
 )
 from app.utils_crypto import decrypt_value
+from app.service_identifiers import IdentifierService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -208,6 +209,14 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                 )
                 db.session.add(publication)
                 db.session.flush()
+
+                # Mint a DOCiD via Cordra (same pattern as legacy dspace_legacy.py:118)
+                minted_docid = IdentifierService.generate_handle()
+                if minted_docid:
+                    publication.document_docid = minted_docid
+                    logger.info(f"[{source.name}] Minted DOCiD {minted_docid} for item {item_uuid}")
+                else:
+                    logger.warning(f"[{source.name}] Cordra mint failed for item {item_uuid}, keeping DSpace handle: {item_handle}")
 
                 # Add creators
                 for creator_data in mapped_data.get('creators', []):
