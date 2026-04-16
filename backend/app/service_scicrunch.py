@@ -156,6 +156,8 @@ def search_rrid_resources(query, resource_type=None):
         tuple: ``(results_list, None)`` on success, or
                ``(None, error_dict)`` on failure.
     """
+    query = query.strip()
+
     # --- Resource type resolution ---
     if resource_type is None:
         resource_type = DEFAULT_RESOURCE_TYPE
@@ -212,16 +214,34 @@ def search_rrid_resources(query, resource_type=None):
             "must_not": must_not_clauses,
         }
     else:
-        # Free-text keyword search — restrict to name and description fields
-        # to avoid fuzzy matches across all document fields
+        # Free-text keyword search — all query terms must appear together within
+        # item.name OR item.description (per-field operator:and prevents cross-field
+        # false positives like "cape town" in description + "university" in name).
         bool_query = {
             "must": [
                 {
-                    "match": {
-                        "item.name": {
-                            "query": query,
-                            "operator": "and",
-                        }
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "item.name": {
+                                        "query": query,
+                                        "operator": "and",
+                                        "fuzziness": "AUTO",
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "item.description": {
+                                        "query": query,
+                                        "operator": "and",
+                                        "fuzziness": "AUTO",
+                                    }
+                                }
+                            },
+                        ],
+                        "minimum_should_match": 1,
                     }
                 },
             ],
