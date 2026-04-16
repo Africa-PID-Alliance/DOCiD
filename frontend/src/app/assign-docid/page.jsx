@@ -640,7 +640,17 @@ const AssignDocID = () => {
           submitData.append(`filesDocuments[${index}][publication_type]`, formData.documents.documentType);
           submitData.append(`filesDocuments[${index}][generated_identifier]`, file.metadata.generated_identifier);
           submitData.append(`filesDocuments[${index}][rrid]`, file.metadata.rrid || '');
-          submitData.append(`filesDocuments_${index}_file`, file.file);
+
+          if (file.type === 'video') {
+            let videoUrl = (file.videoUrl || '').trim();
+            if (videoUrl && !videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+              videoUrl = 'https://' + videoUrl;
+            }
+            submitData.append(`filesDocuments[${index}][video_url]`, videoUrl);
+            submitData.append(`filesDocuments[${index}][file_type]`, 'video/external');
+          } else {
+            submitData.append(`filesDocuments_${index}_file`, file.file);
+          }
         });
       }
 

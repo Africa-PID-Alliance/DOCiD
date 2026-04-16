@@ -1653,7 +1653,8 @@ def create_publication():
           handle_id = None
           external_id = None
           external_id_type = None
-          
+          video_url = request.form.get(f'filesDocuments[{index}][video_url]', '').strip()
+
           if file:
               file_filename = file.filename
               file.save(f'uploads/{file_filename}')
@@ -1665,27 +1666,44 @@ def create_publication():
               # Process the identifier only if we have generated_identifier and a file
               if generated_identifier:
                   handle_id, external_id, external_id_type = IdentifierService.process_identifier(generated_identifier)
-              
-              # Only create PublicationDocuments record if there's an actual file uploaded
+
               files_documents.append(PublicationDocuments(
                   publication_id=publication_id,
                   title=file_title,
                   description=file_description,
                   publication_type_id=publication_type_id,
                   file_url=file_url,
-                  identifier_type_id=validated_identifier_type_id,  # Use validated value
+                  identifier_type_id=validated_identifier_type_id,
                   generated_identifier=generated_identifier,
                   handle_identifier=handle_id,
                   external_identifier=external_id,
                   external_identifier_type=external_id_type,
                   rrid=rrid_value
               ))
-              
+
               # CORDRA push has been moved to separate script push_to_cordra.py
               if handle_id:
                   logger.info(f"PublicationDocument [{index}] has handle: {handle_id}. CORDRA push will be handled by push_to_cordra.py script")
               else:
                   logger.warning(f"No Handle available for PublicationDocument [{index}]")
+          elif video_url:
+              logger.info(f"PublicationDocument [{index}] is an external video link: {video_url}")
+              file_url = video_url
+              if generated_identifier:
+                  handle_id, external_id, external_id_type = IdentifierService.process_identifier(generated_identifier)
+              files_documents.append(PublicationDocuments(
+                  publication_id=publication_id,
+                  title=file_title,
+                  description=file_description,
+                  publication_type_id=publication_type_id,
+                  file_url=file_url,
+                  identifier_type_id=validated_identifier_type_id,
+                  generated_identifier=generated_identifier,
+                  handle_identifier=handle_id,
+                  external_identifier=external_id,
+                  external_identifier_type=external_id_type,
+                  rrid=rrid_value
+              ))
           else:
               logger.warning(f"PublicationDocument [{index}] has no file uploaded - skipping document record creation")
           
@@ -3400,6 +3418,7 @@ def create_version():
             doc_generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
             doc_rrid = (request.form.get(f'filesDocuments[{index}][rrid]') or '').strip() or None
             doc_file = request.files.get(f'filesDocuments_{index}_file')
+            doc_video_url = request.form.get(f'filesDocuments[{index}][video_url]', '').strip()
 
             doc_file_url = ''
             if doc_file:
@@ -3407,6 +3426,8 @@ def create_version():
                 doc_file.save(f'uploads/{doc_filename}')
                 base_url = 'https://docid.africapidalliance.org'
                 doc_file_url = f'{base_url}/uploads/{doc_filename}'
+            elif doc_video_url:
+                doc_file_url = doc_video_url
 
             pub_doc = PublicationDocuments(
                 publication_id=publication_id,

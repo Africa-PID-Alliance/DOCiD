@@ -32,8 +32,6 @@ import {
   Close as CloseIcon,
   Add as AddIcon,
   Cancel as CancelIcon,
-  VideoLibrary as VideoIcon,
-  Link as LinkIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -345,31 +343,6 @@ const PublicationsForm = ({ formData, updateFormData }) => {
     }
   };
 
-  const handleAddVideoLink = () => {
-    const videoEntry = {
-      type: 'video',
-      name: 'Video Link',
-      videoUrl: '',
-      metadata: {
-        title: '',
-        description: '',
-        identifier: '',
-        identifierType: '',
-        generated_identifier: ''
-      }
-    };
-    const updatedFiles = [...uploadedFiles, videoEntry];
-    setUploadedFiles(updatedFiles);
-    updateFormData({ publicationType: selectedType, files: updatedFiles });
-  };
-
-  const handleVideoUrlChange = (index, value) => {
-    const updatedFiles = [...uploadedFiles];
-    updatedFiles[index].videoUrl = value;
-    setUploadedFiles(updatedFiles);
-    updateFormData({ publicationType: selectedType, files: updatedFiles });
-  };
-
   // Cleanup URLs when component unmounts or when files change
   useEffect(() => {
     const cleanup = () => {
@@ -501,47 +474,34 @@ const PublicationsForm = ({ formData, updateFormData }) => {
               bgcolor: theme.palette.background.paper,
               border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider}`
             }}>
-              {/* File / Video Header */}
+              {/* File Header */}
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                {file.type === 'video'
-                  ? <VideoIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  : <FileIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                }
+                <FileIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
                 <Box sx={{ flexGrow: 1 }}>
-                  {file.type === 'video' ? (
-                    <Typography variant="subtitle1" sx={{ fontWeight: 500, color: theme.palette.text.primary }}>
-                      Video Link
-                    </Typography>
-                  ) : (
-                    <>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 500, color: theme.palette.text.primary }}>
-                        {file.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        {formatFileSize(file.size)}
-                      </Typography>
-                    </>
-                  )}
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500, color: theme.palette.text.primary }}>
+                    {file.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    {formatFileSize(file.size)}
+                  </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  {file.type !== 'video' && (
-                    <Button
-                      startIcon={<PreviewIcon />}
-                      onClick={() => handlePreview(file)}
-                      variant="outlined"
-                      size="small"
-                      sx={{
-                        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider,
-                        color: theme.palette.text.primary,
-                        '&:hover': {
-                          borderColor: theme.palette.primary.main,
-                          bgcolor: theme.palette.action.hover
-                        }
-                      }}
-                    >
-                      {t('assign_docid.publications_form.preview')}
-                    </Button>
-                  )}
+                  <Button
+                    startIcon={<PreviewIcon />}
+                    onClick={() => handlePreview(file)}
+                    variant="outlined"
+                    size="small"
+                    sx={{
+                      borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider,
+                      color: theme.palette.text.primary,
+                      '&:hover': {
+                        borderColor: theme.palette.primary.main,
+                        bgcolor: theme.palette.action.hover
+                      }
+                    }}
+                  >
+                    {t('assign_docid.publications_form.preview')}
+                  </Button>
                   <Button
                     startIcon={<DeleteIcon />}
                     onClick={() => handleRemoveFile(index)}
@@ -553,23 +513,6 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                   </Button>
                 </Box>
               </Box>
-
-              {/* Video URL input (only for video entries) */}
-              {file.type === 'video' && (
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Video URL (YouTube, Vimeo, etc.)"
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      value={file.videoUrl || ''}
-                      onChange={(e) => handleVideoUrlChange(index, e.target.value)}
-                      InputProps={{ startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
-                      helperText="Paste a shareable video link. Videos are not uploaded to the server."
-                    />
-                  </Grid>
-                </Grid>
-              )}
 
               {/* Metadata Fields */}
               <Grid container spacing={2}>
@@ -706,43 +649,25 @@ const PublicationsForm = ({ formData, updateFormData }) => {
           </Grid>
         ))}
 
-        {/* Add Another Publication / Add Video Link buttons */}
-        {selectedType && (
+        {/* Add Another Publication button */}
+        {selectedType && uploadedFiles.length > 0 && (
           <Grid item xs={12}>
-            <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
-              {uploadedFiles.length > 0 && (
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddAnotherPublication}
-                  sx={{
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.23)' : '#4caf50',
-                    color: '#4caf50',
-                    '&:hover': {
-                      borderColor: '#388e3c',
-                      bgcolor: theme.palette.action.hover
-                    }
-                  }}
-                >
-                  {t('assign_docid.publications_form.add_another_publication')}
-                </Button>
-              )}
-              <Button
-                variant="outlined"
-                startIcon={<VideoIcon />}
-                onClick={handleAddVideoLink}
-                sx={{
-                  borderColor: theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.4)' : '#1976d2',
-                  color: '#1976d2',
-                  '&:hover': {
-                    borderColor: '#1565c0',
-                    bgcolor: theme.palette.action.hover
-                  }
-                }}
-              >
-                Add Video Link
-              </Button>
-            </Box>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={handleAddAnotherPublication}
+              sx={{
+                mt: 2,
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.23)' : '#4caf50',
+                color: '#4caf50',
+                '&:hover': {
+                  borderColor: '#388e3c',
+                  bgcolor: theme.palette.action.hover
+                }
+              }}
+            >
+              {t('assign_docid.publications_form.add_another_publication')}
+            </Button>
           </Grid>
         )}
       </Grid>

@@ -37,7 +37,8 @@ import {
   Visibility as PreviewIcon,
   Close as CloseIcon,
   Cancel as CancelIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -485,6 +486,32 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     }
   };
 
+  const handleAddVideoLink = () => {
+    const videoEntry = {
+      type: 'video',
+      name: 'Video Link',
+      videoUrl: '',
+      metadata: {
+        title: '',
+        description: '',
+        identifier: '',
+        identifierType: '',
+        generated_identifier: '',
+        rrid: ''
+      }
+    };
+    const updatedFiles = [...uploadedFiles, videoEntry];
+    setUploadedFiles(updatedFiles);
+    updateFormData({ documentType: selectedType, files: updatedFiles });
+  };
+
+  const handleVideoUrlChange = (index, value) => {
+    const updatedFiles = [...uploadedFiles];
+    updatedFiles[index].videoUrl = value;
+    setUploadedFiles(updatedFiles);
+    updateFormData({ documentType: selectedType, files: updatedFiles });
+  };
+
   // Cleanup URLs when component unmounts or when files change
   useEffect(() => {
     const cleanup = () => {
@@ -575,47 +602,75 @@ const DocumentsForm = ({ formData, updateFormData }) => {
 
         {selectedType && (
           <Grid item xs={12}>
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 3,
-                border: `2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider}`,
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f8f9fa',
-                textAlign: 'center'
-              }}
-            >
-              <input
-                type="file"
-                multiple
-                id="document-upload"
-                style={{ display: 'none' }}
-                onChange={handleFileUpload}
-                accept={getAcceptedFileTypes(selectedType)}
-              />
-              <label htmlFor="document-upload">
+            {selectedType === 1 ? (
+              /* Video type: show Add Video Link button instead of file upload */
+              <Box sx={{ textAlign: 'center', py: 2 }}>
                 <Button
-                  component="span"
-                  variant="contained"
-                  startIcon={<UploadIcon />}
+                  variant="outlined"
+                  startIcon={<VideoIcon />}
+                  onClick={handleAddVideoLink}
                   sx={{
-                    bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.main,
-                    color: 'white',
-                    fontSize: '1.1rem',
+                    borderColor: '#1976d2',
+                    color: '#1976d2',
+                    fontSize: '1rem',
                     fontWeight: 600,
                     py: 1.5,
                     px: 4,
-                   '&:hover': {
-                      bgcolor: theme.palette.mode === 'dark' ? '#1c2552' : theme.palette.primary.dark
+                    '&:hover': {
+                      borderColor: '#1565c0',
+                      bgcolor: 'rgba(25, 118, 210, 0.04)'
                     }
                   }}
                 >
-                  {t('assign_docid.documents_form.upload_files', { type: selectedType })}
+                  Add Video Link
                 </Button>
-              </label>
-              <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                {t('assign_docid.documents_form.max_file_size')}
-              </Typography>
-            </Paper>
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                  Paste a YouTube, Vimeo, or other shareable video URL. Videos are not uploaded to the server.
+                </Typography>
+              </Box>
+            ) : (
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 3,
+                  border: `2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider}`,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f8f9fa',
+                  textAlign: 'center'
+                }}
+              >
+                <input
+                  type="file"
+                  multiple
+                  id="document-upload"
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                  accept={getAcceptedFileTypes(selectedType)}
+                />
+                <label htmlFor="document-upload">
+                  <Button
+                    component="span"
+                    variant="contained"
+                    startIcon={<UploadIcon />}
+                    sx={{
+                      bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.main,
+                      color: 'white',
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      py: 1.5,
+                      px: 4,
+                     '&:hover': {
+                        bgcolor: theme.palette.mode === 'dark' ? '#1c2552' : theme.palette.primary.dark
+                      }
+                    }}
+                  >
+                    {t('assign_docid.documents_form.upload_files', { type: selectedType })}
+                  </Button>
+                </label>
+                <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
+                  {t('assign_docid.documents_form.max_file_size')}
+                </Typography>
+              </Paper>
+            )}
           </Grid>
         )}
 
@@ -623,24 +678,37 @@ const DocumentsForm = ({ formData, updateFormData }) => {
           <Grid item xs={12} key={index}>
             <Paper sx={{ p: 3, mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                {getFileIcon(selectedType)}
+                {file.type === 'video'
+                  ? <VideoIcon sx={{ color: 'primary.main' }} />
+                  : getFileIcon(selectedType)
+                }
                 <Box sx={{ flexGrow: 1, ml: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                    {file.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatFileSize(file.size)}
-                  </Typography>
+                  {file.type === 'video' ? (
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                      Video Link
+                    </Typography>
+                  ) : (
+                    <>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                        {file.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatFileSize(file.size)}
+                      </Typography>
+                    </>
+                  )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    startIcon={<PreviewIcon />}
-                    onClick={() => handlePreview(file)}
-                    variant="outlined"
-                    size="small"
-                  >
-                    {t('assign_docid.documents_form.preview')}
-                  </Button>
+                  {file.type !== 'video' && (
+                    <Button
+                      startIcon={<PreviewIcon />}
+                      onClick={() => handlePreview(file)}
+                      variant="outlined"
+                      size="small"
+                    >
+                      {t('assign_docid.documents_form.preview')}
+                    </Button>
+                  )}
                   <Button
                     startIcon={<DeleteIcon />}
                     onClick={() => handleRemoveFile(index)}
@@ -652,6 +720,23 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   </Button>
                 </Box>
               </Box>
+
+              {/* Video URL field — only for video entries */}
+              {file.type === 'video' && (
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Video URL (YouTube, Vimeo, etc.)"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={file.videoUrl || ''}
+                      onChange={(e) => handleVideoUrlChange(index, e.target.value)}
+                      InputProps={{ startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
+                      helperText="Paste a shareable video link. Videos are not uploaded to the server."
+                    />
+                  </Grid>
+                </Grid>
+              )}
 
               <Grid container spacing={2}>
                 <Grid item xs={12}>
@@ -828,22 +913,41 @@ const DocumentsForm = ({ formData, updateFormData }) => {
 
         {uploadedFiles.length > 0 && (
           <Grid item xs={12}>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddAnotherDocument}
-                  sx={{
-                mt: 2,
-                borderColor: '#4caf50',
-                color: '#4caf50',
-                '&:hover': {
-                  borderColor: '#388e3c',
-                  bgcolor: 'rgba(76, 175, 80, 0.04)'
-                }
-              }}
-            >
-              {t('assign_docid.documents_form.add_another_document')}
-            </Button>
+            {selectedType === 1 ? (
+              <Button
+                variant="outlined"
+                startIcon={<VideoIcon />}
+                onClick={handleAddVideoLink}
+                sx={{
+                  mt: 2,
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': {
+                    borderColor: '#1565c0',
+                    bgcolor: 'rgba(25, 118, 210, 0.04)'
+                  }
+                }}
+              >
+                Add Another Video Link
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={handleAddAnotherDocument}
+                sx={{
+                  mt: 2,
+                  borderColor: '#4caf50',
+                  color: '#4caf50',
+                  '&:hover': {
+                    borderColor: '#388e3c',
+                    bgcolor: 'rgba(76, 175, 80, 0.04)'
+                  }
+                }}
+              >
+                {t('assign_docid.documents_form.add_another_document')}
+              </Button>
+            )}
           </Grid>
         )}
       </Grid>

@@ -748,8 +748,11 @@ const DocIDPage = ({ params }) => {
     // Check if fileUrl is already a complete URL
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       fullUrl = fileUrl;
+    } else if (!fileUrl.startsWith('/') && fileUrl.includes('.')) {
+      // Looks like an external URL pasted without protocol (e.g. "youtube.com/...")
+      fullUrl = 'https://' + fileUrl;
     } else {
-      // Construct the full URL with base URL
+      // Local file path — construct with base URL
       const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       if (!baseUrl) {
         console.error('No base URL configured for file downloads');
