@@ -1534,7 +1534,7 @@ const DocIDPage = ({ params }) => {
                                   onClick={() => handleDownloadFile(item, selectedSection?.type === 'documents' ? 'document' : 'file')}
                                   color="primary"
                                 >
-                                  {t('docid_page.modal.view_file')}
+                                  {item.file_type === 'video/external' ? 'Watch Video' : t('docid_page.modal.view_file')}
                                 </Button>
                                 <Box sx={{
                                   minWidth: '100px',
@@ -1637,40 +1637,42 @@ const DocIDPage = ({ params }) => {
                                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                                       Research Resource (RRID)
                                     </Typography>
-                                    <Box sx={{ p: 2, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 1 }}>
+                                    <Box sx={{ p: 2.5, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 1, bgcolor: 'rgba(0,0,0,0.02)' }}>
                                       {item.rrid_name && (
-                                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
                                           {item.rrid_name}
                                         </Typography>
                                       )}
-                                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: item.rrid_description ? 1 : 0 }}>
+                                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                                         <Chip label={item.rrid} color="primary" variant="outlined" size="small" />
                                         {item.rrid_resource_type && (
                                           <Chip
                                             label={item.rrid_resource_type.replace(/_/g, ' ')}
                                             size="small"
-                                            sx={{ textTransform: 'capitalize' }}
+                                            sx={{ textTransform: 'capitalize', bgcolor: 'rgba(0,0,0,0.06)' }}
                                           />
                                         )}
                                       </Box>
                                       {item.rrid_description && (
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2, lineHeight: 1.6 }}>
                                           {item.rrid_description.length > 200
                                             ? `${item.rrid_description.substring(0, 200)}...`
                                             : item.rrid_description}
                                         </Typography>
                                       )}
-                                      <Button
-                                        variant="outlined"
-                                        size="small"
-                                        onClick={() => {
-                                      if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
-                                        window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
-                                      }
-                                    }}
-                                      >
-                                        View on SciCrunch
-                                      </Button>
+                                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(0,0,0,0.08)', pt: 1.5 }}>
+                                        <Button
+                                          variant="outlined"
+                                          size="small"
+                                          onClick={() => {
+                                            if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                              window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
+                                            }
+                                          }}
+                                        >
+                                          View on SciCrunch
+                                        </Button>
+                                      </Box>
                                     </Box>
                                   </Grid>
                                 )}
@@ -1891,40 +1893,42 @@ const DocIDPage = ({ params }) => {
                                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                                   Research Resource (RRID)
                                 </Typography>
-                                <Box sx={{ p: 2, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 1 }}>
+                                <Box sx={{ p: 2.5, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 1, bgcolor: 'rgba(0,0,0,0.02)' }}>
                                   {item.rrid_name && (
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
                                       {item.rrid_name}
                                     </Typography>
                                   )}
-                                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: item.rrid_description ? 1 : 0 }}>
+                                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                                     <Chip label={item.rrid} color="primary" variant="outlined" size="small" />
                                     {item.rrid_resource_type && (
                                       <Chip
                                         label={item.rrid_resource_type.replace(/_/g, ' ')}
                                         size="small"
-                                        sx={{ textTransform: 'capitalize' }}
+                                        sx={{ textTransform: 'capitalize', bgcolor: 'rgba(0,0,0,0.06)' }}
                                       />
                                     )}
                                   </Box>
                                   {item.rrid_description && (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2, lineHeight: 1.6 }}>
                                       {item.rrid_description.length > 200
                                         ? `${item.rrid_description.substring(0, 200)}...`
                                         : item.rrid_description}
                                     </Typography>
                                   )}
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    onClick={() => {
-                                      if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
-                                        window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
-                                      }
-                                    }}
-                                  >
-                                    View on SciCrunch
-                                  </Button>
+                                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(0,0,0,0.08)', pt: 1.5 }}>
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={() => {
+                                        if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                          window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
+                                        }
+                                      }}
+                                    >
+                                      View on SciCrunch
+                                    </Button>
+                                  </Box>
                                 </Box>
                               </Grid>
                             )}
@@ -1966,24 +1970,26 @@ const DocIDPage = ({ params }) => {
                             </Box>
 
                             {item.rrid_description && (
-                              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', lineHeight: 1.6 }}>
                                 {item.rrid_description.length > 300
                                   ? `${item.rrid_description.substring(0, 300)}...`
                                   : item.rrid_description}
                               </Typography>
                             )}
 
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => {
-                                if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
-                                  window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
-                                }
-                              }}
-                            >
-                              View on SciCrunch
-                            </Button>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(0,0,0,0.08)', pt: 1.5, mt: 1 }}>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => {
+                                  if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                    window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
+                                  }
+                                }}
+                              >
+                                View on SciCrunch
+                              </Button>
+                            </Box>
                           </Box>
                         ))}
                       </List>

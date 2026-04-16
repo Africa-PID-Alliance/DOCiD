@@ -603,18 +603,21 @@ const AssignDocID = () => {
 
       // 2. Publications Files
       if (formData.publications?.files?.length > 0) {
-        
         formData.publications.files.forEach((file, index) => {
+          submitData.append(`filesPublications[${index}][title]`, file.metadata.title);
+          submitData.append(`filesPublications[${index}][description]`, file.metadata.description);
+          submitData.append(`filesPublications[${index}][identifier]`, file.metadata.identifier);
+          submitData.append(`filesPublications[${index}][publication_type]`, formData.publications.publicationType);
+          submitData.append(`filesPublications[${index}][generated_identifier]`, file.metadata.generated_identifier);
 
-         
-        submitData.append(`filesPublications_${index}_file`, file.file);
-        submitData.append(`filesPublications[${index}][file_type]`, file.type);
-        submitData.append(`filesPublications[${index}][title]`, file.metadata.title);
-        submitData.append(`filesPublications[${index}][description]`, file.metadata.description);
-        submitData.append(`filesPublications[${index}][identifier]`, file.metadata.identifier);
-        submitData.append(`filesPublications[${index}][publication_type]`, formData.publications.publicationType);
-        submitData.append(`filesPublications[${index}][generated_identifier]`, file.metadata.generated_identifier);
-          
+          if (file.type === 'video') {
+            // Video link — send URL instead of physical file
+            submitData.append(`filesPublications[${index}][video_url]`, file.videoUrl || '');
+            submitData.append(`filesPublications[${index}][file_type]`, 'video/external');
+          } else {
+            submitData.append(`filesPublications_${index}_file`, file.file);
+            submitData.append(`filesPublications[${index}][file_type]`, file.type);
+          }
         });
       }
 
