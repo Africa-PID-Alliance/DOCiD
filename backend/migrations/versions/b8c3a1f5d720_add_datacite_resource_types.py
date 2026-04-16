@@ -14,41 +14,13 @@ down_revision = '30fd2740d9c1'
 branch_labels = None
 depends_on = None
 
-DATACITE_RESOURCE_TYPES = [
-    'Text',
-    'Dataset',
-    'Image',
-    'Audiovisual',
-    'Collection',
-    'Software',
-    'Other',
-]
 
+# DataCite resource types were added and later removed.
+# This migration is now a no-op but kept to preserve the Alembic revision chain.
 
 def upgrade():
-    connection = op.get_bind()
-
-    # Fix sequence to match current max id (seed script may have reset it)
-    connection.execute(
-        sa.text("SELECT setval('resource_types_id_seq', COALESCE((SELECT MAX(id) FROM resource_types), 1))")
-    )
-
-    for resource_type_name in DATACITE_RESOURCE_TYPES:
-        result = connection.execute(
-            sa.text("SELECT id FROM resource_types WHERE resource_type = :name"),
-            {"name": resource_type_name}
-        )
-        if result.fetchone() is None:
-            connection.execute(
-                sa.text("INSERT INTO resource_types (resource_type) VALUES (:name)"),
-                {"name": resource_type_name}
-            )
+    pass
 
 
 def downgrade():
-    connection = op.get_bind()
-    for resource_type_name in DATACITE_RESOURCE_TYPES:
-        connection.execute(
-            sa.text("DELETE FROM resource_types WHERE resource_type = :name"),
-            {"name": resource_type_name}
-        )
+    pass

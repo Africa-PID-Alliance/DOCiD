@@ -43,10 +43,16 @@ def main():
 
     with app.app_context():
         try:
-            # Get publications that haven't been synced yet
+            # Only sync publications created in the last 30 minutes
+            # Skip publications without DOI (CORDRA requires DOI as object ID)
+            # Process newest first so fresh publications sync immediately
+            thirty_minutes_ago = datetime.utcnow() - timedelta(minutes=30)
             recent_publications = Publications.query.filter(
-                (Publications.cordra_synced == False) | (Publications.cordra_synced == None)
-            ).all()
+                (Publications.cordra_synced == False) | (Publications.cordra_synced == None),
+                Publications.doi != None,
+                Publications.doi != '',
+                Publications.published >= thirty_minutes_ago,
+            ).order_by(Publications.id.desc()).all()
             
             if not recent_publications:
                 logger.info("No recent publications found")

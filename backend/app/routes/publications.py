@@ -57,6 +57,29 @@ def clean_undefined_string(value):
         return None
     return value
 
+
+def _build_rrid_cache(rrid_values):
+    """Return a {rrid_string: metadata_dict} lookup built in a single bulk query.
+
+    Searches across all entities — DocidRrid is used as a metadata cache so any
+    record with the same RRID string has equivalent SciCrunch metadata regardless
+    of which entity resolved it. Prefers rows that have rrid_name populated.
+    Returns an empty dict when no RRIDs are provided or none are found.
+    """
+    unique_rrids = [r for r in set(rrid_values) if r]
+    if not unique_rrids:
+        return {}
+    cache = {}
+    for record in DocidRrid.query.filter(DocidRrid.rrid.in_(unique_rrids)).all():
+        if record.rrid not in cache or record.rrid_name:
+            cache[record.rrid] = {
+                'rrid_name': record.rrid_name,
+                'rrid_description': record.rrid_description,
+                'rrid_resource_type': record.rrid_resource_type,
+                'rrid_url': record.rrid_url,
+            }
+    return cache
+
 @publications_bp.route('/get-list-resource-types', methods=['GET'])
 # @jwt_required()
 def get_resource_types():
@@ -690,6 +713,11 @@ def get_publication(publication_id):
             } for file in data.publications_files
         ]
 
+        _rrid_cache = _build_rrid_cache(
+            [getattr(doc, 'rrid', None) for doc in data.publication_documents] +
+            [getattr(org, 'rrid', None) for org in data.publication_organizations]
+        )
+
         publication_dict['publication_documents'] = [
             {
                 'id': doc.id,
@@ -699,7 +727,8 @@ def get_publication(publication_id):
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'rrid': getattr(doc, 'rrid', None)
+                'rrid': getattr(doc, 'rrid', None),
+                **(_rrid_cache.get(doc.rrid) or {} if doc.rrid else {})
             } for doc in data.publication_documents
         ]
 
@@ -722,7 +751,8 @@ def get_publication(publication_id):
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
-                'rrid': getattr(org, 'rrid', None)
+                'rrid': getattr(org, 'rrid', None),
+                **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
         ]
 
@@ -865,6 +895,11 @@ def get_publication_by_docid_prefix():
             } for file in data.publications_files
         ]
 
+        _rrid_cache = _build_rrid_cache(
+            [getattr(doc, 'rrid', None) for doc in data.publication_documents] +
+            [getattr(org, 'rrid', None) for org in data.publication_organizations]
+        )
+
         publication_dict['publication_documents'] = [
             {
                 'id': doc.id,
@@ -874,7 +909,8 @@ def get_publication_by_docid_prefix():
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'rrid': getattr(doc, 'rrid', None)
+                'rrid': getattr(doc, 'rrid', None),
+                **(_rrid_cache.get(doc.rrid) or {} if doc.rrid else {})
             } for doc in data.publication_documents
         ]
 
@@ -897,7 +933,8 @@ def get_publication_by_docid_prefix():
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
-                'rrid': getattr(org, 'rrid', None)
+                'rrid': getattr(org, 'rrid', None),
+                **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
         ]
 
@@ -1047,6 +1084,11 @@ def get_publication_by_docid_simple(document_docid):
             } for file in data.publications_files
         ]
 
+        _rrid_cache = _build_rrid_cache(
+            [getattr(doc, 'rrid', None) for doc in data.publication_documents] +
+            [getattr(org, 'rrid', None) for org in data.publication_organizations]
+        )
+
         publication_dict['publication_documents'] = [
             {
                 'id': doc.id,
@@ -1056,7 +1098,8 @@ def get_publication_by_docid_simple(document_docid):
                 'file_url': doc.file_url,
                 'identifier': doc.identifier_type_id,
                 'generated_identifier': doc.generated_identifier,
-                'rrid': getattr(doc, 'rrid', None)
+                'rrid': getattr(doc, 'rrid', None),
+                **(_rrid_cache.get(doc.rrid) or {} if doc.rrid else {})
             } for doc in data.publication_documents
         ]
 
@@ -1079,7 +1122,8 @@ def get_publication_by_docid_simple(document_docid):
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
-                'rrid': getattr(org, 'rrid', None)
+                'rrid': getattr(org, 'rrid', None),
+                **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
         ]
 
@@ -2730,7 +2774,12 @@ def get_publication_for_edit(publication_id):
                 'external_identifier_type': getattr(file, 'external_identifier_type', None)
             } for file in data.publications_files
         ]
-        
+
+        _rrid_cache = _build_rrid_cache(
+            [getattr(doc, 'rrid', None) for doc in data.publication_documents] +
+            [getattr(org, 'rrid', None) for org in data.publication_organizations]
+        )
+
         publication_dict['publication_documents'] = [
             {
                 'id': doc.id,
@@ -2743,7 +2792,8 @@ def get_publication_for_edit(publication_id):
                 'handle_identifier': getattr(doc, 'handle_identifier', None),
                 'external_identifier': getattr(doc, 'external_identifier', None),
                 'external_identifier_type': getattr(doc, 'external_identifier_type', None),
-                'rrid': getattr(doc, 'rrid', None)
+                'rrid': getattr(doc, 'rrid', None),
+                **(_rrid_cache.get(doc.rrid) or {} if doc.rrid else {})
             } for doc in data.publication_documents
         ]
         
@@ -2767,7 +2817,8 @@ def get_publication_for_edit(publication_id):
                 'country': org.country,
                 'identifier': getattr(org, 'identifier', None),
                 'identifier_type': getattr(org, 'identifier_type', None),
-                'rrid': getattr(org, 'rrid', None)
+                'rrid': getattr(org, 'rrid', None),
+                **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
         ]
 
