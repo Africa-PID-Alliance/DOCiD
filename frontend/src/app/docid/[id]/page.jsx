@@ -1655,7 +1655,7 @@ const DocIDPage = ({ params }) => {
                                           variant="outlined"
                                           size="small"
                                           onClick={() => {
-                                            if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                            if (/^RRID:[A-Za-z0-9_:]+$/.test(item.rrid)) {
                                               window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
                                             }
                                           }}
@@ -1911,7 +1911,7 @@ const DocIDPage = ({ params }) => {
                                       variant="outlined"
                                       size="small"
                                       onClick={() => {
-                                        if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                        if (/^RRID:[A-Za-z0-9_:]+$/.test(item.rrid)) {
                                           window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
                                         }
                                       }}
@@ -1972,7 +1972,7 @@ const DocIDPage = ({ params }) => {
                                 variant="outlined"
                                 size="small"
                                 onClick={() => {
-                                  if (/^RRID:[A-Za-z0-9_]+$/.test(item.rrid)) {
+                                  if (/^RRID:[A-Za-z0-9_:]+$/.test(item.rrid)) {
                                     window.open(`https://scicrunch.org/resolver/${item.rrid}`, '_blank', 'noopener,noreferrer');
                                   }
                                 }}

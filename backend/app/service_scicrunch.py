@@ -212,10 +212,18 @@ def search_rrid_resources(query, resource_type=None):
             "must_not": must_not_clauses,
         }
     else:
-        # Free-text keyword search
+        # Free-text keyword search — restrict to name and description fields
+        # to avoid fuzzy matches across all document fields
         bool_query = {
             "must": [
-                {"query_string": {"query": query}},
+                {
+                    "match": {
+                        "item.name": {
+                            "query": query,
+                            "operator": "and",
+                        }
+                    }
+                },
             ],
             "must_not": must_not_clauses,
         }
