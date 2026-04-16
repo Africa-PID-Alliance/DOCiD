@@ -7,7 +7,6 @@ import {
   Paper,
   Skeleton,
   Chip,
-  Collapse,
   IconButton,
   useTheme,
 } from '@mui/material';
@@ -240,7 +239,18 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   if (totalLabelCount === 0) return null;
 
   return (
-    <Box>
+    <Box mb={2} p={2} borderRadius={2}>
+      {/* Section heading — only shown when there are actual labels */}
+      <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+        <Box
+          component="img"
+          src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
+          alt="Local Contexts"
+          sx={{ width: 20, height: 20 }}
+        />
+        <Typography fontWeight={600}>Local Contexts Labels</Typography>
+      </Box>
+
       {/* Project title if available */}
       {labelData.title && (
         <Typography variant="body2" color="text.secondary" mb={1.5}>

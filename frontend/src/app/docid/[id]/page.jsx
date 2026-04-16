@@ -1433,21 +1433,8 @@ const DocIDPage = ({ params }) => {
                 </DialogContent>
               </Dialog>
               
-              {/* Local Contexts TK/BC Labels Section */}
-              {publicationId && (
-                <Box mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
-                  <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-                    <Box
-                      component="img"
-                      src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
-                      alt="Local Contexts"
-                      sx={{ width: 20, height: 20 }}
-                    />
-                    <Typography fontWeight={600}>Local Contexts Labels</Typography>
-                  </Box>
-                  <LocalContextsLabels publicationId={publicationId} />
-                </Box>
-              )}
+              {/* Local Contexts TK/BC Labels Section — hidden when no labels attached */}
+              {publicationId && <LocalContextsLabels publicationId={publicationId} />}
 
               {/* Sections */}
               {sectionData.map((section, idx) => (
