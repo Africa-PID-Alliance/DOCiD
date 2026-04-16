@@ -265,7 +265,8 @@ const ListDocIds = () => {
     }
   }, [fetchPublications, resourceTypesLoaded]);
 
-  // Debounced search: trigger API call after 300ms of typing inactivity
+  // Debounced search: fire only when query is empty (clear) or at least 4 chars,
+  // and only after 500ms of typing inactivity to reduce unnecessary requests.
   const isInitialMount = useRef(true);
   const fetchPublicationsRef = useRef(fetchPublications);
   fetchPublicationsRef.current = fetchPublications;
@@ -279,12 +280,17 @@ const ListDocIds = () => {
     if (searchTimeout.current) {
       clearTimeout(searchTimeout.current);
     }
+    const trimmedQuery = searchQuery.trim();
+    // Only search when field is cleared or has at least 4 characters
+    if (trimmedQuery.length > 0 && trimmedQuery.length < 4) {
+      return;
+    }
     searchTimeout.current = setTimeout(() => {
-      debouncedSearchQuery.current = searchQuery.trim();
+      debouncedSearchQuery.current = trimmedQuery;
       if (resourceTypesLoaded) {
         fetchPublicationsRef.current(1);
       }
-    }, 300);
+    }, 500);
     return () => {
       if (searchTimeout.current) {
         clearTimeout(searchTimeout.current);
