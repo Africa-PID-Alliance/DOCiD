@@ -340,55 +340,42 @@ def search_rrid_resources(query, resource_type=None):
 # ---------------------------------------------------------------------------
 
 def _normalize_resolver_response(raw_json):
-    """Extract a normalized 7-field subset from SciCrunch resolver JSON.
+    """Extract a normalized subset from SciCrunch resolver JSON.
 
-    Returns a dict with exactly these keys: name, rrid, description, url,
-    resource_type, properCitation, mentions.  Unknown / missing fields fall
-    back to safe defaults so callers never need to guard against ``KeyError``.
+    The resolver endpoint returns:
+      {"hits": {"hits": [{"_source": {"item": {...}}}]}, "resolver": {...}}
+
+    This function drills into hits.hits[0]._source.item to extract the
+    canonical resource metadata.
 
     Args:
         raw_json: Parsed JSON dict from the SciCrunch resolver endpoint.
 
     Returns:
-        dict: Normalized subset with 7 keys, or all-defaults when the input
-              is ``None`` / not a dict.
+        dict with keys: name, rrid, description, url, resource_type.
+        All values default to empty string when absent.
     """
-    default_normalized_data = {
-        "name": "",
-        "rrid": "",
-        "description": "",
-        "url": "",
-        "resource_type": "",
-        "properCitation": "",
-        "mentions": 0,
-    }
-
     if not isinstance(raw_json, dict):
         logger.warning("Resolver response is not a dict; returning defaults")
-        return default_normalized_data
+        return {"name": "", "rrid": "", "description": "", "url": "", "resource_type": ""}
 
-    normalized_data = {
-        "name": raw_json.get("name", ""),
-        "rrid": raw_json.get("curie", ""),
-        "description": raw_json.get("description", ""),
-        "url": raw_json.get("url", ""),
-        "resource_type": raw_json.get("resource_type", ""),
-        "properCitation": raw_json.get("properCitation", ""),
-        "mentions": raw_json.get("mentions", 0),
+    try:
+        item = raw_json["hits"]["hits"][0]["_source"]["item"]
+    except (KeyError, IndexError):
+        logger.warning("Resolver response missing expected hits structure")
+        return {"name": "", "rrid": "", "description": "", "url": "", "resource_type": ""}
+
+    # Primary type is the first entry in the types list
+    types = item.get("types", [])
+    resource_type = types[0].get("name", "") if types else ""
+
+    return {
+        "name": item.get("name", ""),
+        "rrid": item.get("curie", ""),
+        "description": item.get("description", ""),
+        "url": item.get("url", ""),
+        "resource_type": resource_type,
     }
-
-    # Warn about fields the upstream response did not provide
-    missing_field_names = [
-        key for key, value in normalized_data.items()
-        if value == "" or value == 0
-    ]
-    if missing_field_names:
-        logger.warning(
-            "Resolver response missing expected fields: %s",
-            ", ".join(missing_field_names),
-        )
-
-    return normalized_data
 
 
 # ---------------------------------------------------------------------------

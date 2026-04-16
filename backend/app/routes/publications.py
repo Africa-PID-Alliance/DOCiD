@@ -83,7 +83,11 @@ def _build_rrid_cache(rrid_values):
                 'rrid_resource_type': record.rrid_resource_type,
                 'rrid_url': record.rrid_url,
             }
-        found_rrids.add(record.rrid)
+        # Only treat as a valid cache hit if name is populated;
+        # empty-name records were cached by a broken normalizer and
+        # should be re-resolved on the next request.
+        if record.rrid_name:
+            found_rrids.add(record.rrid)
 
     # Lazy-resolve any RRIDs that have no DB record yet (e.g. doc/org RRIDs entered
     # as plain strings without going through the RRID form resolution flow).
