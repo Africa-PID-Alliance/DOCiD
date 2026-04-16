@@ -1431,26 +1431,6 @@ const DocIDPage = ({ params }) => {
                 </DialogContent>
               </Dialog>
               
-              {/* Sections */}
-              {sectionData.map((section, idx) => (
-                <Box key={section.label} display="flex" alignItems="center" justifyContent="space-between" mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
-                  <Box>
-                    <Typography fontWeight={600}>{section.label}</Typography>
-                    <Typography variant="caption">{t('docid_page.sections.number_of', { label: section.label, count: section.count })}</Typography>
-                  </Box>
-                  <Button 
-                    variant="contained" 
-                    size="small" 
-                    endIcon={<VisibilityOutlined />}
-                    onClick={() => handleViewSection(section)}
-                    disabled={section.count === 0}
-                  >
-                    {t('docid_page.sections.view')}
-                  </Button>
-              </Box>
-              ))}
-
-
               {/* Local Contexts TK/BC Labels Section */}
               {publicationId && (
                 <Box mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
@@ -1466,6 +1446,25 @@ const DocIDPage = ({ params }) => {
                   <LocalContextsLabels publicationId={publicationId} />
                 </Box>
               )}
+
+              {/* Sections */}
+              {sectionData.map((section, idx) => (
+                <Box key={section.label} display="flex" alignItems="center" justifyContent="space-between" mb={2} p={2} borderRadius={2} bgcolor='theme.content'>
+                  <Box>
+                    <Typography fontWeight={600}>{section.label}</Typography>
+                    <Typography variant="caption">{t('docid_page.sections.number_of', { label: section.label, count: section.count })}</Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    endIcon={<VisibilityOutlined />}
+                    onClick={() => handleViewSection(section)}
+                    disabled={section.count === 0}
+                  >
+                    {t('docid_page.sections.view')}
+                  </Button>
+              </Box>
+              ))}
 
               {/* Modal for viewing section details */}
               <Dialog
