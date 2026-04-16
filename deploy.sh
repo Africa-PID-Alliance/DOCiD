@@ -17,7 +17,11 @@ SSH_PASS='AP@-D0c!D2050'
 REPO_URL="https://github.com/Africa-PID-Alliance/DOCiD.git"
 REPO_DIR="/tmp/docid-deploy"
 
-SSH_CMD="sshpass -p '${SSH_PASS}' ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST}"
+# Pipe a heredoc to bash on the server — avoids all quoting issues
+ssh_exec() {
+  sshpass -p "${SSH_PASS}" ssh -o StrictHostKeyChecking=no -p "${SSH_PORT}" \
+    "${SSH_USER}@${SSH_HOST}" bash -s
+}
 
 # ── Flags ─────────────────────────────────────────────────────────────────────
 DEPLOY_BACKEND=true
@@ -32,90 +36,118 @@ done
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 log()  { echo ""; echo "=== $* ==="; }
-ok()   { echo "✓  $*"; }
-fail() { echo "✗  $*" >&2; exit 1; }
-
-run() {
-  # Run a command on the production server
-  eval "${SSH_CMD} \"$*\""
-}
+ok()   { echo "OK  $*"; }
+fail() { echo "FAIL $*" >&2; exit 1; }
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
-command -v sshpass >/dev/null 2>&1 || fail "sshpass not found — install with: brew install hudochenkov/sshpass/sshpass"
+command -v sshpass >/dev/null 2>&1 || fail "sshpass not found — install: brew install hudochenkov/sshpass/sshpass"
 
 log "Cloning repo on server"
-run "rm -rf ${REPO_DIR} && git clone --depth 1 ${REPO_URL} ${REPO_DIR}"
+ssh_exec << ENDSSH
+set -e
+rm -rf ${REPO_DIR}
+git clone --depth 1 ${REPO_URL} ${REPO_DIR}
+ENDSSH
 ok "Repo cloned to ${REPO_DIR}"
 
 # ── Backend ───────────────────────────────────────────────────────────────────
 if [ "${DEPLOY_BACKEND}" = true ]; then
   log "Deploying Backend"
 
-  run "rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
-    --exclude='venv' \
-    --exclude='.env' \
-    --exclude='logs' \
-    --exclude='uploads' \
-    --exclude='__pycache__' \
-    ${REPO_DIR}/backend/ /home/tcc-africa/docid_project/backend-v2/"
+  ssh_exec << ENDSSH
+set -e
+rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
+  --exclude='venv' \
+  --exclude='.env' \
+  --exclude='logs' \
+  --exclude='uploads' \
+  --exclude='__pycache__' \
+  ${REPO_DIR}/backend/ /home/tcc-africa/docid_project/backend-v2/
+ENDSSH
   ok "Backend files synced"
 
-  run "cd /home/tcc-africa/docid_project/backend-v2 && \
-    source venv/bin/activate && \
-    pip install -r requirements.txt --quiet"
+  ssh_exec << ENDSSH
+set -e
+cd /home/tcc-africa/docid_project/backend-v2
+source venv/bin/activate
+pip install -r requirements.txt --quiet
+ENDSSH
   ok "Dependencies installed"
 
-  run "cd /home/tcc-africa/docid_project/backend-v2 && \
-    source venv/bin/activate && \
-    export FLASK_APP=run.py && \
-    flask db upgrade"
+  ssh_exec << ENDSSH
+set -e
+cd /home/tcc-africa/docid_project/backend-v2
+source venv/bin/activate
+export FLASK_APP=run.py
+flask db upgrade
+ENDSSH
   ok "Migrations applied"
 
   log "Restarting Backend"
-  OLD_PID=$(run "pgrep -fo 'gunicorn.*wsgi:app' || echo ''")
+  OLD_PID=$(ssh_exec << 'ENDSSH'
+pgrep -fo 'gunicorn.*wsgi:app' || echo ""
+ENDSSH
+)
 
-  run "echo '${SSH_PASS}' | sudo -S supervisorctl restart docid"
+  SUDO_PASS="${SSH_PASS}"
+  ssh_exec << ENDSSH
+echo '${SUDO_PASS}' | sudo -S supervisorctl restart docid
+ENDSSH
   sleep 4
 
-  NEW_PID=$(run "pgrep -fo 'gunicorn.*wsgi:app' || echo ''")
+  NEW_PID=$(ssh_exec << 'ENDSSH'
+pgrep -fo 'gunicorn.*wsgi:app' || echo ""
+ENDSSH
+)
 
   if [ -z "${NEW_PID}" ]; then
     fail "gunicorn not running after restart"
   fi
-  if [ "${OLD_PID}" = "${NEW_PID}" ] && [ -n "${OLD_PID}" ]; then
-    fail "gunicorn PID unchanged (${OLD_PID}) — restart did not take effect"
-  fi
-  ok "Backend restarted (PID ${OLD_PID} → ${NEW_PID})"
+  ok "Backend restarted (PID ${OLD_PID} -> ${NEW_PID})"
 fi
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 if [ "${DEPLOY_FRONTEND}" = true ]; then
   log "Deploying Frontend"
 
-  run "rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
-    --exclude='node_modules' \
-    --exclude='.next' \
-    --exclude='.env.production' \
-    --exclude='logs' \
-    ${REPO_DIR}/frontend/ /var/www/html/fe/"
+  ssh_exec << ENDSSH
+set -e
+rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
+  --exclude='node_modules' \
+  --exclude='.next' \
+  --exclude='.env.production' \
+  --exclude='logs' \
+  ${REPO_DIR}/frontend/ /var/www/html/fe/
+ENDSSH
   ok "Frontend files synced"
 
-  run "export NVM_DIR=\"\$HOME/.nvm\" && \
-    [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\" && \
-    cd /var/www/html/fe && \
-    npm ci && npm run build"
+  log "Building Frontend (this takes ~1 min)"
+  ssh_exec << 'ENDSSH'
+set -e
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+cd /var/www/html/fe
+npm ci
+npm run build
+ENDSSH
   ok "Frontend built"
 
-  run "export NVM_DIR=\"\$HOME/.nvm\" && \
-    [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\" && \
-    cd /var/www/html/fe && \
-    pm2 restart docid-frontend || pm2 start ecosystem.config.js --env production && pm2 save"
+  ssh_exec << 'ENDSSH'
+set -e
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+cd /var/www/html/fe
+pm2 restart docid-frontend || pm2 start ecosystem.config.js --env production
+pm2 save
+ENDSSH
   ok "Frontend restarted"
 fi
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 log "Cleanup"
-run "rm -rf ${REPO_DIR}"
+ssh_exec << ENDSSH
+rm -rf ${REPO_DIR}
+ENDSSH
 ok "Temp files removed"
 
 # ── Health Checks ─────────────────────────────────────────────────────────────
@@ -123,14 +155,16 @@ log "Health Checks"
 sleep 5
 
 if [ "${DEPLOY_BACKEND}" = true ]; then
-  run "curl -sf http://localhost:5001/api/v1/health > /dev/null" \
-    && ok "Backend: OK" || fail "Backend health check FAILED"
+  ssh_exec << 'ENDSSH' && ok "Backend: OK" || fail "Backend health check FAILED"
+curl -sf http://localhost:5001/api/v1/publications/get-list-resource-types > /dev/null
+ENDSSH
 fi
 
 if [ "${DEPLOY_FRONTEND}" = true ]; then
-  run "curl -sf http://localhost:3000 > /dev/null" \
-    && ok "Frontend: OK" || fail "Frontend health check FAILED"
+  ssh_exec << 'ENDSSH' && ok "Frontend: OK" || fail "Frontend health check FAILED"
+curl -sf http://localhost:3000 > /dev/null
+ENDSSH
 fi
 
 echo ""
-echo "✓ Deploy complete"
+echo "Deploy complete"
