@@ -1740,7 +1740,7 @@ const DocIDPage = ({ params }) => {
                               </Typography>
                               <TextField
                                 fullWidth
-                                value={item.affiliation || 'DOCiD'}
+                                value={item.affiliation || docData?.owner || ''}
                                 InputProps={{ readOnly: true, disableUnderline: true }}
                                 variant="filled"
                                 size="small"

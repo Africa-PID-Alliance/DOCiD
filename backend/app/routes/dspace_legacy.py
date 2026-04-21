@@ -41,8 +41,12 @@ def _strip_date_from_name(name):
     return cleaned if cleaned else name
 
 
-def _save_legacy_creators(publication_id, creators_data, author_role_id=None):
-    """Save creators for a legacy DSpace publication."""
+def _save_legacy_creators(publication_id, creators_data, author_role_id=None, default_affiliation=None):
+    """Save creators for a legacy DSpace publication.
+
+    default_affiliation: used when DSpace metadata has no per-creator affiliation
+    (typical for older DSpace 6.x dumps). Falls back to the publication's owner.
+    """
     if not creators_data:
         return
 
@@ -73,7 +77,8 @@ def _save_legacy_creators(publication_id, creators_data, author_role_id=None):
             given_name=given_name,
             identifier=identifier_value,
             identifier_type=identifier_type_value,
-            role_id=author_role_id
+            role_id=author_role_id,
+            affiliation=creator_data.get('affiliation') or default_affiliation
         ))
 
 
@@ -517,7 +522,7 @@ def sync_single_item(item_id):
             _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id, handle, item_id, doi)
 
             PublicationCreators.query.filter_by(publication_id=publication.id).delete()
-            _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+            _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id, default_affiliation=publication.owner)
 
             existing_mapping.dspace_metadata_hash = new_metadata_hash
             existing_mapping.sync_status = 'synced'
@@ -533,7 +538,7 @@ def sync_single_item(item_id):
             db.session.add(publication)
             db.session.flush()
 
-            _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+            _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id, default_affiliation=publication.owner)
 
             mapping = DSpaceMapping(
                 dspace_handle=handle,
@@ -724,7 +729,7 @@ def batch_sync():
                 publication.user_id = current_user_id
                 _apply_legacy_data_to_publication(publication, mapped_data, resource_type_id, handle, item_id, doi)
                 PublicationCreators.query.filter_by(publication_id=publication.id).delete()
-                _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+                _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id, default_affiliation=publication.owner)
                 existing_mapping.dspace_metadata_hash = new_metadata_hash
                 existing_mapping.sync_status = 'synced'
                 existing_mapping.error_message = None
@@ -745,7 +750,7 @@ def batch_sync():
                 db.session.add(publication)
                 db.session.flush()
 
-                _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id)
+                _save_legacy_creators(publication.id, mapped_data.get('creators', []), author_role_id, default_affiliation=publication.owner)
 
                 mapping = DSpaceMapping(
                     dspace_handle=handle,

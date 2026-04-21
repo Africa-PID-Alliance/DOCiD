@@ -586,6 +586,7 @@ class PublicationCreators(db.Model):
     identifier = Column(String(500))  # Stores the full resolvable URL (e.g., https://orcid.org/0000-0002-1981-4157)
     identifier_type = Column(String(50))  # Stores the type (e.g., 'orcid', 'isni', 'viaf')
     role_id = Column(String(255), nullable=False)
+    affiliation = Column(String(500), nullable=True)
 
     # Relationships
     publication = relationship('Publications', back_populates='publication_creators')
