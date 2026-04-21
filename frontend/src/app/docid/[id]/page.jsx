@@ -753,17 +753,12 @@ const DocIDPage = ({ params }) => {
       fullUrl = 'https://' + fileUrl;
     } else {
       // Local file path — construct with base URL
-      const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
-      if (!baseUrl) {
-        console.error('No base URL configured for file downloads');
-        alert(t('docid_page.file_errors.no_config'));
-        return;
-      }
+      const baseUrl = '';
 
       // Ensure proper URL construction
       const cleanFileUrl = fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl;
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-      fullUrl = `${cleanBaseUrl}/${cleanFileUrl}`;
+      fullUrl = cleanBaseUrl ? `${cleanBaseUrl}/${cleanFileUrl}` : `/${cleanFileUrl}`;
     }
 
     console.log('Opening file:', fullUrl);
@@ -904,7 +899,7 @@ const DocIDPage = ({ params }) => {
                   src={docData.publication_poster_url
                     ? (docData.publication_poster_url.startsWith('http')
                       ? docData.publication_poster_url
-                      : `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || ''}/${docData.publication_poster_url}`)
+                      : `/${docData.publication_poster_url.replace(/^\/+/, '')}`)
                     : (docData.avatar || '/assets/images/logo2.png')}
                   alt="DOCiD"
                   onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}

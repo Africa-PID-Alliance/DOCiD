@@ -101,7 +101,7 @@ const LoginPage = () => {
     
     dispatch(loginStart());
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login`, {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ const LoginPage = () => {
       }
 
       // Fetch user's social_id
-      const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/user/email/${encodeURIComponent(formData.email)}`);
+      const userResponse = await fetch(`/api/auth/user/email/${encodeURIComponent(formData.email)}`);
       const userDataSocial = await userResponse.json();
     
 

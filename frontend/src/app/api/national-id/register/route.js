@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function POST(request) {
   try {
     const body = await request.json();
 
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
 
     const authHeader = request.headers.get('Authorization');
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 /**
  * GET - Fetch user publications with pagination
@@ -14,7 +15,7 @@ export async function GET(request, { params }) {
     const sort = searchParams.get('sort') || 'published';
     const order = searchParams.get('order') || 'desc';
 
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     const queryParams = new URLSearchParams({
       page,
       page_size: pageSize,

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function GET(request) {
   try {
@@ -8,7 +9,7 @@ export async function GET(request) {
     const page = searchParams.get('page') || '1';
     const perPage = searchParams.get('per_page') || '20';
 
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
 
     let apiUrl = `${baseUrl}/national-id/researchers/search?q=${encodeURIComponent(searchQuery)}&page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}`;
 

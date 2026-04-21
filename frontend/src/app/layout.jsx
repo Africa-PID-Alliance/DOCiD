@@ -3,6 +3,7 @@ import { cache } from 'react';
 
 import ClientWrapper from './ClientWrapper';
 import { getDefaultTenant, resolveTenantSlugFromHost } from '@/lib/tenant';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 /**
  * Server-side tenant resolution.
@@ -28,9 +29,9 @@ const resolveTenant = cache(async () => {
     return getDefaultTenant();
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const apiBaseUrl = getBackendApiV1BaseUrl();
   if (!apiBaseUrl) {
-    console.warn('[tenant] NEXT_PUBLIC_API_BASE_URL not set, using default');
+    console.warn('[tenant] API base URL not set, using default');
     return getDefaultTenant();
   }
 

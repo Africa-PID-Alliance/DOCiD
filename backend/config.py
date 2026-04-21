@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     CROSSREF_API_URL = os.getenv('CROSSREF_API_URL')
     CROSSREF_API_KEY = os.getenv('CROSSREF_API_KEY')
@@ -16,8 +17,14 @@ class Config:
     CSTR_SECRET = os.getenv('CSTR_SECRET')
     CSTR_PREFIX = os.getenv('CSTR_PREFIX')
     CSTR_USERNAME = os.getenv('CSTR_USERNAME')
-    APPLICATION_BASE_URL = os.getenv('APPLICATION_BASE_URL', 'http://localhost:5000')
-    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    APPLICATION_BASE_URL = os.getenv('APPLICATION_BASE_URL', 'http://localhost:3000')
+    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+    _raw_uploads_directory = os.getenv('UPLOADS_DIRECTORY', 'uploads')
+    UPLOADS_DIRECTORY = (
+        _raw_uploads_directory
+        if os.path.isabs(_raw_uploads_directory)
+        else os.path.abspath(os.path.join(BASE_DIR, _raw_uploads_directory))
+    )
 
     # SciCrunch Configuration
     SCICRUNCH_API_KEY = os.getenv('SCICRUNCH_API_KEY')

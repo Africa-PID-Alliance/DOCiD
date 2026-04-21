@@ -455,7 +455,7 @@ const ListDocIds = () => {
 
   const handleAddDocument = async (document) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docids`, {
+      const response = await fetch('/api/publications/docid', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

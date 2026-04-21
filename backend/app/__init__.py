@@ -44,6 +44,18 @@ def create_app():
 
     # Load configurations from config.py
     app.config.from_object(Config)
+    os.makedirs(app.config["UPLOADS_DIRECTORY"], exist_ok=True)
+
+    # Hard-fail on unsafe production URL defaults to prevent broken upload links.
+    app_base_url = (app.config.get("APPLICATION_BASE_URL") or "").strip().lower()
+    if os.getenv("FLASK_ENV", "development") == "production" and (
+        not app_base_url
+        or "localhost" in app_base_url
+        or "127.0.0.1" in app_base_url
+    ):
+        raise RuntimeError(
+            "APPLICATION_BASE_URL must be set to a public domain in production."
+        )
 
     # JWT Configuration from environment
     from datetime import timedelta
@@ -55,8 +67,8 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
-    # Configure CORS to allow local development
-    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://docid.africapidalliance.org"])
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    CORS(app, origins=[origin.strip() for origin in cors_origins.split(",") if origin.strip()])
     jwt.init_app(app)
     limiter.init_app(app)
     

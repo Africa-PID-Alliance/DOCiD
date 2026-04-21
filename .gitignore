@@ -40,6 +40,15 @@ backend/temp/
 backend/.env
 backend/uploads/
 
+# Dockerization artifacts (local-only)
+.env.docker
+.env.docker.*
+docker-compose.yml
+docker-compose.*.yml
+backend/Dockerfile
+frontend/Dockerfile
+backend/.env
+
 # Node
 node_modules/
 npm-debug.log*

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 //Create a Map to store recently used codes with timestamps
 const recentlyUsedCodes = new Map();
@@ -107,7 +108,7 @@ export async function GET(request) {
     const uniqueEmail = `${userResponse.data.login}@github.com`;
 
  //Step 10: Send ORCID user details to the database
- const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
+ const dbResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/register`, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json'

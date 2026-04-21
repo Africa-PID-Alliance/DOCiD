@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function GET() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const baseUrl = getBackendApiV1BaseUrl();
     const response = await fetch(`${baseUrl}/auth/get-list-account-types`, {
       method: 'GET',
       headers: {

@@ -2,6 +2,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 // Create transporter per-request to ensure env vars are loaded
 function createTransporter() {
@@ -47,7 +48,7 @@ export async function POST(request) {
     ).padStart(2, '0')}`;
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const apiBaseUrl = getBackendApiV1BaseUrl();
       const frontendBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
       // Check if email exists

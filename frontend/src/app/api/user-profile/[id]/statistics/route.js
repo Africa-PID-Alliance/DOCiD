@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 /**
  * GET - Fetch user statistics
@@ -6,7 +7,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request, { params }) {
   try {
     const { id } = params;
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}/statistics`;
 
     const response = await fetch(apiUrl, {

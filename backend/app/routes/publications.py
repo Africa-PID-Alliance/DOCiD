@@ -1444,9 +1444,8 @@ def create_publication():
         publication_poster_url = None
         if publication_poster:
             poster_filename = publication_poster.filename
-            publication_poster.save(f'uploads/{poster_filename}')
-            # Always use production domain for consistency
-            base_url = 'https://docid.africapidalliance.org'
+            publication_poster.save(f'{Config.UPLOADS_DIRECTORY}/{poster_filename}')
+            base_url = Config.APPLICATION_BASE_URL.rstrip('/')
             publication_poster_url = f'{base_url}/uploads/{poster_filename}'
             logger.info(f"Publication poster saved: {publication_poster_url}")
 
@@ -1531,9 +1530,8 @@ def create_publication():
 
             if file:
                 file_filename = file.filename
-                file.save(f'uploads/{file_filename}')
-                # Always use production domain for consistency
-                base_url = 'https://docid.africapidalliance.org'
+                file.save(f'{Config.UPLOADS_DIRECTORY}/{file_filename}')
+                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
                 file_url = f'{base_url}/uploads/{file_filename}'
                 logger.info(f"File saved: {file_url}")
 
@@ -1661,9 +1659,8 @@ def create_publication():
 
           if file:
               file_filename = file.filename
-              file.save(f'uploads/{file_filename}')
-              # Always use production domain for consistency
-              base_url = 'https://docid.africapidalliance.org'
+              file.save(f'{Config.UPLOADS_DIRECTORY}/{file_filename}')
+              base_url = Config.APPLICATION_BASE_URL.rstrip('/')
               file_url = f'{base_url}/uploads/{file_filename}'
               logger.info(f"File saved: {file_url}")
 
@@ -3333,8 +3330,8 @@ def create_version():
         publication_poster_url = None
         if publication_poster:
             poster_filename = publication_poster.filename
-            publication_poster.save(f'uploads/{poster_filename}')
-            base_url = 'https://docid.africapidalliance.org'
+            publication_poster.save(f'{Config.UPLOADS_DIRECTORY}/{poster_filename}')
+            base_url = Config.APPLICATION_BASE_URL.rstrip('/')
             publication_poster_url = f'{base_url}/uploads/{poster_filename}'
 
         # --- Create the versioned publication record ---
@@ -3386,8 +3383,8 @@ def create_version():
             file_name = ''
             if file:
                 file_name = file.filename
-                file.save(f'uploads/{file_name}')
-                base_url = 'https://docid.africapidalliance.org'
+                file.save(f'{Config.UPLOADS_DIRECTORY}/{file_name}')
+                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
                 file_url = f'{base_url}/uploads/{file_name}'
             elif video_url:
                 file_url = video_url
@@ -3427,8 +3424,8 @@ def create_version():
             doc_file_url = ''
             if doc_file:
                 doc_filename = doc_file.filename
-                doc_file.save(f'uploads/{doc_filename}')
-                base_url = 'https://docid.africapidalliance.org'
+                doc_file.save(f'{Config.UPLOADS_DIRECTORY}/{doc_filename}')
+                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
                 doc_file_url = f'{base_url}/uploads/{doc_filename}'
             elif doc_video_url:
                 doc_file_url = doc_video_url

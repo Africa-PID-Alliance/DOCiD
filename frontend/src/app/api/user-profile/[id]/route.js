@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 /**
  * GET - Fetch user profile by user ID
@@ -6,7 +7,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request, { params }) {
   try {
     const { id } = params;
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}`;
 
     const response = await fetch(apiUrl, {
@@ -51,7 +52,7 @@ export async function PUT(request, { params }) {
     const { id } = params;
     const updateData = await request.json();
 
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}`;
 
     const response = await fetch(apiUrl, {

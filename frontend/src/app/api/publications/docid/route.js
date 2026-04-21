@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function GET(request) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request) {
 
     console.log('Fetching publication with DOCiD:', docid);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const baseUrl = getBackendApiV1BaseUrl();
     const response = await fetch(`${baseUrl}/publications/docid?docid=${encodeURIComponent(docid)}`, {
       method: 'GET',
       headers: {
@@ -78,6 +79,30 @@ export async function GET(request) {
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       }
+    );
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const response = await fetch(`${getBackendApiV1BaseUrl()}/docids`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(request.headers.get('authorization')
+          ? { Authorization: request.headers.get('authorization') }
+          : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Proxy error', details: error.message },
+      { status: 500 },
     );
   }
 }

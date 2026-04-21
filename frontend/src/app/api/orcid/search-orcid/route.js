@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function GET(request) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request) {
     }
 
     // Use environment variable for base URL
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     
     // Build the external API URL with parameters
     let apiUrl = `${baseUrl}/orcid/search-orcid?first_name=${encodeURIComponent(firstName)}&last_name=${encodeURIComponent(lastName)}`;

@@ -1,10 +1,12 @@
 from flask import Blueprint, send_from_directory, jsonify
 import os
+from config import Config
 
 uploads_bp = Blueprint('uploads', __name__, url_prefix='/uploads')
 
-# Define the path to the uploads directory
-UPLOADS_DIRECTORY = os.path.join(os.getcwd(), 'uploads')
+# Define the path to the uploads directory from centralized config.
+UPLOADS_DIRECTORY = Config.UPLOADS_DIRECTORY
+os.makedirs(UPLOADS_DIRECTORY, exist_ok=True)
 
 @uploads_bp.route('/<path:filename>', methods=['GET'])
 def get_static_file(filename):

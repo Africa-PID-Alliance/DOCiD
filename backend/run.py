@@ -43,5 +43,8 @@ def db_downgrade(revision):
     print(f'Database downgraded to {revision}.')
 
 if __name__ == '__main__':
-    # app.run(debug=False, port=5001)
-    app.run(debug=True, port=5001)  # Start the server on port 50001
+    app.run(
+        host='0.0.0.0',
+        port=int(__import__('os').getenv('FLASK_PORT', 5001)),
+        debug=__import__('os').getenv('FLASK_ENV', 'development') == 'development'
+    )

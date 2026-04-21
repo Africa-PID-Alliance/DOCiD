@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 export async function GET(request, { params }) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request, { params }) {
     }
 
     // Use environment variable for base URL
-    const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+    const baseUrl = getBackendApiV1BaseUrl();
     const response = await fetch(`${baseUrl}/orcid/get-orcid/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: {

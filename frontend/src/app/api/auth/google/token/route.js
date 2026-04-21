@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 // Create a Map to store recently used codes with timestamps
 const recentlyUsedCodes = new Map();
@@ -137,7 +138,7 @@ export async function GET(request) {
         console.log('\n=== STEP 4: Checking if user exists ===');
         
         // Try to get user by email first, which is more reliable
-        const getUserByEmailResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/get-user-by-email`, {
+        const getUserByEmailResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -158,7 +159,7 @@ export async function GET(request) {
                 if (existingUser.social_id !== social_id && existingUser.type === 'google') {
                     // Update user's social_id to match their current Google ID
                     try {
-                        const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/update-social-id`, {
+                        const updateResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/update-social-id`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -200,7 +201,7 @@ export async function GET(request) {
         }
         
         // If we didn't find the user by email, proceed with regular check
-        const checkUserResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/check-user`, {
+        const checkUserResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/check-user`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -243,7 +244,7 @@ export async function GET(request) {
         // If user doesn't exist, register them
         console.log('\n=== STEP 5: Registering new user ===');
         try {
-            const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
+            const dbResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -270,7 +271,7 @@ export async function GET(request) {
                     console.log('\n=== Email already exists, trying to retrieve user ===');
                     
                     // Try to get user by email as a fallback
-                    const getUserFallbackResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/get-user-by-email`, {
+                    const getUserFallbackResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -350,7 +351,7 @@ export async function GET(request) {
             // Handle database errors more gracefully
             if (registrationError.message && registrationError.message.includes('duplicate key')) {
                 // Try to get user by email as a fallback
-                const getUserFallbackResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/get-user-by-email`, {
+                const getUserFallbackResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
