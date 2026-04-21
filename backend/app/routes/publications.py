@@ -783,7 +783,8 @@ def get_publication(publication_id):
                 'family_name': creator.family_name,
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
-                'role': creator.role_id
+                'role': creator.role_id,
+                'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
 
@@ -965,7 +966,8 @@ def get_publication_by_docid_prefix():
                 'family_name': creator.family_name,
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
-                'role': creator.role_id
+                'role': creator.role_id,
+                'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
 
@@ -1154,7 +1156,8 @@ def get_publication_by_docid_simple(document_docid):
                 'family_name': creator.family_name,
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
-                'role': creator.role_id
+                'role': creator.role_id,
+                'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
 
@@ -2883,7 +2886,8 @@ def get_publication_for_edit(publication_id):
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
                 'role': creator.role_id,
-                'identifier_type': getattr(creator, 'identifier_type', None)
+                'identifier_type': getattr(creator, 'identifier_type', None),
+                'affiliation': getattr(creator, 'affiliation', None)
             } for creator in data.publication_creators
         ]
         
