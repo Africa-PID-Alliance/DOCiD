@@ -17,10 +17,20 @@ from app.models import Publications, PublicationCreators
 def backfill(dry_run=False):
     app = create_app()
     with app.app_context():
+        # Get Stellenbosch publication IDs first (avoids bulk-update-with-join limitation)
+        stellenbosch_pub_ids = [
+            row[0] for row in db.session.query(Publications.id)
+            .filter(Publications.owner == 'Stellenbosch University')
+            .all()
+        ]
+        print(f"Found {len(stellenbosch_pub_ids)} Stellenbosch publications")
+
+        if not stellenbosch_pub_ids:
+            return
+
         creators_to_update = (
             db.session.query(PublicationCreators)
-            .join(Publications, PublicationCreators.publication_id == Publications.id)
-            .filter(Publications.owner == 'Stellenbosch University')
+            .filter(PublicationCreators.publication_id.in_(stellenbosch_pub_ids))
             .filter(
                 (PublicationCreators.affiliation.is_(None))
                 | (PublicationCreators.affiliation == '')
@@ -28,7 +38,7 @@ def backfill(dry_run=False):
         )
 
         count = creators_to_update.count()
-        print(f"Found {count} Stellenbosch creators to update")
+        print(f"Found {count} Stellenbosch creators without affiliation")
 
         if count == 0:
             return
