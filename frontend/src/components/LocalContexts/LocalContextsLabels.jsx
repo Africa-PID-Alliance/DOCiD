@@ -247,7 +247,16 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   return (
     <Box mb={2} p={2} borderRadius={2}>
       {/* Section heading — only shown when there are actual labels */}
-      <Typography fontWeight={600} mb={1.5}>Local Contexts Labels</Typography>
+      <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+        <Box
+          component="img"
+          src="https://localcontexts.org/wp-content/uploads/2023/02/Local-Contexts-Logo-Icon-Only-CMYK.jpg"
+          alt="Local Contexts"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          sx={{ width: 20, height: 20, objectFit: 'contain' }}
+        />
+        <Typography fontWeight={600}>Local Contexts Labels</Typography>
+      </Box>
 
       {/* Project title if available */}
       {labelData.title && (
