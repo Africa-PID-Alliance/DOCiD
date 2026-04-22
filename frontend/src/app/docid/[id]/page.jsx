@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Box,
   Container,
@@ -67,6 +68,8 @@ const IDENTIFIER_TYPE_LABELS = {
 };
 
 const DocIDPage = ({ params }) => {
+  const searchParams = useSearchParams();
+  const lcDemoProjectId = searchParams?.get('lc_demo') || null;
   const [comment, setComment] = useState('');
   const [docData, setDocData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1431,8 +1434,14 @@ const DocIDPage = ({ params }) => {
                 </DialogContent>
               </Dialog>
               
-              {/* Local Contexts TK/BC Labels Section — hidden when no labels attached */}
-              {publicationId && <LocalContextsLabels publicationId={publicationId} />}
+              {/* Local Contexts TK/BC Labels Section — hidden when no labels attached.
+                  Supports ?lc_demo=<project_uuid> query param to preview an LC Hub
+                  project on any DOCiD without a full attach flow. */}
+              {publicationId && (
+                lcDemoProjectId
+                  ? <LocalContextsLabels projectId={lcDemoProjectId} />
+                  : <LocalContextsLabels publicationId={publicationId} />
+              )}
 
               {/* Sections */}
               {sectionData.map((section, idx) => (

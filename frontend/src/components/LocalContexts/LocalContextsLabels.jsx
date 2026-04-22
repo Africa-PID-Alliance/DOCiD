@@ -230,10 +230,16 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   // No data
   if (!labelData) return null;
 
-  // Collect all labels and notices
+  // Collect all labels and notices.
+  // LC Hub v2 returns `notice` as an array when present, but older paths return a single object — handle both.
   const tkLabels = labelData.tk_labels || [];
   const bcLabels = labelData.bc_labels || [];
-  const notices = labelData.notice ? [labelData.notice] : [];
+  const rawNotice = labelData.notice;
+  const notices = Array.isArray(rawNotice)
+    ? rawNotice
+    : rawNotice
+      ? [rawNotice]
+      : [];
   const totalLabelCount = tkLabels.length + bcLabels.length + notices.length;
 
   if (totalLabelCount === 0) return null;
@@ -241,15 +247,7 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   return (
     <Box mb={2} p={2} borderRadius={2}>
       {/* Section heading — only shown when there are actual labels */}
-      <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-        <Box
-          component="img"
-          src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
-          alt="Local Contexts"
-          sx={{ width: 20, height: 20 }}
-        />
-        <Typography fontWeight={600}>Local Contexts Labels</Typography>
-      </Box>
+      <Typography fontWeight={600} mb={1.5}>Local Contexts Labels</Typography>
 
       {/* Project title if available */}
       {labelData.title && (
