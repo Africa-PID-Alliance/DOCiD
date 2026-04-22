@@ -81,17 +81,18 @@ export async function GET(request) {
         console.log('Authorization code:', code);
         console.log('Redirect URI:', redirectUri);
 
-        //Orcid Sandbox Configuratio
+        // ORCID client configuration (live orcid.org in prod, sandbox.orcid.org in demo/dev)
         const clientId = process.env.NEXT_PUBLIC_ORCID_CLIENT_ID;
         const clientSecret = process.env.ORCID_CLIENT_SECRET;
         const tokenUrl = process.env.NEXT_PUBLIC_ORCID_TOKEN_URL;
+        const pubApiUrl = process.env.NEXT_PUBLIC_ORCID_PUB_API_URL;
 
         console.log('\n=== STEP 4: Fetching ORCID token ===');
         console.log('Client ID Present:', !!clientId);
         console.log('Client Secret Present:', !!clientSecret);
         console.log('Token URL Present:', !!tokenUrl);
 
-        if (!clientId || !clientSecret || !tokenUrl) {
+        if (!clientId || !clientSecret || !tokenUrl || !pubApiUrl) {
             console.error('\n❌ ERROR: Missing ORCID credentials');
             return NextResponse.json(
                 { error: 'Missing ORCID credentials' },
@@ -153,7 +154,7 @@ export async function GET(request) {
 
         //Step 8 Fetch ORCID user details using the access token
         try {
-            const orcidResponse = await fetch(`https://pub.sandbox.orcid.org/v3.0/${orcid}/person`, {
+            const orcidResponse = await fetch(`${pubApiUrl}/v3.0/${orcid}/person`, {
                 headers: {
                     'Accept': 'application/vnd.orcid+json',
                     'Authorization': `Bearer ${access_token}`
