@@ -250,10 +250,9 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
       <Box display="flex" alignItems="center" gap={1} mb={1.5}>
         <Box
           component="img"
-          src="https://localcontexts.org/wp-content/uploads/2023/02/Local-Contexts-Logo-Icon-Only-CMYK.jpg"
+          src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
           alt="Local Contexts"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          sx={{ width: 20, height: 20, objectFit: 'contain' }}
+          sx={{ width: 20, height: 20 }}
         />
         <Typography fontWeight={600}>Local Contexts Labels</Typography>
       </Box>
