@@ -98,6 +98,7 @@ def create_app():
     from app.routes.cordoi import cordoi_bp
     from app.routes.orcid import orcid_bp
     from app.routes.publications import publications_bp
+    from app.routes.publication_edit import edit_bp as publication_edit_bp
     from app.routes.arks import arks_bp
     from app.routes.cstr import cstr_bp
     from app.routes.smtp import smtp_bp
@@ -127,6 +128,7 @@ def create_app():
     app.register_blueprint(orcid_bp, url_prefix='/api/v1/orcid')
     app.register_blueprint(cordoi_bp, url_prefix='/api/v1/cordoi')
     app.register_blueprint(publications_bp, url_prefix='/api/v1/publications')
+    app.register_blueprint(publication_edit_bp)
     app.register_blueprint(arks_bp, url_prefix='/api/v1/arks')
     app.register_blueprint(cstr_bp, url_prefix='/api/v1/cstr')
     app.register_blueprint(smtp_bp, url_prefix='/api/v1/smtp')
