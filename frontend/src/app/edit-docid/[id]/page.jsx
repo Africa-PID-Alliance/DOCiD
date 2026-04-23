@@ -6,10 +6,11 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
   Box, Container, Paper, Typography, TextField, Button, IconButton,
-  Tabs, Tab, Divider, Alert, CircularProgress, Stack, Chip, Dialog,
+  Stepper, Step, StepLabel, Divider, Alert, CircularProgress, Stack, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, MenuItem, useTheme,
   useMediaQuery,
 } from '@mui/material';
+import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
 import {
   Save as SaveIcon,
   Add as AddIcon,
@@ -30,6 +31,7 @@ export default function EditDocidPage() {
   const params = useParams();
   const router = useRouter();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const publicationId = params?.id;
   const { user, isAuthenticated } = useSelector((state) => state.auth || {});
   const currentUserId = user?.id || user?.user_id || null;
@@ -37,7 +39,7 @@ export default function EditDocidPage() {
   const [publicationData, setPublicationData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
 
   // Top-level form
@@ -196,7 +198,7 @@ export default function EditDocidPage() {
       bgcolor: theme.palette.background.content || theme.palette.background.default,
       minHeight: '100vh',
     }}>
-      <Container maxWidth="md">
+      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         {children}
       </Container>
     </Box>
@@ -243,7 +245,7 @@ export default function EditDocidPage() {
       bgcolor: theme.palette.background.content || theme.palette.background.default,
       minHeight: '100vh',
     }}>
-      <Container maxWidth="md">
+      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => router.push(`/docid/${publicationData.document_docid}`)}
@@ -265,152 +267,179 @@ export default function EditDocidPage() {
           )}
         </Paper>
 
-        <Paper elevation={2} sx={{ mb: 3, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
-          <Tabs
-            value={activeTabIndex}
-            onChange={(_, newIndex) => setActiveTabIndex(newIndex)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{ borderRadius: 2 }}
+        {/* Stepper — matches assign-docid look & icons */}
+        <Box sx={{ mb: 3, width: '100%' }}>
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel={!isMobile}
+            orientation={isMobile ? 'vertical' : 'horizontal'}
+            sx={{ '& .MuiStepConnector-line': { borderColor: '#1565c0' } }}
           >
-            <Tab label="Details" />
-            <Tab label={`Creators (${creators.length})`} />
-            <Tab label={`Organizations (${organizations.length})`} />
-            <Tab label={`Funders (${funders.length})`} />
-            <Tab label={`Projects (${projects.length})`} />
-            <Tab label={`Files (${files.length})`} />
-            <Tab label={`Documents (${documents.length})`} />
-          </Tabs>
-        </Paper>
+            {[
+              { label: `DOCiD™` },
+              { label: `Publications (${files.length})` },
+              { label: `Documents (${documents.length})` },
+              { label: `Creators (${creators.length})` },
+              { label: `Organizations (${organizations.length})` },
+              { label: `Funders (${funders.length})` },
+              { label: `Projects (${projects.length})` },
+            ].map((step, idx) => (
+              <Step key={step.label} completed={false} sx={{ cursor: 'pointer' }} onClick={() => setActiveStep(idx)}>
+                <StepLabel StepIconComponent={CustomStepIcon}>{step.label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Box>
 
-      {/* Tab 0: Details */}
-      {activeTabIndex === 0 && (
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
-          <Stack spacing={2}>
-            <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
-            <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
-            <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
-            <Box>
-              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel}>Save Details</Button>
-            </Box>
-          </Stack>
-        </Paper>
-      )}
+        {/* Back / Next nav (mirrors assign-docid) */}
+        <Stack direction="row" spacing={2} justifyContent="center" mb={3}>
+          <Button
+            disabled={activeStep === 0}
+            onClick={() => setActiveStep((prev) => Math.max(0, prev - 1))}
+          >
+            Back
+          </Button>
+          <Button
+            variant="contained"
+            disabled={activeStep === 6}
+            onClick={() => setActiveStep((prev) => Math.min(6, prev + 1))}
+          >
+            Next
+          </Button>
+        </Stack>
 
-      {/* Tab 1: Creators */}
-      {activeTabIndex === 1 && (
-        <EntityListPanel
-          entityLabel="Creator"
-          items={creators}
-          onAdd={() => openAddDialog('creator')}
-          onEdit={(item) => openEditDialog('creator', item)}
-          onDelete={(item) => handleEntityDelete('creator', item.id, `${item.given_name || ''} ${item.family_name || ''}`.trim())}
-          renderRow={(item) => (
-            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-              <Typography fontWeight={600}>{item.given_name} {item.family_name}</Typography>
-              {item.affiliation && <Chip label={item.affiliation} size="small" />}
-              {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
+        {/* Step 0 — DOCiD details */}
+        {activeStep === 0 && (
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+            <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Edit the title, description and avatar. The handle is permanent.
+            </Typography>
+            <Stack spacing={2}>
+              <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
+              <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
+              <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
+              <Box>
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel}>Save Details</Button>
+              </Box>
             </Stack>
-          )}
-        />
-      )}
+          </Paper>
+        )}
 
-      {/* Tab 2: Organizations */}
-      {activeTabIndex === 2 && (
-        <EntityListPanel
-          entityLabel="Organization"
-          items={organizations}
-          onAdd={() => openAddDialog('organization')}
-          onEdit={(item) => openEditDialog('organization', item)}
-          onDelete={(item) => handleEntityDelete('organization', item.id, item.name)}
-          renderRow={(item) => (
-            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-              <Typography fontWeight={600}>{item.name}</Typography>
-              {item.type && <Chip label={item.type} size="small" />}
-              {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
-            </Stack>
-          )}
-        />
-      )}
+        {/* Step 1 — Publications (files) */}
+        {activeStep === 1 && (
+          <EntityListPanel
+            entityLabel="Publication"
+            items={files}
+            onAdd={() => openAddDialog('file')}
+            onDelete={(item) => handleEntityDelete('file', item.id, item.title)}
+            renderRow={(item) => (
+              <Stack>
+                <Typography fontWeight={600}>{item.title}</Typography>
+                {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
+                {item.file_url && (
+                  <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
+                    {item.file_url}
+                  </Typography>
+                )}
+              </Stack>
+            )}
+            hideEdit
+          />
+        )}
 
-      {/* Tab 3: Funders */}
-      {activeTabIndex === 3 && (
-        <EntityListPanel
-          entityLabel="Funder"
-          items={funders}
-          onAdd={() => openAddDialog('funder')}
-          onEdit={(item) => openEditDialog('funder', item)}
-          onDelete={(item) => handleEntityDelete('funder', item.id, item.name)}
-          renderRow={(item) => (
-            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-              <Typography fontWeight={600}>{item.name}</Typography>
-              {item.type && <Chip label={item.type} size="small" />}
-              {item.identifier && <Chip label={item.identifier} size="small" />}
-            </Stack>
-          )}
-        />
-      )}
+        {/* Step 2 — Documents */}
+        {activeStep === 2 && (
+          <EntityListPanel
+            entityLabel="Document"
+            items={documents}
+            onAdd={() => openAddDialog('document')}
+            onDelete={(item) => handleEntityDelete('document', item.id, item.title)}
+            renderRow={(item) => (
+              <Stack>
+                <Typography fontWeight={600}>{item.title}</Typography>
+                {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
+                {item.file_url && (
+                  <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
+                    {item.file_url}
+                  </Typography>
+                )}
+              </Stack>
+            )}
+            hideEdit
+          />
+        )}
 
-      {/* Tab 4: Projects */}
-      {activeTabIndex === 4 && (
-        <EntityListPanel
-          entityLabel="Project"
-          items={projects}
-          onAdd={() => openAddDialog('project')}
-          onEdit={(item) => openEditDialog('project', item)}
-          onDelete={(item) => handleEntityDelete('project', item.id, item.title)}
-          renderRow={(item) => (
-            <Stack>
-              <Typography fontWeight={600}>{item.title}</Typography>
-              {item.identifier && <Typography variant="caption" color="text.secondary">{item.identifier}</Typography>}
-            </Stack>
-          )}
-        />
-      )}
+        {/* Step 3 — Creators */}
+        {activeStep === 3 && (
+          <EntityListPanel
+            entityLabel="Creator"
+            items={creators}
+            onAdd={() => openAddDialog('creator')}
+            onEdit={(item) => openEditDialog('creator', item)}
+            onDelete={(item) => handleEntityDelete('creator', item.id, `${item.given_name || ''} ${item.family_name || ''}`.trim())}
+            renderRow={(item) => (
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                <Typography fontWeight={600}>{item.given_name} {item.family_name}</Typography>
+                {item.affiliation && <Chip label={item.affiliation} size="small" />}
+                {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
+              </Stack>
+            )}
+          />
+        )}
 
-      {/* Tab 5: Files */}
-      {activeTabIndex === 5 && (
-        <EntityListPanel
-          entityLabel="File"
-          items={files}
-          onAdd={() => openAddDialog('file')}
-          onDelete={(item) => handleEntityDelete('file', item.id, item.title)}
-          renderRow={(item) => (
-            <Stack>
-              <Typography fontWeight={600}>{item.title}</Typography>
-              {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
-              {item.file_url && (
-                <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
-                  {item.file_url}
-                </Typography>
-              )}
-            </Stack>
-          )}
-          hideEdit
-        />
-      )}
+        {/* Step 4 — Organizations */}
+        {activeStep === 4 && (
+          <EntityListPanel
+            entityLabel="Organization"
+            items={organizations}
+            onAdd={() => openAddDialog('organization')}
+            onEdit={(item) => openEditDialog('organization', item)}
+            onDelete={(item) => handleEntityDelete('organization', item.id, item.name)}
+            renderRow={(item) => (
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                <Typography fontWeight={600}>{item.name}</Typography>
+                {item.type && <Chip label={item.type} size="small" />}
+                {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
+              </Stack>
+            )}
+          />
+        )}
 
-      {/* Tab 6: Documents */}
-      {activeTabIndex === 6 && (
-        <EntityListPanel
-          entityLabel="Document"
-          items={documents}
-          onAdd={() => openAddDialog('document')}
-          onDelete={(item) => handleEntityDelete('document', item.id, item.title)}
-          renderRow={(item) => (
-            <Stack>
-              <Typography fontWeight={600}>{item.title}</Typography>
-              {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
-              {item.file_url && (
-                <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
-                  {item.file_url}
-                </Typography>
-              )}
-            </Stack>
-          )}
-          hideEdit
-        />
-      )}
+        {/* Step 5 — Funders */}
+        {activeStep === 5 && (
+          <EntityListPanel
+            entityLabel="Funder"
+            items={funders}
+            onAdd={() => openAddDialog('funder')}
+            onEdit={(item) => openEditDialog('funder', item)}
+            onDelete={(item) => handleEntityDelete('funder', item.id, item.name)}
+            renderRow={(item) => (
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                <Typography fontWeight={600}>{item.name}</Typography>
+                {item.type && <Chip label={item.type} size="small" />}
+                {item.identifier && <Chip label={item.identifier} size="small" />}
+              </Stack>
+            )}
+          />
+        )}
+
+        {/* Step 6 — Projects */}
+        {activeStep === 6 && (
+          <EntityListPanel
+            entityLabel="Project"
+            items={projects}
+            onAdd={() => openAddDialog('project')}
+            onEdit={(item) => openEditDialog('project', item)}
+            onDelete={(item) => handleEntityDelete('project', item.id, item.title)}
+            renderRow={(item) => (
+              <Stack>
+                <Typography fontWeight={600}>{item.title}</Typography>
+                {item.identifier && <Typography variant="caption" color="text.secondary">{item.identifier}</Typography>}
+              </Stack>
+            )}
+          />
+        )}
 
         {/* Entity dialog */}
         <EntityDialog
