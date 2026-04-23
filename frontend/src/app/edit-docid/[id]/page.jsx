@@ -8,6 +8,7 @@ import {
   Box, Container, Paper, Typography, TextField, Button, IconButton,
   Tabs, Tab, Divider, Alert, CircularProgress, Stack, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, MenuItem, useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -188,28 +189,41 @@ export default function EditDocidPage() {
   };
 
   // ---- Render ----
-  if (!isAuthenticated) {
-    return (
-      <Container sx={{ py: 6 }}>
-        <Alert severity="warning">You must be signed in to edit.</Alert>
+  const pageBackgroundBox = (children) => (
+    <Box sx={{
+      width: '100%',
+      py: { xs: 2, sm: 3, md: 4 },
+      bgcolor: theme.palette.background.content || theme.palette.background.default,
+      minHeight: '100vh',
+    }}>
+      <Container maxWidth="md">
+        {children}
       </Container>
+    </Box>
+  );
+
+  if (!isAuthenticated) {
+    return pageBackgroundBox(
+      <Paper elevation={2} sx={{ p: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+        <Alert severity="warning">You must be signed in to edit.</Alert>
+      </Paper>
     );
   }
 
   if (isLoading) {
-    return (
-      <Container sx={{ py: 6, textAlign: 'center' }}>
+    return pageBackgroundBox(
+      <Paper elevation={2} sx={{ p: 6, borderRadius: 2, bgcolor: theme.palette.background.paper, textAlign: 'center' }}>
         <CircularProgress />
-      </Container>
+      </Paper>
     );
   }
 
   if (fetchError) {
-    return (
-      <Container sx={{ py: 6 }}>
+    return pageBackgroundBox(
+      <Paper elevation={2} sx={{ p: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
         <Alert severity="error">{fetchError}</Alert>
         <Button sx={{ mt: 2 }} startIcon={<ArrowBackIcon />} onClick={() => router.back()}>Back</Button>
-      </Container>
+      </Paper>
     );
   }
 
@@ -223,39 +237,55 @@ export default function EditDocidPage() {
   const documents = publicationData.publication_documents || [];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => router.push(`/docid/${publicationData.document_docid}`)} sx={{ mb: 2 }}>
-        Back to DOCiD
-      </Button>
+    <Box sx={{
+      width: '100%',
+      py: { xs: 2, sm: 3, md: 4 },
+      bgcolor: theme.palette.background.content || theme.palette.background.default,
+      minHeight: '100vh',
+    }}>
+      <Container maxWidth="md">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push(`/docid/${publicationData.document_docid}`)}
+          sx={{ mb: 2 }}
+        >
+          Back to DOCiD
+        </Button>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
-        </Typography>
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+          <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
+          </Typography>
 
-        {feedbackMessage && (
-          <Alert severity={feedbackMessage.type} onClose={() => setFeedbackMessage(null)} sx={{ mb: 2 }}>
-            {feedbackMessage.text}
-          </Alert>
-        )}
-      </Paper>
+          {feedbackMessage && (
+            <Alert severity={feedbackMessage.type} onClose={() => setFeedbackMessage(null)} sx={{ mt: 1 }}>
+              {feedbackMessage.text}
+            </Alert>
+          )}
+        </Paper>
 
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTabIndex} onChange={(_, newIndex) => setActiveTabIndex(newIndex)} variant="scrollable" scrollButtons="auto">
-          <Tab label="Details" />
-          <Tab label={`Creators (${creators.length})`} />
-          <Tab label={`Organizations (${organizations.length})`} />
-          <Tab label={`Funders (${funders.length})`} />
-          <Tab label={`Projects (${projects.length})`} />
-          <Tab label={`Files (${files.length})`} />
-          <Tab label={`Documents (${documents.length})`} />
-        </Tabs>
-      </Paper>
+        <Paper elevation={2} sx={{ mb: 3, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+          <Tabs
+            value={activeTabIndex}
+            onChange={(_, newIndex) => setActiveTabIndex(newIndex)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ borderRadius: 2 }}
+          >
+            <Tab label="Details" />
+            <Tab label={`Creators (${creators.length})`} />
+            <Tab label={`Organizations (${organizations.length})`} />
+            <Tab label={`Funders (${funders.length})`} />
+            <Tab label={`Projects (${projects.length})`} />
+            <Tab label={`Files (${files.length})`} />
+            <Tab label={`Documents (${documents.length})`} />
+          </Tabs>
+        </Paper>
 
       {/* Tab 0: Details */}
       {activeTabIndex === 0 && (
-        <Paper sx={{ p: 3 }}>
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
           <Stack spacing={2}>
             <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
             <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
@@ -382,25 +412,27 @@ export default function EditDocidPage() {
         />
       )}
 
-      {/* Entity dialog */}
-      <EntityDialog
-        open={dialogOpen}
-        onClose={closeDialog}
-        onSubmit={handleDialogSubmit}
-        dialogType={dialogType}
-        dialogMode={dialogMode}
-        entity={dialogEntity}
-        onEntityChange={setDialogEntity}
-        fileObj={dialogFile}
-        onFileChange={setDialogFile}
-      />
-    </Container>
+        {/* Entity dialog */}
+        <EntityDialog
+          open={dialogOpen}
+          onClose={closeDialog}
+          onSubmit={handleDialogSubmit}
+          dialogType={dialogType}
+          dialogMode={dialogMode}
+          entity={dialogEntity}
+          onEntityChange={setDialogEntity}
+          fileObj={dialogFile}
+          onFileChange={setDialogFile}
+        />
+      </Container>
+    </Box>
   );
 }
 
 function EntityListPanel({ entityLabel, items, onAdd, onEdit, onDelete, renderRow, hideEdit }) {
+  const panelTheme = useTheme();
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: panelTheme.palette.background.paper }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h6">{entityLabel}s</Typography>
         <Button startIcon={<AddIcon />} onClick={onAdd} variant="contained">Add {entityLabel}</Button>
