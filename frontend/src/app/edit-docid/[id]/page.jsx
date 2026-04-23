@@ -1,32 +1,141 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import {
-  Box, Container, Paper, Typography, TextField, Button, IconButton,
-  Stepper, Step, StepLabel, Divider, Alert, CircularProgress, Stack, Chip, Dialog,
-  DialogTitle, DialogContent, DialogActions, MenuItem, useTheme,
+  Box, Container, Paper, Typography, TextField, Button,
+  Stepper, Step, StepLabel, Alert, CircularProgress, Stack, useTheme,
   useMediaQuery,
 } from '@mui/material';
-import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
 import {
   Save as SaveIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Close as CloseIcon,
   ArrowBack as ArrowBackIcon,
-  CloudUpload as UploadIcon,
 } from '@mui/icons-material';
+import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
 
-const API_BASE_EDIT = (publicationId) => `/api/publications/${publicationId}/edit`;
+// Forked forms (same UI as assign-docid)
+import CreatorsForm from '../components/CreatorsForm';
+import OrganizationsForm from '../components/OrganizationsForm';
+import FundersForm from '../components/FundersForm';
+import ProjectForm from '../components/ProjectForm';
+import PublicationsForm from '../components/PublicationsForm';
+import DocumentsForm from '../components/DocumentsForm';
 
-/**
- * Edit DOCiD page — full CRUD over an existing publication without re-minting.
- * Top-level Cordra handle never changes. New files/documents mint child handles.
- */
+const EDIT_BASE = (publicationId) => `/api/publications/${publicationId}/edit`;
+
+// ---------- shape mappers ----------
+
+function dbToFormCreator(c) {
+  const isOrcid = (c.identifier_type || '').toLowerCase() === 'orcid' && c.identifier;
+  return {
+    id: c.id,
+    familyName: c.family_name || '',
+    givenName: c.given_name || '',
+    affiliation: c.affiliation || '',
+    role: c.role || '',
+    role_name: '',
+    orcidId: isOrcid ? c.identifier.replace(/^https?:\/\/orcid\.org\//, '') : '',
+    otherName: '',
+    _raw: c,
+  };
+}
+
+function formToDbCreator(c) {
+  const orcid = (c.orcidId || '').trim();
+  const identifier = orcid
+    ? (orcid.startsWith('http') ? orcid : `https://orcid.org/${orcid}`)
+    : '';
+  return {
+    family_name: c.familyName || '',
+    given_name: c.givenName || '',
+    identifier,
+    identifier_type: orcid ? 'orcid' : '',
+    affiliation: c.affiliation || null,
+    role_id: c.role,
+  };
+}
+
+function dbToFormOrganization(o) {
+  return {
+    id: o.id,
+    name: o.name || '',
+    otherName: o.other_name || '',
+    type: o.type || '',
+    country: o.country || '',
+    department: '',
+    role: '',
+    rorId: o.identifier || '',
+    city: '',
+    website: '',
+    rrid: o.rrid || '',
+    _raw: o,
+  };
+}
+
+function formToDbOrganization(o) {
+  return {
+    name: o.name || '',
+    type: o.type || 'Research',
+    other_name: o.otherName || null,
+    country: o.country || null,
+    identifier: o.rorId || null,
+    identifier_type: o.rorId ? 'ror' : null,
+    rrid: o.rrid || null,
+  };
+}
+
+function dbToFormFunder(f) {
+  return {
+    id: f.id,
+    name: f.name || '',
+    otherName: f.other_name || '',
+    type: f.type || '',
+    country: f.country || '',
+    rorId: f.identifier || '',
+    _raw: f,
+  };
+}
+
+function formToDbFunder(f) {
+  return {
+    name: f.name || '',
+    type: f.type || 'Grantor',
+    funder_type_id: 1,
+    other_name: f.otherName || null,
+    country: f.country || null,
+    identifier: f.rorId || null,
+    identifier_type: f.rorId ? 'ror' : null,
+  };
+}
+
+function dbToFormProject(p) {
+  return {
+    id: p.id,
+    title: p.title || '',
+    description: p.description || '',
+    raidId: p.raid_id || p.identifier || '',
+    _raw: p,
+  };
+}
+
+function formToDbProject(p) {
+  return {
+    title: p.title || '',
+    description: p.description || '',
+    raid_id: p.raidId || null,
+    identifier: p.raidId || null,
+    identifier_type: p.raidId ? 'raid' : null,
+  };
+}
+
+function hasChanged(a, b, keys) {
+  return keys.some((k) => (a[k] ?? null) !== (b[k] ?? null));
+}
+
+// ---------- page ----------
+
 export default function EditDocidPage() {
   const params = useParams();
   const router = useRouter();
@@ -41,18 +150,26 @@ export default function EditDocidPage() {
   const [fetchError, setFetchError] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Top-level form
+  // Top-level details
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
 
-  // Dialog state for add/edit entities
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState(null); // 'creator' | 'organization' | 'funder' | 'project' | 'file' | 'document'
-  const [dialogMode, setDialogMode] = useState('add'); // 'add' | 'edit'
-  const [dialogEntity, setDialogEntity] = useState({});
-  const [dialogFile, setDialogFile] = useState(null);
+  // Per-entity state + originals
+  const [creators, setCreators] = useState([]);
+  const originalCreators = useRef([]);
+  const [organizations, setOrganizations] = useState([]);
+  const originalOrganizations = useRef([]);
+  const [funders, setFunders] = useState([]);
+  const originalFunders = useRef([]);
+  const [projects, setProjects] = useState([]);
+  const originalProjects = useRef([]);
+  const [publicationFiles, setPublicationFiles] = useState([]);
+  const originalPublicationFiles = useRef([]);
+  const [publicationDocuments, setPublicationDocuments] = useState([]);
+  const originalPublicationDocuments = useRef([]);
 
   const loadPublication = useCallback(async () => {
     if (!publicationId || !currentUserId) return;
@@ -61,10 +178,34 @@ export default function EditDocidPage() {
       const response = await axios.get(
         `/api/publications/get-publication-for-edit/${publicationId}?user_id=${currentUserId}`
       );
-      setPublicationData(response.data);
-      setDocumentTitle(response.data.document_title || '');
-      setDocumentDescription(response.data.document_description || '');
-      setAvatarUrl(response.data.avatar || '');
+      const d = response.data;
+      setPublicationData(d);
+      setDocumentTitle(d.document_title || '');
+      setDocumentDescription(d.document_description || '');
+      setAvatarUrl(d.avatar || '');
+
+      const mappedCreators = (d.publication_creators || []).map(dbToFormCreator);
+      setCreators(mappedCreators);
+      originalCreators.current = mappedCreators;
+
+      const mappedOrgs = (d.publication_organizations || []).map(dbToFormOrganization);
+      setOrganizations(mappedOrgs);
+      originalOrganizations.current = mappedOrgs;
+
+      const mappedFunders = (d.publication_funders || []).map(dbToFormFunder);
+      setFunders(mappedFunders);
+      originalFunders.current = mappedFunders;
+
+      const mappedProjects = (d.publication_projects || []).map(dbToFormProject);
+      setProjects(mappedProjects);
+      originalProjects.current = mappedProjects;
+
+      // Files & documents — display existing as readonly, allow new uploads
+      setPublicationFiles(d.publications_files || []);
+      originalPublicationFiles.current = d.publications_files || [];
+      setPublicationDocuments(d.publication_documents || []);
+      originalPublicationDocuments.current = d.publication_documents || [];
+
       setFetchError(null);
     } catch (err) {
       setFetchError(err.response?.data?.message || 'Failed to load publication');
@@ -77,121 +218,204 @@ export default function EditDocidPage() {
 
   // ---- Top-level save ----
   const handleSaveTopLevel = async () => {
+    setIsSaving(true);
     try {
       const formData = new FormData();
       formData.append('user_id', String(currentUserId));
       formData.append('documentTitle', documentTitle);
       formData.append('documentDescription', documentDescription);
       formData.append('avatar', avatarUrl);
-      await axios.put(
-        `/api/publications/update-publication/${publicationId}`,
-        formData
-      );
-      setFeedbackMessage({ type: 'success', text: 'Publication details saved' });
+      await axios.put(`/api/publications/update-publication/${publicationId}`, formData);
+      setFeedbackMessage({ type: 'success', text: 'Details saved' });
       loadPublication();
     } catch (err) {
       setFeedbackMessage({ type: 'error', text: err.response?.data?.message || 'Save failed' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // ---- Entity dialog helpers ----
-  const openAddDialog = (type) => {
-    setDialogType(type);
-    setDialogMode('add');
-    setDialogEntity({});
-    setDialogFile(null);
-    setDialogOpen(true);
-  };
+  // ---- Generic diff-sync ----
+  async function syncEntity({ endpoint, current, originalRef, toDb, compareKeys, label }) {
+    const original = originalRef.current;
+    let added = 0, updated = 0, deleted = 0, errors = 0;
 
-  const openEditDialog = (type, entity) => {
-    setDialogType(type);
-    setDialogMode('edit');
-    setDialogEntity({ ...entity });
-    setDialogFile(null);
-    setDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setDialogOpen(false);
-    setDialogEntity({});
-    setDialogFile(null);
-  };
-
-  const handleDialogSubmit = async () => {
-    const entityEndpoint = {
-      creator: 'creators',
-      organization: 'organizations',
-      funder: 'funders',
-      project: 'projects',
-      file: 'files',
-      document: 'documents',
-    }[dialogType];
-
-    const isFileUpload = (dialogType === 'file' || dialogType === 'document');
-
-    try {
-      if (dialogMode === 'add') {
-        if (isFileUpload) {
-          if (!dialogFile) {
-            setFeedbackMessage({ type: 'error', text: 'Please select a file to upload' });
-            return;
-          }
-          const formData = new FormData();
-          formData.append('user_id', String(currentUserId));
-          formData.append('title', dialogEntity.title || '');
-          formData.append('description', dialogEntity.description || '');
-          formData.append('publication_type_id', dialogEntity.publication_type_id || '1');
-          formData.append('file', dialogFile);
-          await axios.post(
-            `${API_BASE_EDIT(publicationId)}/${entityEndpoint}`,
-            formData
-          );
-        } else {
-          await axios.post(
-            `${API_BASE_EDIT(publicationId)}/${entityEndpoint}`,
-            { user_id: currentUserId, ...dialogEntity }
-          );
-        }
-        setFeedbackMessage({ type: 'success', text: `${dialogType} added` });
-      } else {
-        // Edit (PUT)
-        await axios.put(
-          `${API_BASE_EDIT(publicationId)}/${entityEndpoint}/${dialogEntity.id}`,
-          { user_id: currentUserId, ...dialogEntity }
-        );
-        setFeedbackMessage({ type: 'success', text: `${dialogType} updated` });
+    // DELETEs first
+    for (const o of original) {
+      if (o.id && !current.find((c) => c.id === o.id)) {
+        try {
+          await axios.delete(`${EDIT_BASE(publicationId)}/${endpoint}/${o.id}`);
+          deleted++;
+        } catch (err) { errors++; console.error(`Delete ${label} ${o.id}:`, err); }
       }
-      closeDialog();
-      loadPublication();
-    } catch (err) {
-      setFeedbackMessage({ type: 'error', text: err.response?.data?.error || `${dialogMode} ${dialogType} failed` });
+    }
+    // POSTs for new items (no id)
+    for (const c of current) {
+      if (!c.id) {
+        try {
+          await axios.post(`${EDIT_BASE(publicationId)}/${endpoint}`, toDb(c));
+          added++;
+        } catch (err) { errors++; console.error(`Add ${label}:`, err); }
+      }
+    }
+    // PUTs for changed
+    for (const c of current) {
+      if (!c.id) continue;
+      const o = original.find((x) => x.id === c.id);
+      if (o && hasChanged(toDb(o), toDb(c), compareKeys)) {
+        try {
+          await axios.put(`${EDIT_BASE(publicationId)}/${endpoint}/${c.id}`, toDb(c));
+          updated++;
+        } catch (err) { errors++; console.error(`Update ${label} ${c.id}:`, err); }
+      }
+    }
+    return { added, updated, deleted, errors };
+  }
+
+  const saveStep = async (stepName) => {
+    setIsSaving(true);
+    try {
+      let result;
+      if (stepName === 'creators') {
+        result = await syncEntity({
+          endpoint: 'creators',
+          current: creators,
+          originalRef: originalCreators,
+          toDb: formToDbCreator,
+          compareKeys: ['family_name', 'given_name', 'identifier', 'affiliation', 'role_id'],
+          label: 'creator',
+        });
+      } else if (stepName === 'organizations') {
+        result = await syncEntity({
+          endpoint: 'organizations',
+          current: organizations,
+          originalRef: originalOrganizations,
+          toDb: formToDbOrganization,
+          compareKeys: ['name', 'type', 'other_name', 'country', 'identifier', 'rrid'],
+          label: 'organization',
+        });
+      } else if (stepName === 'funders') {
+        result = await syncEntity({
+          endpoint: 'funders',
+          current: funders,
+          originalRef: originalFunders,
+          toDb: formToDbFunder,
+          compareKeys: ['name', 'type', 'other_name', 'country', 'identifier'],
+          label: 'funder',
+        });
+      } else if (stepName === 'projects') {
+        result = await syncEntity({
+          endpoint: 'projects',
+          current: projects,
+          originalRef: originalProjects,
+          toDb: formToDbProject,
+          compareKeys: ['title', 'description', 'raid_id', 'identifier'],
+          label: 'project',
+        });
+      }
+      if (result) {
+        const { added, updated, deleted, errors } = result;
+        if (added + updated + deleted + errors === 0) {
+          setFeedbackMessage({ type: 'info', text: 'No changes to save' });
+        } else {
+          setFeedbackMessage({
+            type: errors ? 'warning' : 'success',
+            text: `Saved: ${added} added, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+          });
+        }
+        loadPublication();
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleEntityDelete = async (entityType, entityId, label) => {
-    if (!confirm(`Delete this ${entityType} (${label})?`)) return;
-    const endpoint = {
-      creator: 'creators',
-      organization: 'organizations',
-      funder: 'funders',
-      project: 'projects',
-      file: 'files',
-      document: 'documents',
-    }[entityType];
+  // ---- Files & Documents: upload on "Save" ----
+  async function savePublicationFiles() {
+    setIsSaving(true);
+    let uploaded = 0, deleted = 0, errors = 0;
     try {
-      await axios.delete(
-        `${API_BASE_EDIT(publicationId)}/${endpoint}/${entityId}`,
-        { data: { user_id: currentUserId } }
-      );
-      setFeedbackMessage({ type: 'success', text: `${entityType} deleted` });
+      // DELETE removed files
+      for (const o of originalPublicationFiles.current) {
+        if (!publicationFiles.find((f) => f.id === o.id)) {
+          try {
+            await axios.delete(`${EDIT_BASE(publicationId)}/files/${o.id}`);
+            deleted++;
+          } catch (err) { errors++; }
+        }
+      }
+      // POST new items. New items from PublicationsForm have `file` (blob) or `videoUrl`.
+      for (const f of publicationFiles) {
+        if (f.id) continue; // existing
+        try {
+          const fd = new FormData();
+          fd.append('title', f.title || f.file?.name || 'Untitled');
+          fd.append('description', f.description || '');
+          fd.append('publication_type_id', f.publicationType || f.publication_type_id || '1');
+          if (f.videoUrl) {
+            fd.append('video_url', f.videoUrl);
+          } else if (f.file) {
+            fd.append('file', f.file);
+          } else {
+            continue; // nothing to upload
+          }
+          await axios.post(`${EDIT_BASE(publicationId)}/files`, fd);
+          uploaded++;
+        } catch (err) { errors++; console.error('File upload:', err); }
+      }
+      setFeedbackMessage({
+        type: errors ? 'warning' : 'success',
+        text: `Files: ${uploaded} uploaded, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+      });
       loadPublication();
-    } catch (err) {
-      setFeedbackMessage({ type: 'error', text: err.response?.data?.error || 'Delete failed' });
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }
+
+  async function savePublicationDocuments() {
+    setIsSaving(true);
+    let uploaded = 0, deleted = 0, errors = 0;
+    try {
+      for (const o of originalPublicationDocuments.current) {
+        if (!publicationDocuments.find((d) => d.id === o.id)) {
+          try {
+            await axios.delete(`${EDIT_BASE(publicationId)}/documents/${o.id}`);
+            deleted++;
+          } catch (err) { errors++; }
+        }
+      }
+      for (const d of publicationDocuments) {
+        if (d.id) continue;
+        try {
+          const fd = new FormData();
+          fd.append('title', d.title || d.file?.name || 'Untitled');
+          fd.append('description', d.description || '');
+          fd.append('publication_type_id', d.publicationType || d.publication_type_id || '1');
+          fd.append('identifier_type_id', d.identifierType || d.identifier_type_id || '1');
+          if (d.videoUrl) {
+            fd.append('video_url', d.videoUrl);
+          } else if (d.file) {
+            fd.append('file', d.file);
+          } else {
+            continue;
+          }
+          await axios.post(`${EDIT_BASE(publicationId)}/documents`, fd);
+          uploaded++;
+        } catch (err) { errors++; console.error('Document upload:', err); }
+      }
+      setFeedbackMessage({
+        type: errors ? 'warning' : 'success',
+        text: `Documents: ${uploaded} uploaded, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+      });
+      loadPublication();
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   // ---- Render ----
-  const pageBackgroundBox = (children) => (
+  const pageWrap = (children) => (
     <Box sx={{
       width: '100%',
       py: { xs: 2, sm: 3, md: 4 },
@@ -205,386 +429,188 @@ export default function EditDocidPage() {
   );
 
   if (!isAuthenticated) {
-    return pageBackgroundBox(
-      <Paper elevation={2} sx={{ p: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+    return pageWrap(
+      <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
         <Alert severity="warning">You must be signed in to edit.</Alert>
       </Paper>
     );
   }
-
   if (isLoading) {
-    return pageBackgroundBox(
-      <Paper elevation={2} sx={{ p: 6, borderRadius: 2, bgcolor: theme.palette.background.paper, textAlign: 'center' }}>
+    return pageWrap(
+      <Paper elevation={2} sx={{ p: 6, borderRadius: 2, textAlign: 'center' }}>
         <CircularProgress />
       </Paper>
     );
   }
-
   if (fetchError) {
-    return pageBackgroundBox(
-      <Paper elevation={2} sx={{ p: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+    return pageWrap(
+      <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
         <Alert severity="error">{fetchError}</Alert>
         <Button sx={{ mt: 2 }} startIcon={<ArrowBackIcon />} onClick={() => router.back()}>Back</Button>
       </Paper>
     );
   }
-
   if (!publicationData) return null;
 
-  const creators = publicationData.publication_creators || [];
-  const organizations = publicationData.publication_organizations || [];
-  const funders = publicationData.publication_funders || [];
-  const projects = publicationData.publication_projects || [];
-  const files = publicationData.publications_files || [];
-  const documents = publicationData.publication_documents || [];
+  const stepLabels = [
+    `DOCiD™`,
+    `Publications (${publicationFiles.length})`,
+    `Documents (${publicationDocuments.length})`,
+    `Creators (${creators.length})`,
+    `Organizations (${organizations.length})`,
+    `Funders (${funders.length})`,
+    `Projects (${projects.length})`,
+  ];
 
-  return (
-    <Box sx={{
-      width: '100%',
-      py: { xs: 2, sm: 3, md: 4 },
-      bgcolor: theme.palette.background.content || theme.palette.background.default,
-      minHeight: '100vh',
-    }}>
-      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push(`/docid/${publicationData.document_docid}`)}
-          sx={{ mb: 2 }}
+  return pageWrap(
+    <>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => router.push(`/docid/${publicationData.document_docid}`)}
+        sx={{ mb: 2 }}
+      >
+        Back to DOCiD
+      </Button>
+
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2 }}>
+        <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
+        </Typography>
+        {feedbackMessage && (
+          <Alert severity={feedbackMessage.type} onClose={() => setFeedbackMessage(null)} sx={{ mt: 1 }}>
+            {feedbackMessage.text}
+          </Alert>
+        )}
+      </Paper>
+
+      <Paper elevation={2} sx={{ mb: 3, borderRadius: 2, p: 2 }}>
+        <Stepper
+          activeStep={activeStep}
+          alternativeLabel={!isMobile}
+          orientation={isMobile ? 'vertical' : 'horizontal'}
         >
-          Back to DOCiD
-        </Button>
-
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
-          <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
-          </Typography>
-
-          {feedbackMessage && (
-            <Alert severity={feedbackMessage.type} onClose={() => setFeedbackMessage(null)} sx={{ mt: 1 }}>
-              {feedbackMessage.text}
-            </Alert>
-          )}
-        </Paper>
-
-        {/* Stepper — matches assign-docid look & icons */}
-        <Box sx={{ mb: 3, width: '100%' }}>
-          <Stepper
-            activeStep={activeStep}
-            alternativeLabel={!isMobile}
-            orientation={isMobile ? 'vertical' : 'horizontal'}
-            sx={{ '& .MuiStepConnector-line': { borderColor: '#1565c0' } }}
-          >
-            {[
-              { label: `DOCiD™` },
-              { label: `Publications (${files.length})` },
-              { label: `Documents (${documents.length})` },
-              { label: `Creators (${creators.length})` },
-              { label: `Organizations (${organizations.length})` },
-              { label: `Funders (${funders.length})` },
-              { label: `Projects (${projects.length})` },
-            ].map((step, idx) => (
-              <Step key={step.label} completed={false} sx={{ cursor: 'pointer' }} onClick={() => setActiveStep(idx)}>
-                <StepLabel StepIconComponent={CustomStepIcon}>{step.label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
-
-        {/* Back / Next nav (mirrors assign-docid) */}
-        <Stack direction="row" spacing={2} justifyContent="center" mb={3}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={() => setActiveStep((prev) => Math.max(0, prev - 1))}
-          >
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            disabled={activeStep === 6}
-            onClick={() => setActiveStep((prev) => Math.min(6, prev + 1))}
-          >
-            Next
-          </Button>
-        </Stack>
-
-        {/* Step 0 — DOCiD details */}
-        {activeStep === 0 && (
-          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Edit the title, description and avatar. The handle is permanent.
-            </Typography>
-            <Stack spacing={2}>
-              <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
-              <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
-              <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
-              <Box>
-                <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel}>Save Details</Button>
-              </Box>
-            </Stack>
-          </Paper>
-        )}
-
-        {/* Step 1 — Publications (files) */}
-        {activeStep === 1 && (
-          <EntityListPanel
-            entityLabel="Publication"
-            items={files}
-            onAdd={() => openAddDialog('file')}
-            onDelete={(item) => handleEntityDelete('file', item.id, item.title)}
-            renderRow={(item) => (
-              <Stack>
-                <Typography fontWeight={600}>{item.title}</Typography>
-                {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
-                {item.file_url && (
-                  <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
-                    {item.file_url}
-                  </Typography>
-                )}
-              </Stack>
-            )}
-            hideEdit
-          />
-        )}
-
-        {/* Step 2 — Documents */}
-        {activeStep === 2 && (
-          <EntityListPanel
-            entityLabel="Document"
-            items={documents}
-            onAdd={() => openAddDialog('document')}
-            onDelete={(item) => handleEntityDelete('document', item.id, item.title)}
-            renderRow={(item) => (
-              <Stack>
-                <Typography fontWeight={600}>{item.title}</Typography>
-                {item.handle_identifier && <Typography variant="caption" color="primary">Handle: {item.handle_identifier}</Typography>}
-                {item.file_url && (
-                  <Typography variant="caption" component="a" href={item.file_url} target="_blank" sx={{ color: theme.palette.primary.main }}>
-                    {item.file_url}
-                  </Typography>
-                )}
-              </Stack>
-            )}
-            hideEdit
-          />
-        )}
-
-        {/* Step 3 — Creators */}
-        {activeStep === 3 && (
-          <EntityListPanel
-            entityLabel="Creator"
-            items={creators}
-            onAdd={() => openAddDialog('creator')}
-            onEdit={(item) => openEditDialog('creator', item)}
-            onDelete={(item) => handleEntityDelete('creator', item.id, `${item.given_name || ''} ${item.family_name || ''}`.trim())}
-            renderRow={(item) => (
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                <Typography fontWeight={600}>{item.given_name} {item.family_name}</Typography>
-                {item.affiliation && <Chip label={item.affiliation} size="small" />}
-                {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
-              </Stack>
-            )}
-          />
-        )}
-
-        {/* Step 4 — Organizations */}
-        {activeStep === 4 && (
-          <EntityListPanel
-            entityLabel="Organization"
-            items={organizations}
-            onAdd={() => openAddDialog('organization')}
-            onEdit={(item) => openEditDialog('organization', item)}
-            onDelete={(item) => handleEntityDelete('organization', item.id, item.name)}
-            renderRow={(item) => (
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                <Typography fontWeight={600}>{item.name}</Typography>
-                {item.type && <Chip label={item.type} size="small" />}
-                {item.identifier && <Chip label={item.identifier} size="small" component="a" href={item.identifier} target="_blank" clickable />}
-              </Stack>
-            )}
-          />
-        )}
-
-        {/* Step 5 — Funders */}
-        {activeStep === 5 && (
-          <EntityListPanel
-            entityLabel="Funder"
-            items={funders}
-            onAdd={() => openAddDialog('funder')}
-            onEdit={(item) => openEditDialog('funder', item)}
-            onDelete={(item) => handleEntityDelete('funder', item.id, item.name)}
-            renderRow={(item) => (
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                <Typography fontWeight={600}>{item.name}</Typography>
-                {item.type && <Chip label={item.type} size="small" />}
-                {item.identifier && <Chip label={item.identifier} size="small" />}
-              </Stack>
-            )}
-          />
-        )}
-
-        {/* Step 6 — Projects */}
-        {activeStep === 6 && (
-          <EntityListPanel
-            entityLabel="Project"
-            items={projects}
-            onAdd={() => openAddDialog('project')}
-            onEdit={(item) => openEditDialog('project', item)}
-            onDelete={(item) => handleEntityDelete('project', item.id, item.title)}
-            renderRow={(item) => (
-              <Stack>
-                <Typography fontWeight={600}>{item.title}</Typography>
-                {item.identifier && <Typography variant="caption" color="text.secondary">{item.identifier}</Typography>}
-              </Stack>
-            )}
-          />
-        )}
-
-        {/* Entity dialog */}
-        <EntityDialog
-          open={dialogOpen}
-          onClose={closeDialog}
-          onSubmit={handleDialogSubmit}
-          dialogType={dialogType}
-          dialogMode={dialogMode}
-          entity={dialogEntity}
-          onEntityChange={setDialogEntity}
-          fileObj={dialogFile}
-          onFileChange={setDialogFile}
-        />
-      </Container>
-    </Box>
-  );
-}
-
-function EntityListPanel({ entityLabel, items, onAdd, onEdit, onDelete, renderRow, hideEdit }) {
-  const panelTheme = useTheme();
-  return (
-    <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, bgcolor: panelTheme.palette.background.paper }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6">{entityLabel}s</Typography>
-        <Button startIcon={<AddIcon />} onClick={onAdd} variant="contained">Add {entityLabel}</Button>
-      </Stack>
-      <Divider sx={{ mb: 2 }} />
-      {items.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No {entityLabel.toLowerCase()}s yet.</Typography>
-      ) : (
-        <Stack spacing={1.5}>
-          {items.map((item) => (
-            <Paper key={item.id} variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box flex={1} minWidth={0}>{renderRow(item)}</Box>
-              <Stack direction="row" spacing={0.5}>
-                {!hideEdit && onEdit && (
-                  <IconButton size="small" onClick={() => onEdit(item)} aria-label={`Edit ${entityLabel}`}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                )}
-                <IconButton size="small" onClick={() => onDelete(item)} aria-label={`Delete ${entityLabel}`} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Stack>
-            </Paper>
+          {stepLabels.map((label, idx) => (
+            <Step key={label} completed={false} sx={{ cursor: 'pointer' }} onClick={() => setActiveStep(idx)}>
+              <StepLabel StepIconComponent={CustomStepIcon}>{label}</StepLabel>
+            </Step>
           ))}
-        </Stack>
+        </Stepper>
+      </Paper>
+
+      <Stack direction="row" spacing={2} justifyContent="center" mb={3}>
+        <Button disabled={activeStep === 0} onClick={() => setActiveStep((p) => Math.max(0, p - 1))}>Back</Button>
+        <Button variant="contained" disabled={activeStep === 6} onClick={() => setActiveStep((p) => Math.min(6, p + 1))}>Next</Button>
+      </Stack>
+
+      {/* Step 0 — Details */}
+      {activeStep === 0 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
+          <Stack spacing={2}>
+            <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
+            <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
+            <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
+            <Box>
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Details'}
+              </Button>
+            </Box>
+          </Stack>
+        </Paper>
       )}
-    </Paper>
-  );
-}
 
-function EntityDialog({ open, onClose, onSubmit, dialogType, dialogMode, entity, onEntityChange, fileObj, onFileChange }) {
-  const update = (field) => (e) => onEntityChange({ ...entity, [field]: e.target.value });
-  const isFileType = dialogType === 'file' || dialogType === 'document';
-
-  const renderFields = () => {
-    switch (dialogType) {
-      case 'creator':
-        return (
-          <>
-            <TextField label="Family Name*" fullWidth margin="dense" value={entity.family_name || ''} onChange={update('family_name')} />
-            <TextField label="Given Name" fullWidth margin="dense" value={entity.given_name || ''} onChange={update('given_name')} />
-            <TextField label="Affiliation" fullWidth margin="dense" value={entity.affiliation || ''} onChange={update('affiliation')} />
-            <TextField label="Identifier (e.g. ORCID URL)" fullWidth margin="dense" value={entity.identifier || ''} onChange={update('identifier')} />
-            <TextField label="Identifier Type" select fullWidth margin="dense" value={entity.identifier_type || 'orcid'} onChange={update('identifier_type')}>
-              <MenuItem value="orcid">ORCID</MenuItem>
-              <MenuItem value="isni">ISNI</MenuItem>
-              <MenuItem value="viaf">VIAF</MenuItem>
-              <MenuItem value="">Other</MenuItem>
-            </TextField>
-          </>
-        );
-      case 'organization':
-        return (
-          <>
-            <TextField label="Name*" fullWidth margin="dense" value={entity.name || ''} onChange={update('name')} />
-            <TextField label="Type*" fullWidth margin="dense" value={entity.type || ''} onChange={update('type')} placeholder="e.g. Education, Government, Research" />
-            <TextField label="Other Name" fullWidth margin="dense" value={entity.other_name || ''} onChange={update('other_name')} />
-            <TextField label="Country" fullWidth margin="dense" value={entity.country || ''} onChange={update('country')} />
-            <TextField label="ROR/Identifier URL" fullWidth margin="dense" value={entity.identifier || ''} onChange={update('identifier')} />
-            <TextField label="Identifier Type" select fullWidth margin="dense" value={entity.identifier_type || 'ror'} onChange={update('identifier_type')}>
-              <MenuItem value="ror">ROR</MenuItem>
-              <MenuItem value="isni">ISNI</MenuItem>
-              <MenuItem value="ringgold">Ringgold</MenuItem>
-              <MenuItem value="">Other</MenuItem>
-            </TextField>
-          </>
-        );
-      case 'funder':
-        return (
-          <>
-            <TextField label="Name*" fullWidth margin="dense" value={entity.name || ''} onChange={update('name')} />
-            <TextField label="Type*" fullWidth margin="dense" value={entity.type || ''} onChange={update('type')} placeholder="e.g. Grantor, Corporation" />
-            <TextField label="Funder Type ID" select fullWidth margin="dense" value={entity.funder_type_id || 1} onChange={update('funder_type_id')}>
-              <MenuItem value={1}>Grantor</MenuItem>
-              <MenuItem value={2}>Investor</MenuItem>
-              <MenuItem value={3}>Corporation</MenuItem>
-            </TextField>
-            <TextField label="Country" fullWidth margin="dense" value={entity.country || ''} onChange={update('country')} />
-            <TextField label="ROR URL" fullWidth margin="dense" value={entity.identifier || ''} onChange={update('identifier')} />
-          </>
-        );
-      case 'project':
-        return (
-          <>
-            <TextField label="Title*" fullWidth margin="dense" value={entity.title || ''} onChange={update('title')} />
-            <TextField label="Description" fullWidth multiline minRows={3} margin="dense" value={entity.description || ''} onChange={update('description')} />
-            <TextField label="RAiD/Identifier URL" fullWidth margin="dense" value={entity.identifier || ''} onChange={update('identifier')} />
-          </>
-        );
-      case 'file':
-      case 'document':
-        return (
-          <>
-            <TextField label="Title*" fullWidth margin="dense" value={entity.title || ''} onChange={update('title')} />
-            <TextField label="Description" fullWidth multiline minRows={3} margin="dense" value={entity.description || ''} onChange={update('description')} />
-            <TextField label="Publication Type ID" type="number" fullWidth margin="dense" value={entity.publication_type_id || 1} onChange={update('publication_type_id')} />
-            <Button variant="outlined" component="label" startIcon={<UploadIcon />} sx={{ mt: 2 }}>
-              {fileObj ? fileObj.name : 'Select file to upload'}
-              <input type="file" hidden onChange={(e) => onFileChange(e.target.files?.[0] || null)} />
+      {/* Step 1 — Publications (files) */}
+      {activeStep === 1 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <PublicationsForm
+            formData={{ publicationType: '', files: publicationFiles }}
+            updateFormData={(next) => setPublicationFiles(next.files || [])}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationFiles} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Publications'}
             </Button>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              A new Cordra child handle will be minted on upload.
-            </Typography>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
+          </Box>
+        </Paper>
+      )}
 
-  const titleText = dialogMode === 'add' ? `Add ${dialogType}` : `Edit ${dialogType}`;
+      {/* Step 2 — Documents */}
+      {activeStep === 2 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <DocumentsForm
+            formData={{ documentType: '', files: publicationDocuments }}
+            updateFormData={(next) => setPublicationDocuments(next.files || [])}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationDocuments} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Documents'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
 
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {titleText}
-        <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
-      </DialogTitle>
-      <DialogContent dividers>{renderFields()}</DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={onSubmit}>{dialogMode === 'add' ? 'Add' : 'Save'}</Button>
-      </DialogActions>
-    </Dialog>
+      {/* Step 3 — Creators */}
+      {activeStep === 3 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <CreatorsForm
+            formData={{ creators }}
+            updateFormData={(next) => setCreators(next.creators || [])}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('creators')} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Creators'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Step 4 — Organizations */}
+      {activeStep === 4 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <OrganizationsForm
+            formData={{ organizations }}
+            updateFormData={(next) => setOrganizations(next.organizations || [])}
+            type="ror"
+            label="ROR"
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('organizations')} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Organizations'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Step 5 — Funders */}
+      {activeStep === 5 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <FundersForm
+            formData={{ funders }}
+            updateFormData={(next) => setFunders(next.funders || [])}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('funders')} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Funders'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Step 6 — Projects */}
+      {activeStep === 6 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <ProjectForm
+            formData={{ projects }}
+            updateFormData={(next) => setProjects(next.projects || [])}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('projects')} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Projects'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+    </>
   );
 }

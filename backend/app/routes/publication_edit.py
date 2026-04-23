@@ -494,7 +494,7 @@ def delete_project(publication_id, project_id):
 @edit_bp.route('/<int:publication_id>/files', methods=['POST'])
 @jwt_required()
 def add_file(publication_id):
-    """Upload a new file + mint a new Cordra child handle for it."""
+    """Upload a new file OR add external video URL + mint Cordra child handle."""
     publication, user_id, err = _authorize(publication_id)
     if err:
         return err
@@ -502,19 +502,53 @@ def add_file(publication_id):
     title = (request.form.get('title') or '').strip()
     description = (request.form.get('description') or '').strip()
     publication_type_id_raw = request.form.get('publication_type_id', '1')
+    video_url_raw = (request.form.get('video_url') or '').strip()
     uploaded = request.files.get('file')
 
     if not title:
         return jsonify({'error': 'title is required'}), 400
 
-    validation_error = _validate_upload(uploaded)
-    if validation_error:
-        return jsonify({'error': validation_error}), 400
-
     try:
         publication_type_id = int(publication_type_id_raw)
     except (ValueError, TypeError):
         return jsonify({'error': 'Invalid publication_type_id'}), 400
+
+    # Branch: external video URL (no upload), OR file upload
+    if video_url_raw:
+        if not video_url_raw.startswith(('http://', 'https://')):
+            video_url_raw = 'https://' + video_url_raw
+        minted = IdentifierService.generate_handle()
+        if not minted:
+            return jsonify({'error': 'Cordra handle mint failed'}), 502
+
+        pub_file = PublicationFiles(
+            publication_id=publication_id,
+            title=title[:255],
+            description=description,
+            publication_type_id=publication_type_id,
+            file_name='',
+            file_type='video/external',
+            file_url=video_url_raw[:255],
+            identifier=minted[:100],
+            generated_identifier=minted[:100],
+            handle_identifier=minted[:100],
+        )
+        db.session.add(pub_file)
+        db.session.flush()
+        _audit(publication_id, user_id, 'CREATE_FILE',
+               field_name='publications_files', new_value=f"{title} (video) ({minted})")
+        db.session.commit()
+        return jsonify({
+            'message': 'Video link added',
+            'id': pub_file.id,
+            'handle': minted,
+            'file_url': video_url_raw,
+        }), 201
+
+    # File upload branch
+    validation_error = _validate_upload(uploaded)
+    if validation_error:
+        return jsonify({'error': validation_error}), 400
 
     # Mint FIRST — if Cordra is down, don't waste disk.
     minted = IdentifierService.generate_handle()
@@ -573,7 +607,7 @@ def delete_file(publication_id, file_id):
 @edit_bp.route('/<int:publication_id>/documents', methods=['POST'])
 @jwt_required()
 def add_document(publication_id):
-    """Upload a new document + mint a new Cordra child handle for it."""
+    """Upload a new document OR add external video URL + mint Cordra child handle."""
     publication, user_id, err = _authorize(publication_id)
     if err:
         return err
@@ -582,20 +616,52 @@ def add_document(publication_id):
     description = (request.form.get('description') or '').strip()
     publication_type_id_raw = request.form.get('publication_type_id', '1')
     identifier_type_id_raw = request.form.get('identifier_type_id', '1')
+    video_url_raw = (request.form.get('video_url') or '').strip()
     uploaded = request.files.get('file')
 
     if not title:
         return jsonify({'error': 'title is required'}), 400
-
-    validation_error = _validate_upload(uploaded)
-    if validation_error:
-        return jsonify({'error': validation_error}), 400
 
     try:
         publication_type_id = int(publication_type_id_raw)
         identifier_type_id = int(identifier_type_id_raw)
     except (ValueError, TypeError):
         return jsonify({'error': 'Invalid publication_type_id or identifier_type_id'}), 400
+
+    # Branch: external video URL (no upload), OR file upload
+    if video_url_raw:
+        if not video_url_raw.startswith(('http://', 'https://')):
+            video_url_raw = 'https://' + video_url_raw
+        minted = IdentifierService.generate_handle()
+        if not minted:
+            return jsonify({'error': 'Cordra handle mint failed'}), 502
+
+        pub_doc = PublicationDocuments(
+            publication_id=publication_id,
+            title=title[:255],
+            description=description,
+            publication_type_id=publication_type_id,
+            file_url=video_url_raw[:255],
+            identifier_type_id=identifier_type_id,
+            generated_identifier=minted[:255],
+            handle_identifier=minted[:100],
+        )
+        db.session.add(pub_doc)
+        db.session.flush()
+        _audit(publication_id, user_id, 'CREATE_DOCUMENT',
+               field_name='publication_documents', new_value=f"{title} (video) ({minted})")
+        db.session.commit()
+        return jsonify({
+            'message': 'Video link added as document',
+            'id': pub_doc.id,
+            'handle': minted,
+            'file_url': video_url_raw,
+        }), 201
+
+    # File upload branch
+    validation_error = _validate_upload(uploaded)
+    if validation_error:
+        return jsonify({'error': validation_error}), 400
 
     minted = IdentifierService.generate_handle()
     if not minted:
