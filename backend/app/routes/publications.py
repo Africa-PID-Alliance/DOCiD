@@ -2498,6 +2498,7 @@ def get_drafts_by_user_id(user_id):
 
 
 @publications_bp.route('/update-publication/<int:publication_id>', methods=['PUT'])
+@jwt_required()
 def update_publication(publication_id):
     """
     Update an existing publication
@@ -2574,18 +2575,13 @@ def update_publication(publication_id):
     """
     try:
         logger.info(f"=== START: Update Publication Request for ID {publication_id} at {datetime.now()} ===")
-        
-        # Get user_id from form data
-        user_id_str = request.form.get('user_id')
-        if not user_id_str:
-            logger.warning("Missing user_id in update request")
-            return jsonify({'message': 'User ID is required'}), 400
-        
+
+        # Identity comes from the signed JWT, not from client-supplied form fields.
+        from flask_jwt_extended import get_jwt_identity
         try:
-            user_id = int(user_id_str)
-        except ValueError:
-            logger.warning(f"Invalid user_id format: {user_id_str}")
-            return jsonify({'message': 'Invalid user_id format (must be an integer)'}), 400
+            user_id = int(get_jwt_identity())
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Authentication required'}), 401
         
         # Check if publication exists and user owns it
         publication = Publications.query.filter_by(id=publication_id).first()
@@ -2752,6 +2748,7 @@ def update_publication(publication_id):
 
 # Helper endpoint to get publication for editing (with user ownership validation)
 @publications_bp.route('/get-publication-for-edit/<int:publication_id>', methods=['GET'])
+@jwt_required()
 def get_publication_for_edit(publication_id):
     """
     Get publication data specifically for editing purposes
@@ -2787,16 +2784,13 @@ def get_publication_for_edit(publication_id):
     """
     try:
         logger.info(f"Get publication for edit: ID={publication_id}")
-        
-        # Get and validate user_id
-        user_id_str = request.args.get('user_id')
-        if not user_id_str:
-            return jsonify({'message': 'User ID parameter is required'}), 400
-        
+
+        # Identity comes from the signed JWT, not from query string.
+        from flask_jwt_extended import get_jwt_identity
         try:
-            user_id = int(user_id_str)
-        except ValueError:
-            return jsonify({'message': 'Invalid user_id format (must be an integer)'}), 400
+            user_id = int(get_jwt_identity())
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Authentication required'}), 401
         
         # Check if publication exists
         publication = Publications.query.filter_by(id=publication_id).first()

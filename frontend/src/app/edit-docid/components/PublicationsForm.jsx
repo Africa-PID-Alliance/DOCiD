@@ -68,42 +68,12 @@ const PublicationsForm = ({ formData, updateFormData }) => {
   console.log('PublicationsForm - user:', user);
   console.log('PublicationsForm - accountTypeName:', accountTypeName);
 
-  // Reorder identifiers based on account type - use useMemo to recalculate when accountTypeName changes
-  const identifiers = useMemo(() => {
-    console.log('PublicationsForm - useMemo identifiers - accountTypeName:', accountTypeName);
-    const baseIdentifiers = [
-      {
-        label: 'APA Handle iD',
-        value: 1
-      },
-      {
-        label: 'Datacite',
-        value: 2,
-        disabled: accountTypeName === 'Individual'
-      },
-      {
-        label: 'CrossRef',
-        value: 3
-      },
-      {
-        label: 'DOI',
-        value: 4,
-        disabled: true
-      }
-    ];
-
-    // If Individual account, move Datacite below CrossRef
-    if (accountTypeName === 'Individual') {
-      return [
-        baseIdentifiers[0], // APA Handle iD
-        baseIdentifiers[2], // CrossRef
-        baseIdentifiers[1], // Datacite (disabled)
-        baseIdentifiers[3]  // DOI
-      ];
-    }
-
-    return baseIdentifiers;
-  }, [accountTypeName])
+  // Edit-docid fork: only APA Handle iD is usable.
+  // New files always mint a Cordra child handle server-side when saved.
+  // DataCite / CrossRef / DOI are hidden to avoid misleading "picked DOI, got handle" UX.
+  const identifiers = useMemo(() => [
+    { label: 'APA Handle iD', value: 1 },
+  ], []);
 
   // Effect to sync state with parent when formData changes
   useEffect(() => {

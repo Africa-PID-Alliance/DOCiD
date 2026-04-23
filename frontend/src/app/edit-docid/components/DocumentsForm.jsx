@@ -126,63 +126,13 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     return typeMap[documentType] || '*/*';
   };
 
-  // Get identifiers based on account type - use useMemo to recalculate when accountTypeName changes
-  const identifiers = useMemo(() => {
-    const isIndividual = accountTypeName === 'Individual';
-    
-    return [
-      {
-        label: 'APA Handle iD',
-        value: 1
-      },
-      {
-        label: 'Datacite',
-        value: 2,
-        disabled: isIndividual
-      },
-      {
-        label: 'CrossRef',
-        value: 3,
-        disabled: isIndividual
-      },
-      {
-        label: 'CSTR',
-        value: 4,
-        disabled: true
-      },
-      {
-        label: 'DOI',
-        value: 5,
-        disabled: true
-      },
-      {
-        label: 'ARK Keys',
-        value: 6,
-        disabled: true
-      },
-      {
-        label: 'ArXiv iD',
-        value: 7,
-        disabled: true
-      },
-      {
-        label: 'Handle iD',
-        value: 8,
-        disabled: true
-      },
-      {
-        label: 'Hand iD',
-        value: 9,
-        disabled: true
-      },
-      {
-        label: 'dPID',
-        value: 10,
-        disabled: true
-      },
-      
-    ];
-  }, [accountTypeName]);
+  // Edit-docid fork: only APA Handle iD is usable.
+  // New documents always mint a Cordra child handle server-side when saved.
+  // DataCite / CrossRef / CSTR / DOI / ARK / ArXiv / Handle / dPID are hidden
+  // to avoid the misleading "picked DOI, got handle" UX that Codex flagged.
+  const identifiers = useMemo(() => [
+    { label: 'APA Handle iD', value: 1 },
+  ], []);
 
   const getFileIcon = (type) => {
     const iconMap = {

@@ -582,6 +582,48 @@ def add_file(publication_id):
     }), 201
 
 
+@edit_bp.route('/<int:publication_id>/files/<int:file_id>', methods=['PUT'])
+@jwt_required()
+def update_file(publication_id, file_id):
+    """Update metadata on an existing file row.
+
+    Only title, description, and publication_type_id are mutable. file_url,
+    file_name, file_type, and handle_identifier are immutable — attempts to
+    change them are silently ignored to keep Cordra + disk state in sync.
+    """
+    publication, user_id, err = _authorize(publication_id)
+    if err:
+        return err
+    pub_file = PublicationFiles.query.filter_by(id=file_id, publication_id=publication_id).first()
+    if not pub_file:
+        return jsonify({'error': 'File not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    changes = {}
+    for field in ('title', 'description', 'publication_type_id'):
+        if field not in data:
+            continue
+        new_value = data[field]
+        if field == 'publication_type_id':
+            try:
+                new_value = int(new_value)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid publication_type_id'}), 400
+        elif isinstance(new_value, str):
+            new_value = new_value[:255] if field == 'title' else new_value
+        old_value = getattr(pub_file, field)
+        if old_value != new_value:
+            setattr(pub_file, field, new_value)
+            changes[field] = (old_value, new_value)
+
+    if changes:
+        for field, (old, new) in changes.items():
+            _audit(publication_id, user_id, 'UPDATE_FILE',
+                   field_name=f'file.{field}', old_value=old, new_value=new)
+        db.session.commit()
+    return jsonify({'message': 'File updated', 'id': pub_file.id, 'changes': list(changes.keys())}), 200
+
+
 @edit_bp.route('/<int:publication_id>/files/<int:file_id>', methods=['DELETE'])
 @jwt_required()
 def delete_file(publication_id, file_id):
@@ -690,6 +732,47 @@ def add_document(publication_id):
         'handle': minted,
         'file_url': file_url,
     }), 201
+
+
+@edit_bp.route('/<int:publication_id>/documents/<int:document_id>', methods=['PUT'])
+@jwt_required()
+def update_document(publication_id, document_id):
+    """Update metadata on an existing document row.
+
+    Only title, description, publication_type_id, and identifier_type_id are
+    mutable. file_url, generated_identifier, handle_identifier are immutable.
+    """
+    publication, user_id, err = _authorize(publication_id)
+    if err:
+        return err
+    pub_doc = PublicationDocuments.query.filter_by(id=document_id, publication_id=publication_id).first()
+    if not pub_doc:
+        return jsonify({'error': 'Document not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    changes = {}
+    for field in ('title', 'description', 'publication_type_id', 'identifier_type_id'):
+        if field not in data:
+            continue
+        new_value = data[field]
+        if field in ('publication_type_id', 'identifier_type_id'):
+            try:
+                new_value = int(new_value)
+            except (ValueError, TypeError):
+                return jsonify({'error': f'Invalid {field}'}), 400
+        elif field == 'title' and isinstance(new_value, str):
+            new_value = new_value[:255]
+        old_value = getattr(pub_doc, field)
+        if old_value != new_value:
+            setattr(pub_doc, field, new_value)
+            changes[field] = (old_value, new_value)
+
+    if changes:
+        for field, (old, new) in changes.items():
+            _audit(publication_id, user_id, 'UPDATE_DOCUMENT',
+                   field_name=f'document.{field}', old_value=old, new_value=new)
+        db.session.commit()
+    return jsonify({'message': 'Document updated', 'id': pub_doc.id, 'changes': list(changes.keys())}), 200
 
 
 @edit_bp.route('/<int:publication_id>/documents/<int:document_id>', methods=['DELETE'])

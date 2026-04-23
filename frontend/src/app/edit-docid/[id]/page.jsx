@@ -130,6 +130,60 @@ function formToDbProject(p) {
   };
 }
 
+// Files & Documents map to PublicationsForm/DocumentsForm's "uploaded file + metadata" shape.
+// Existing rows from the DB are flagged with `existing: true` so the form does not try to
+// re-upload them. New rows added by the form have no `id` and carry a real File blob.
+function dbToFormFile(f) {
+  return {
+    id: f.id,
+    existing: true,
+    name: f.file_name || f.title || '',
+    size: 0,
+    type: f.file_type || 'application/octet-stream',
+    url: f.file_url || '',
+    lastModified: 0,
+    file: null,
+    publicationType: f.publication_type_id != null ? String(f.publication_type_id) : '',
+    metadata: {
+      title: f.title || '',
+      description: f.description || '',
+      identifier: 1,                 // APA Handle iD (only option shown in edit mode)
+      identifierType: 1,
+      generated_identifier: f.generated_identifier || '',
+    },
+  };
+}
+
+function dbToFormDocument(d) {
+  return {
+    id: d.id,
+    existing: true,
+    name: d.title || '',
+    size: 0,
+    type: 'application/octet-stream',
+    url: d.file_url || '',
+    lastModified: 0,
+    file: null,
+    publicationType: d.publication_type != null
+      ? String(d.publication_type)
+      : (d.publication_type_id != null ? String(d.publication_type_id) : ''),
+    metadata: {
+      title: d.title || '',
+      description: d.description || '',
+      identifier: 1,
+      identifierType: 1,
+      generated_identifier: d.generated_identifier || '',
+    },
+  };
+}
+
+function mostCommonValue(arr) {
+  if (!arr || arr.length === 0) return null;
+  const counts = {};
+  for (const v of arr) counts[v] = (counts[v] || 0) + 1;
+  return Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+}
+
 function hasChanged(a, b, keys) {
   return keys.some((k) => (a[k] ?? null) !== (b[k] ?? null));
 }
@@ -166,9 +220,9 @@ export default function EditDocidPage() {
   const originalFunders = useRef([]);
   const [projects, setProjects] = useState([]);
   const originalProjects = useRef([]);
-  const [publicationFiles, setPublicationFiles] = useState([]);
+  const [publicationsData, setPublicationsData] = useState({ publicationType: '', files: [] });
   const originalPublicationFiles = useRef([]);
-  const [publicationDocuments, setPublicationDocuments] = useState([]);
+  const [documentsData, setDocumentsData] = useState({ documentType: '', files: [] });
   const originalPublicationDocuments = useRef([]);
 
   const loadPublication = useCallback(async () => {
@@ -176,7 +230,7 @@ export default function EditDocidPage() {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `/api/publications/get-publication-for-edit/${publicationId}?user_id=${currentUserId}`
+        `/api/publications/get-publication-for-edit/${publicationId}`
       );
       const d = response.data;
       setPublicationData(d);
@@ -200,11 +254,16 @@ export default function EditDocidPage() {
       setProjects(mappedProjects);
       originalProjects.current = mappedProjects;
 
-      // Files & documents — display existing as readonly, allow new uploads
-      setPublicationFiles(d.publications_files || []);
-      originalPublicationFiles.current = d.publications_files || [];
-      setPublicationDocuments(d.publication_documents || []);
-      originalPublicationDocuments.current = d.publication_documents || [];
+      // Files & documents — map DB rows to PublicationsForm/DocumentsForm shape
+      const mappedFiles = (d.publications_files || []).map(dbToFormFile);
+      // Seed publicationType from the most common existing publication_type_id (or blank)
+      const mostCommonFileType = mostCommonValue(mappedFiles.map(f => f.publicationType).filter(Boolean));
+      setPublicationsData({ publicationType: mostCommonFileType || '', files: mappedFiles });
+      originalPublicationFiles.current = mappedFiles;
+      const mappedDocs = (d.publication_documents || []).map(dbToFormDocument);
+      const mostCommonDocType = mostCommonValue(mappedDocs.map(dd => dd.publicationType).filter(Boolean));
+      setDocumentsData({ documentType: mostCommonDocType || '', files: mappedDocs });
+      originalPublicationDocuments.current = mappedDocs;
 
       setFetchError(null);
     } catch (err) {
@@ -221,7 +280,7 @@ export default function EditDocidPage() {
     setIsSaving(true);
     try {
       const formData = new FormData();
-      formData.append('user_id', String(currentUserId));
+      // user_id intentionally not sent — server derives identity from JWT.
       formData.append('documentTitle', documentTitle);
       formData.append('documentDescription', documentDescription);
       formData.append('avatar', avatarUrl);
@@ -323,41 +382,70 @@ export default function EditDocidPage() {
             text: `Saved: ${added} added, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
           });
         }
-        loadPublication();
+        // Only reload on full success — on partial failure, keep failed items in state so user can retry.
+        if (errors === 0) {
+          await loadPublication();
+        }
       }
     } finally {
       setIsSaving(false);
     }
   };
 
-  // ---- Files & Documents: upload on "Save" ----
+  // ---- Files & Documents: upload / diff-update / delete on "Save" ----
   async function savePublicationFiles() {
     setIsSaving(true);
-    let uploaded = 0, deleted = 0, errors = 0;
+    let uploaded = 0, updated = 0, deleted = 0, errors = 0;
+    const files = publicationsData.files;
+    const defaultType = publicationsData.publicationType || '1';
     try {
       // DELETE removed files
       for (const o of originalPublicationFiles.current) {
-        if (!publicationFiles.find((f) => f.id === o.id)) {
+        if (!files.find((f) => f.id === o.id)) {
           try {
             await axios.delete(`${EDIT_BASE(publicationId)}/files/${o.id}`);
             deleted++;
           } catch (err) { errors++; }
         }
       }
-      // POST new items. New items from PublicationsForm have `file` (blob) or `videoUrl`.
-      for (const f of publicationFiles) {
-        if (f.id) continue; // existing
+      // PUT metadata changes on existing rows
+      for (const f of files) {
+        if (!f.id || !f.existing) continue;
+        const orig = originalPublicationFiles.current.find((x) => x.id === f.id);
+        if (!orig) continue;
+        const meta = f.metadata || {};
+        const origMeta = orig.metadata || {};
+        const newType = f.publicationType || defaultType;
+        const origType = orig.publicationType || '';
+        const changed =
+          (meta.title || '') !== (origMeta.title || '') ||
+          (meta.description || '') !== (origMeta.description || '') ||
+          String(newType) !== String(origType);
+        if (!changed) continue;
+        try {
+          await axios.put(`${EDIT_BASE(publicationId)}/files/${f.id}`, {
+            title: meta.title || '',
+            description: meta.description || '',
+            publication_type_id: newType,
+          });
+          updated++;
+        } catch (err) { errors++; console.error('File update:', err); }
+      }
+      // POST new items. PublicationsForm shape: { file: Blob, metadata: {title, description, ...}, videoUrl? }
+      for (const f of files) {
+        if (f.id || f.existing) continue;
+        const meta = f.metadata || {};
         try {
           const fd = new FormData();
-          fd.append('title', f.title || f.file?.name || 'Untitled');
-          fd.append('description', f.description || '');
-          fd.append('publication_type_id', f.publicationType || f.publication_type_id || '1');
+          fd.append('title', meta.title || f.name || f.file?.name || 'Untitled');
+          fd.append('description', meta.description || '');
+          fd.append('publication_type_id', f.publicationType || defaultType);
           if (f.videoUrl) {
             fd.append('video_url', f.videoUrl);
-          } else if (f.file) {
+          } else if (f.file instanceof File || f.file instanceof Blob) {
             fd.append('file', f.file);
           } else {
-            continue; // nothing to upload
+            continue;
           }
           await axios.post(`${EDIT_BASE(publicationId)}/files`, fd);
           uploaded++;
@@ -365,9 +453,11 @@ export default function EditDocidPage() {
       }
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
-        text: `Files: ${uploaded} uploaded, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+        text: `Files: ${uploaded} uploaded, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
       });
-      loadPublication();
+      if (errors === 0) {
+        await loadPublication();
+      }
     } finally {
       setIsSaving(false);
     }
@@ -375,27 +465,53 @@ export default function EditDocidPage() {
 
   async function savePublicationDocuments() {
     setIsSaving(true);
-    let uploaded = 0, deleted = 0, errors = 0;
+    let uploaded = 0, updated = 0, deleted = 0, errors = 0;
+    const docs = documentsData.files;
+    const defaultType = documentsData.documentType || '1';
     try {
       for (const o of originalPublicationDocuments.current) {
-        if (!publicationDocuments.find((d) => d.id === o.id)) {
+        if (!docs.find((d) => d.id === o.id)) {
           try {
             await axios.delete(`${EDIT_BASE(publicationId)}/documents/${o.id}`);
             deleted++;
           } catch (err) { errors++; }
         }
       }
-      for (const d of publicationDocuments) {
-        if (d.id) continue;
+      // PUT metadata changes on existing documents
+      for (const d of docs) {
+        if (!d.id || !d.existing) continue;
+        const orig = originalPublicationDocuments.current.find((x) => x.id === d.id);
+        if (!orig) continue;
+        const meta = d.metadata || {};
+        const origMeta = orig.metadata || {};
+        const newType = d.publicationType || defaultType;
+        const origType = orig.publicationType || '';
+        const changed =
+          (meta.title || '') !== (origMeta.title || '') ||
+          (meta.description || '') !== (origMeta.description || '') ||
+          String(newType) !== String(origType);
+        if (!changed) continue;
+        try {
+          await axios.put(`${EDIT_BASE(publicationId)}/documents/${d.id}`, {
+            title: meta.title || '',
+            description: meta.description || '',
+            publication_type_id: newType,
+          });
+          updated++;
+        } catch (err) { errors++; console.error('Document update:', err); }
+      }
+      for (const d of docs) {
+        if (d.id || d.existing) continue;
+        const meta = d.metadata || {};
         try {
           const fd = new FormData();
-          fd.append('title', d.title || d.file?.name || 'Untitled');
-          fd.append('description', d.description || '');
-          fd.append('publication_type_id', d.publicationType || d.publication_type_id || '1');
-          fd.append('identifier_type_id', d.identifierType || d.identifier_type_id || '1');
+          fd.append('title', meta.title || d.name || d.file?.name || 'Untitled');
+          fd.append('description', meta.description || '');
+          fd.append('publication_type_id', d.publicationType || defaultType);
+          fd.append('identifier_type_id', meta.identifierType || '1');
           if (d.videoUrl) {
             fd.append('video_url', d.videoUrl);
-          } else if (d.file) {
+          } else if (d.file instanceof File || d.file instanceof Blob) {
             fd.append('file', d.file);
           } else {
             continue;
@@ -406,9 +522,11 @@ export default function EditDocidPage() {
       }
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
-        text: `Documents: ${uploaded} uploaded, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+        text: `Documents: ${uploaded} uploaded, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
       });
-      loadPublication();
+      if (errors === 0) {
+        await loadPublication();
+      }
     } finally {
       setIsSaving(false);
     }
@@ -454,8 +572,8 @@ export default function EditDocidPage() {
 
   const stepLabels = [
     `DOCiD™`,
-    `Publications (${publicationFiles.length})`,
-    `Documents (${publicationDocuments.length})`,
+    `Publications (${publicationsData.files.length})`,
+    `Documents (${documentsData.files.length})`,
     `Creators (${creators.length})`,
     `Organizations (${organizations.length})`,
     `Funders (${funders.length})`,
@@ -524,8 +642,11 @@ export default function EditDocidPage() {
       {activeStep === 1 && (
         <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
           <PublicationsForm
-            formData={{ publicationType: '', files: publicationFiles }}
-            updateFormData={(next) => setPublicationFiles(next.files || [])}
+            formData={publicationsData}
+            updateFormData={(next) => setPublicationsData({
+              publicationType: next.publicationType ?? publicationsData.publicationType ?? '',
+              files: next.files || [],
+            })}
           />
           <Box mt={2}>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationFiles} disabled={isSaving}>
@@ -539,8 +660,11 @@ export default function EditDocidPage() {
       {activeStep === 2 && (
         <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
           <DocumentsForm
-            formData={{ documentType: '', files: publicationDocuments }}
-            updateFormData={(next) => setPublicationDocuments(next.files || [])}
+            formData={documentsData}
+            updateFormData={(next) => setDocumentsData({
+              documentType: next.documentType ?? documentsData.documentType ?? '',
+              files: next.files || [],
+            })}
           />
           <Box mt={2}>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationDocuments} disabled={isSaving}>
