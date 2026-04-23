@@ -184,6 +184,46 @@ function mostCommonValue(arr) {
   return Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
 }
 
+/**
+ * Deep-clone an array of plain-data entity snapshots for use as a baseline.
+ * Forms mutate nested `metadata` in place; sharing references between state
+ * and originalRef would make the diff-loop's `orig !== current` comparison
+ * see equal values and silently skip the PUT. Structured-clone handles
+ * nested metadata/blobs safely.
+ */
+function snapshotCopy(items) {
+  if (!items || !Array.isArray(items)) return [];
+  try {
+    return structuredClone(items);
+  } catch {
+    // Fallback for older runtimes. File/Blob refs are dropped but baselines
+    // never hold live blobs (we null out `file` on persisted rows), so safe.
+    return JSON.parse(JSON.stringify(items));
+  }
+}
+
+/**
+ * Rebuild a baseline snapshot after a partial save so retry replays only the
+ * failed work. Mirrors the inline logic in syncEntity() for reuse in the file
+ * and document save paths where deletes/PUTs/POSTs need independent tracking.
+ */
+function rebuildBaseline({ original, working, deletedIds, putById }) {
+  const next = [];
+  for (const o of original) {
+    if (deletedIds.has(o.id)) continue;          // successfully removed
+    if (putById.has(o.id)) continue;              // replaced below
+    next.push(o);                                  // untouched (failed or unchanged)
+  }
+  for (const [, c] of putById) next.push(c);
+  const originalIds = new Set(original.map((x) => x.id).filter(Boolean));
+  for (const c of working) {
+    if (c.id && !originalIds.has(c.id) && !putById.has(c.id)) {
+      next.push(c);                                // newly-POSTed and persisted
+    }
+  }
+  return snapshotCopy(next);
+}
+
 function hasChanged(a, b, keys) {
   return keys.some((k) => (a[k] ?? null) !== (b[k] ?? null));
 }
@@ -238,32 +278,34 @@ export default function EditDocidPage() {
       setDocumentDescription(d.document_description || '');
       setAvatarUrl(d.avatar || '');
 
+      // Deep-clone the baseline so forms' in-place mutations on state
+      // don't poison the originalRef comparison. Codex v3 H1.
       const mappedCreators = (d.publication_creators || []).map(dbToFormCreator);
       setCreators(mappedCreators);
-      originalCreators.current = mappedCreators;
+      originalCreators.current = snapshotCopy(mappedCreators);
 
       const mappedOrgs = (d.publication_organizations || []).map(dbToFormOrganization);
       setOrganizations(mappedOrgs);
-      originalOrganizations.current = mappedOrgs;
+      originalOrganizations.current = snapshotCopy(mappedOrgs);
 
       const mappedFunders = (d.publication_funders || []).map(dbToFormFunder);
       setFunders(mappedFunders);
-      originalFunders.current = mappedFunders;
+      originalFunders.current = snapshotCopy(mappedFunders);
 
       const mappedProjects = (d.publication_projects || []).map(dbToFormProject);
       setProjects(mappedProjects);
-      originalProjects.current = mappedProjects;
+      originalProjects.current = snapshotCopy(mappedProjects);
 
       // Files & documents — map DB rows to PublicationsForm/DocumentsForm shape
       const mappedFiles = (d.publications_files || []).map(dbToFormFile);
       // Seed publicationType from the most common existing publication_type_id (or blank)
       const mostCommonFileType = mostCommonValue(mappedFiles.map(f => f.publicationType).filter(Boolean));
       setPublicationsData({ publicationType: mostCommonFileType || '', files: mappedFiles });
-      originalPublicationFiles.current = mappedFiles;
+      originalPublicationFiles.current = snapshotCopy(mappedFiles);
       const mappedDocs = (d.publication_documents || []).map(dbToFormDocument);
       const mostCommonDocType = mostCommonValue(mappedDocs.map(dd => dd.publicationType).filter(Boolean));
       setDocumentsData({ documentType: mostCommonDocType || '', files: mappedDocs });
-      originalPublicationDocuments.current = mappedDocs;
+      originalPublicationDocuments.current = snapshotCopy(mappedDocs);
 
       setFetchError(null);
     } catch (err) {
@@ -354,25 +396,14 @@ export default function EditDocidPage() {
     // Commit working array back to React state so UI reflects new ids.
     setter(working);
 
-    // Rebuild originalRef: drop successful deletes; replace successful PUTs
-    // with their new DB-shape; include newly-created rows; keep untouched
-    // rows; don't include items that failed (those remain "dirty" and will
-    // be retried on the next Save).
-    const nextOriginal = [];
-    for (const o of original) {
-      if (successfullyDeletedIds.has(o.id)) continue;           // gone
-      if (successfullyPutById.has(o.id)) continue;              // replaced below
-      nextOriginal.push(o);                                      // untouched
-    }
-    for (const [, c] of successfullyPutById) nextOriginal.push(c);
-    // Newly POSTed rows: any item in `working` with an id NOT in `original`.
-    const originalIds = new Set(original.map((x) => x.id).filter(Boolean));
-    for (const c of working) {
-      if (c.id && !originalIds.has(c.id) && !successfullyPutById.has(c.id)) {
-        nextOriginal.push(c);
-      }
-    }
-    originalRef.current = nextOriginal;
+    // Rebuild baseline (deep-cloned) so retry replays only failed work
+    // and subsequent edits on persisted rows are detected by diff.
+    originalRef.current = rebuildBaseline({
+      original,
+      working,
+      deletedIds: successfullyDeletedIds,
+      putById: successfullyPutById,
+    });
 
     return { added, updated, deleted, errors };
   }
@@ -448,20 +479,24 @@ export default function EditDocidPage() {
     let uploaded = 0, updated = 0, deleted = 0, errors = 0;
     const files = publicationsData.files;
     const defaultType = publicationsData.publicationType || '1';
+    const original = originalPublicationFiles.current;
+    const successfullyDeletedIds = new Set();
+    const successfullyPutById = new Map();
     try {
-      // DELETE removed files
-      for (const o of originalPublicationFiles.current) {
+      // DELETE removed files — only successful ones drop from the baseline.
+      for (const o of original) {
         if (!files.find((f) => f.id === o.id)) {
           try {
             await axios.delete(`${EDIT_BASE(publicationId)}/files/${o.id}`);
             deleted++;
-          } catch (err) { errors++; }
+            successfullyDeletedIds.add(o.id);
+          } catch (err) { errors++; console.error(`Delete file ${o.id}:`, err); }
         }
       }
       // PUT metadata changes on existing rows
       for (const f of files) {
         if (!f.id || !f.existing) continue;
-        const orig = originalPublicationFiles.current.find((x) => x.id === f.id);
+        const orig = original.find((x) => x.id === f.id);
         if (!orig) continue;
         const meta = f.metadata || {};
         const origMeta = orig.metadata || {};
@@ -479,10 +514,10 @@ export default function EditDocidPage() {
             publication_type_id: newType,
           });
           updated++;
+          successfullyPutById.set(f.id, f);
         } catch (err) { errors++; console.error('File update:', err); }
       }
-      // POST new items. PublicationsForm shape: { file: Blob, metadata: {title, description, ...}, videoUrl? }
-      // Track response.id in working copy so retry-after-partial-failure doesn't duplicate successful uploads.
+      // POST new items. Track response.id so retry doesn't duplicate.
       let working = files.slice();
       for (let i = 0; i < working.length; i++) {
         const f = working[i];
@@ -503,19 +538,18 @@ export default function EditDocidPage() {
           const response = await axios.post(`${EDIT_BASE(publicationId)}/files`, fd);
           const newId = response?.data?.id;
           if (newId) {
-            // Mark as persisted so re-Save doesn't re-upload.
             working[i] = { ...f, id: newId, existing: true, file: null };
           }
           uploaded++;
         } catch (err) { errors++; console.error('File upload:', err); }
       }
-      // Commit ids back to state so UI + retry path see persisted items.
       setPublicationsData((prev) => ({ ...prev, files: working }));
-      // Update originalRef to include newly-persisted rows so retry's diff loop
-      // treats them as existing (not re-POSTed).
-      if (working.some((f) => f.id && !originalPublicationFiles.current.find((x) => x.id === f.id))) {
-        originalPublicationFiles.current = working.filter((f) => f.id);
-      }
+      originalPublicationFiles.current = rebuildBaseline({
+        original,
+        working,
+        deletedIds: successfullyDeletedIds,
+        putById: successfullyPutById,
+      });
 
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
@@ -534,19 +568,23 @@ export default function EditDocidPage() {
     let uploaded = 0, updated = 0, deleted = 0, errors = 0;
     const docs = documentsData.files;
     const defaultType = documentsData.documentType || '1';
+    const original = originalPublicationDocuments.current;
+    const successfullyDeletedIds = new Set();
+    const successfullyPutById = new Map();
     try {
-      for (const o of originalPublicationDocuments.current) {
+      for (const o of original) {
         if (!docs.find((d) => d.id === o.id)) {
           try {
             await axios.delete(`${EDIT_BASE(publicationId)}/documents/${o.id}`);
             deleted++;
-          } catch (err) { errors++; }
+            successfullyDeletedIds.add(o.id);
+          } catch (err) { errors++; console.error(`Delete document ${o.id}:`, err); }
         }
       }
       // PUT metadata changes on existing documents
       for (const d of docs) {
         if (!d.id || !d.existing) continue;
-        const orig = originalPublicationDocuments.current.find((x) => x.id === d.id);
+        const orig = original.find((x) => x.id === d.id);
         if (!orig) continue;
         const meta = d.metadata || {};
         const origMeta = orig.metadata || {};
@@ -564,9 +602,10 @@ export default function EditDocidPage() {
             publication_type_id: newType,
           });
           updated++;
+          successfullyPutById.set(d.id, d);
         } catch (err) { errors++; console.error('Document update:', err); }
       }
-      // POST new documents. Track returned id in working copy so retry doesn't duplicate.
+      // POST new documents. Track returned id so retry doesn't duplicate.
       let working = docs.slice();
       for (let i = 0; i < working.length; i++) {
         const d = working[i];
@@ -594,9 +633,12 @@ export default function EditDocidPage() {
         } catch (err) { errors++; console.error('Document upload:', err); }
       }
       setDocumentsData((prev) => ({ ...prev, files: working }));
-      if (working.some((d) => d.id && !originalPublicationDocuments.current.find((x) => x.id === d.id))) {
-        originalPublicationDocuments.current = working.filter((d) => d.id);
-      }
+      originalPublicationDocuments.current = rebuildBaseline({
+        original,
+        working,
+        deletedIds: successfullyDeletedIds,
+        putById: successfullyPutById,
+      });
 
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',

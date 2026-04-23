@@ -50,7 +50,7 @@ const PublicationsForm = ({ formData, updateFormData }) => {
   const [selectedFileName, setSelectedFileName] = useState('');
   const [selectedIdentifier, setSelectedIdentifier] = useState('');
   const [generatedIdentifier, setGeneratedIdentifier] = useState('');
-  const [crossrefTitle, setCrossrefTitle] = useState('');
+  // crossrefTitle state removed in edit-docid fork (L1): CrossRef UI is gone.
   const [publicationTypes, setPublicationTypes] = useState([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
   const [isLoadingIdentifiers, setIsLoadingIdentifiers] = useState(false);
@@ -195,54 +195,14 @@ const PublicationsForm = ({ formData, updateFormData }) => {
     // Backend mints the Cordra handle when the file is saved.
     setSelectedIdentifier(value);
     setFindingError(false);
-    setCrossrefTitle('');
     setGeneratedIdentifier('pending');
     handleMetadataChange(index, 'identifier', value);
     handleMetadataChange(index, 'identifierType', value);
     handleMetadataChange(index, 'generated_identifier', 'pending');
   };
 
-  const generateCrossref = async (index) => {
-    if (!crossrefTitle.trim()) return;
-    
-    setLoadingIdentifiers(prev => ({ ...prev, [index]: true }));
-    setFindingError(false);
-
-    try {
-      const response = await axios.get(
-        `/api/crossref/search/?query=${encodeURIComponent(crossrefTitle)}`
-      );
-
-      if (!response.data.data || response.data.data.length === 0) {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.publications_form.errors.no_results_crossref'));
-        return;
-      }
-
-      const identifierValue = response.data.data[0]?.DOI;
-      if (identifierValue) {
-        handleMetadataChange(index, 'generated_identifier', identifierValue);
-        setGeneratedIdentifier(identifierValue);
-      } else {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.publications_form.errors.no_doi_crossref'));
-      }
-    } catch (error) {
-      console.error('Error searching CrossRef:', error);
-      setFindingError(true);
-      setFindingErrorText(t('assign_docid.publications_form.errors.failed_crossref'));
-    } finally {
-      setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const cancelCrossref = (index) => {
-    setGeneratedIdentifier('');
-    setCrossrefTitle('');
-    handleMetadataChange(index, 'identifier', '');
-    handleMetadataChange(index, 'identifierType', '');
-    handleMetadataChange(index, 'generated_identifier', '');
-  };
+  // CrossRef lookup / cancel helpers removed in edit-docid fork (L1): the
+  // identifier dropdown only offers APA Handle iD, so these were unreachable.
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -518,51 +478,13 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                   )}
                 </Grid>
                 <Grid item xs={6}>
-                  {file.metadata.identifierType && identifiers.find(type => 
-                    type.value === file.metadata.identifierType)?.label === 'CrossRef' ? (
-                      <Box>
-                        <TextField
-                          fullWidth
-                          label={t('assign_docid.publications_form.crossref_title_search')}
-                          value={crossrefTitle}
-                          onChange={(e) => setCrossrefTitle(e.target.value)}
-                          sx={{ mb: 1 }}
-                        />
-                        {!file.metadata.generated_identifier ? (
-                          <Button
-                            variant="contained"
-                            onClick={() => generateCrossref(index)}
-                            fullWidth
-                            disabled={!crossrefTitle.trim() || loadingIdentifiers[index]}
-                          >
-                            {t('assign_docid.publications_form.search_crossref')}
-                          </Button>
-                        ) : (
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <TextField
-                              fullWidth
-                              value={file.metadata.generated_identifier}
-                              label={t('assign_docid.publications_form.generated_crossref_doi')}
-                              InputProps={{ readOnly: true }}
-                            />
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              onClick={() => cancelCrossref(index)}
-                            >
-                              <CancelIcon />
-                            </Button>
-                          </Box>
-                        )}
-                      </Box>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        label={t('assign_docid.publications_form.generated_identifier')}
-                        value={file.metadata.generated_identifier || ''}
-                        InputProps={{ readOnly: true }}
-                      />
-                    )}
+                  {/* Edit-docid fork: only APA Handle iD is offered; no CrossRef UI. */}
+                  <TextField
+                    fullWidth
+                    label={t('assign_docid.publications_form.generated_identifier')}
+                    value={file.metadata.generated_identifier || ''}
+                    InputProps={{ readOnly: true }}
+                  />
                 </Grid>
               </Grid>
             </Paper>

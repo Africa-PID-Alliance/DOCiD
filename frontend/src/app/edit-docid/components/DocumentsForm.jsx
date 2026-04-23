@@ -86,11 +86,11 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   const [selectedFileName, setSelectedFileName] = useState('');
   const [selectedIdentifier, setSelectedIdentifier] = useState('');
   const [generatedIdentifier, setGeneratedIdentifier] = useState('');
-  const [crossrefTitle, setCrossrefTitle] = useState('');
+  // crossrefTitle state removed in edit-docid fork (L1): CrossRef UI is gone.
   const [loadingIdentifiers, setLoadingIdentifiers] = useState({});
   const [findingError, setFindingError] = useState(false);
   const [findingErrorText, setFindingErrorText] = useState('');
-  const [cstrIdentifier, setCstrIdentifier] = useState('');
+  // cstrIdentifier state removed in edit-docid fork (L1): CSTR UI is gone.
   const [rridModalOpen, setRridModalOpen] = useState(false);
   const [rridModalFileIndex, setRridModalFileIndex] = useState(null);
   
@@ -270,101 +270,14 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     // review. Backend mints the Cordra handle when the document is saved.
     setSelectedIdentifier(value);
     setFindingError(false);
-    setCrossrefTitle('');
     setGeneratedIdentifier('pending');
     handleMetadataChange(index, 'identifier', value);
     handleMetadataChange(index, 'identifierType', value);
     handleMetadataChange(index, 'generated_identifier', 'pending');
   };
 
-  const generateCrossref = async (index) => {
-    if (!crossrefTitle.trim()) return;
-    
-    setLoadingIdentifiers(prev => ({ ...prev, [index]: true }));
-    setFindingError(false);
-
-    try {
-      const response = await axios.get(
-        `/api/crossref/search/?query=${encodeURIComponent(crossrefTitle)}`
-      );
-
-      if (!response.data.data || response.data.data.length === 0) {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.documents_form.errors.no_results_crossref'));
-        return;
-      }
-
-      const identifierValue = response.data.data[0]?.DOI;
-      if (identifierValue) {
-        handleMetadataChange(index, 'generated_identifier', identifierValue);
-        setGeneratedIdentifier(identifierValue);
-      } else {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.documents_form.errors.no_doi_crossref'));
-      }
-    } catch (error) {
-      console.error('Error searching CrossRef:', error);
-      setFindingError(true);
-      setFindingErrorText(t('assign_docid.documents_form.errors.failed_crossref'));
-    } finally {
-      setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const cancelCrossref = (index) => {
-    setGeneratedIdentifier('');
-    setCrossrefTitle('');
-    handleMetadataChange(index, 'identifier', '');
-    handleMetadataChange(index, 'identifierType', '');
-    handleMetadataChange(index, 'generated_identifier', '');
-  };
-
-  const generateCstr = async (index) => {
-    if (!cstrIdentifier.trim()) return;
-    
-    console.log('Generating CSTR with identifier:', cstrIdentifier);
-    setLoadingIdentifiers(prev => ({ ...prev, [index]: true }));
-    setFindingError(false);
-
-    try {
-      const response = await axios.get(
-        `/api/cstr/detail?identifier=${encodeURIComponent(cstrIdentifier)}`
-      );
-
-      console.log('CSTR API Response:', response.data);
-
-      if (!response.data.data || !response.data.data.alternative_identifiers) {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.documents_form.errors.no_results_cstr'));
-        return;
-      }
-
-      const identifierValue = response.data.data.alternative_identifiers[0].identifier;
-      console.log('Generated CSTR identifier:', identifierValue);
-      
-      if (identifierValue) {
-        handleMetadataChange(index, 'generated_identifier', identifierValue);
-        setGeneratedIdentifier(identifierValue);
-      } else {
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.documents_form.errors.no_identifier_cstr'));
-      }
-    } catch (error) {
-      console.error('Error searching CSTR:', error);
-      setFindingError(true);
-      setFindingErrorText(t('assign_docid.documents_form.errors.failed_cstr'));
-    } finally {
-      setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const cancelCstr = (index) => {
-    setGeneratedIdentifier('');
-    setCstrIdentifier('');
-    handleMetadataChange(index, 'identifier', '');
-    handleMetadataChange(index, 'identifierType', '');
-    handleMetadataChange(index, 'generated_identifier', '');
-  };
+  // CrossRef and CSTR lookup / cancel helpers removed in edit-docid fork (L1):
+  // the identifier dropdown only offers APA Handle iD, so these were unreachable.
 
   const handleAddAnotherDocument = () => {
     // Don't reset the selectedType - this was causing the upload section to disappear
@@ -686,88 +599,13 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   )}
                 </Grid>
                 <Grid item xs={6}>
-                  {file.metadata.identifierType && identifiers.find(type => 
-                    type.value === file.metadata.identifierType)?.label === 'CrossRef' ? (
-                      <Box>
-                        <TextField
-                          fullWidth
-                          label={t('assign_docid.documents_form.crossref_title_search')}
-                          value={crossrefTitle}
-                          onChange={(e) => setCrossrefTitle(e.target.value)}
-                          sx={{ mb: 1 }}
-                        />
-                        {!file.metadata.generated_identifier ? (
-                          <Button
-                            variant="contained"
-                            onClick={() => generateCrossref(index)}
-                            fullWidth
-                            disabled={!crossrefTitle.trim() || loadingIdentifiers[index]}
-                          >
-                            {t('assign_docid.documents_form.search_crossref')}
-                          </Button>
-                        ) : (
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <TextField
-                              fullWidth
-                              value={file.metadata.generated_identifier}
-                              label={t('assign_docid.documents_form.generated_crossref_doi')}
-                              InputProps={{ readOnly: true }}
-                            />
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              onClick={() => cancelCrossref(index)}
-                            >
-                              <CancelIcon />
-                            </Button>
-                          </Box>
-                        )}
-                      </Box>
-                    ) : file.metadata.identifierType && identifiers.find(type => 
-                      type.value === file.metadata.identifierType)?.label === 'CSTR PID' ? (
-                        <Box>
-                          <TextField
-                            fullWidth
-                            label={t('assign_docid.documents_form.cstr_identifier')}
-                            value={cstrIdentifier}
-                            onChange={(e) => setCstrIdentifier(e.target.value)}
-                            sx={{ mb: 1 }}
-                          />
-                          {!file.metadata.generated_identifier ? (
-                            <Button
-                              variant="contained"
-                              onClick={() => generateCstr(index)}
-                              fullWidth
-                              disabled={!cstrIdentifier.trim() || loadingIdentifiers[index]}
-                            >
-                              {t('assign_docid.documents_form.search_cstr')}
-                            </Button>
-                          ) : (
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <TextField
-                                fullWidth
-                                value={file.metadata.generated_identifier}
-                                label={t('assign_docid.documents_form.generated_cstr_identifier')}
-                                InputProps={{ readOnly: true }}
-                              />
-                              <Button
-                                variant="outlined"
-                                color="error"
-                                onClick={() => cancelCstr(index)}
-                              >
-                                <CancelIcon />
-                              </Button>
-                            </Box>
-                          )}
-                        </Box>
-                      ) : (
-                        <TextField
-                          fullWidth
-                          label={t('assign_docid.documents_form.generated_identifier')}
-                          value={file.metadata.generated_identifier || ''}
-                          InputProps={{ readOnly: true }}
-                        />
-                      )}
+                  {/* Edit-docid fork: only APA Handle iD is offered; no CrossRef/CSTR UI. */}
+                  <TextField
+                    fullWidth
+                    label={t('assign_docid.documents_form.generated_identifier')}
+                    value={file.metadata.generated_identifier || ''}
+                    InputProps={{ readOnly: true }}
+                  />
                 </Grid>
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
