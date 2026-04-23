@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import {
   Box,
   Container,
@@ -26,6 +25,7 @@ import {
   Link,
   IconButton,
   Chip,
+  Stack,
 } from '@mui/material';
 import {
   Comment as CommentIcon,
@@ -43,6 +43,7 @@ import {
   OpenInNew as OpenInNewIcon,
   Add as AddIcon,
   History as HistoryIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import EmailIcon from '@mui/icons-material/Email';
 import FacebookIcon from '@mui/icons-material/Facebook';
@@ -68,8 +69,6 @@ const IDENTIFIER_TYPE_LABELS = {
 };
 
 const DocIDPage = ({ params }) => {
-  const searchParams = useSearchParams();
-  const lcDemoProjectId = searchParams?.get('lc_demo') || null;
   const [comment, setComment] = useState('');
   const [docData, setDocData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -756,12 +755,17 @@ const DocIDPage = ({ params }) => {
       fullUrl = 'https://' + fileUrl;
     } else {
       // Local file path — construct with base URL
-      const baseUrl = '';
+      const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
+      if (!baseUrl) {
+        console.error('No base URL configured for file downloads');
+        alert(t('docid_page.file_errors.no_config'));
+        return;
+      }
 
       // Ensure proper URL construction
       const cleanFileUrl = fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl;
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-      fullUrl = cleanBaseUrl ? `${cleanBaseUrl}/${cleanFileUrl}` : `/${cleanFileUrl}`;
+      fullUrl = `${cleanBaseUrl}/${cleanFileUrl}`;
     }
 
     console.log('Opening file:', fullUrl);
@@ -902,7 +906,7 @@ const DocIDPage = ({ params }) => {
                   src={docData.publication_poster_url
                     ? (docData.publication_poster_url.startsWith('http')
                       ? docData.publication_poster_url
-                      : `/${docData.publication_poster_url.replace(/^\/+/, '')}`)
+                      : `${process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || ''}/${docData.publication_poster_url}`)
                     : (docData.avatar || '/assets/images/logo2.png')}
                   alt="DOCiD"
                   onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}
@@ -1434,14 +1438,8 @@ const DocIDPage = ({ params }) => {
                 </DialogContent>
               </Dialog>
               
-              {/* Local Contexts TK/BC Labels Section — hidden when no labels attached.
-                  Supports ?lc_demo=<project_uuid> query param to preview an LC Hub
-                  project on any DOCiD without a full attach flow. */}
-              {publicationId && (
-                lcDemoProjectId
-                  ? <LocalContextsLabels projectId={lcDemoProjectId} />
-                  : <LocalContextsLabels publicationId={publicationId} />
-              )}
+              {/* Local Contexts TK/BC Labels Section — hidden when no labels attached */}
+              {publicationId && <LocalContextsLabels publicationId={publicationId} />}
 
               {/* Sections */}
               {sectionData.map((section, idx) => (
@@ -2180,23 +2178,37 @@ const DocIDPage = ({ params }) => {
           </Grid>
           {/* Sidebar */}
           <Grid item xs={12} md={4}>
-            {/* New Version Button (owner only) */}
+            {/* Edit + New Version Buttons (owner only) */}
             {isAuthenticated && docData?.user_id && (String(user?.id) === String(docData.user_id) || String(user?.user_id) === String(docData.user_id)) && (
               <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  startIcon={<AddIcon />}
-                  onClick={() => { window.location.href = `/version-docid?parentId=${publicationId}`; }}
-                  sx={{
-                    bgcolor: '#1565c0',
-                    fontWeight: 600,
-                    py: 1.5,
-                    '&:hover': { bgcolor: '#1976d2' }
-                  }}
-                >
-                  New Version
-                </Button>
+                <Stack spacing={1.5}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    startIcon={<EditIcon />}
+                    onClick={() => { window.location.href = `/edit-docid/${publicationId}`; }}
+                    sx={{
+                      bgcolor: '#2e7d32',
+                      fontWeight: 600,
+                      py: 1.5,
+                      '&:hover': { bgcolor: '#388e3c' }
+                    }}
+                  >
+                    Edit DOCiD
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<AddIcon />}
+                    onClick={() => { window.location.href = `/version-docid?parentId=${publicationId}`; }}
+                    sx={{
+                      fontWeight: 600,
+                      py: 1.5,
+                    }}
+                  >
+                    New Version
+                  </Button>
+                </Stack>
               </Paper>
             )}
 
