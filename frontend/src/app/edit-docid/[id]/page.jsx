@@ -295,9 +295,20 @@ export default function EditDocidPage() {
   };
 
   // ---- Generic diff-sync ----
-  async function syncEntity({ endpoint, current, originalRef, toDb, compareKeys, label }) {
+  // `setter` is the React setState for `current`; used to update in-memory
+  // state with returned ids from successful POSTs, so retry-after-partial-
+  // failure doesn't re-POST items that actually succeeded the first time.
+  async function syncEntity({ endpoint, current, setter, originalRef, toDb, compareKeys, label }) {
     const original = originalRef.current;
     let added = 0, updated = 0, deleted = 0, errors = 0;
+
+    // Make a mutable working copy we can patch with new ids.
+    let working = current.slice();
+
+    // Track which originals we successfully deleted so we can drop them from
+    // the baseline on return; failed deletes stay in `original` so retry
+    // re-attempts them.
+    const successfullyDeletedIds = new Set();
 
     // DELETEs first
     for (const o of original) {
@@ -305,29 +316,64 @@ export default function EditDocidPage() {
         try {
           await axios.delete(`${EDIT_BASE(publicationId)}/${endpoint}/${o.id}`);
           deleted++;
+          successfullyDeletedIds.add(o.id);
         } catch (err) { errors++; console.error(`Delete ${label} ${o.id}:`, err); }
       }
     }
-    // POSTs for new items (no id)
-    for (const c of current) {
-      if (!c.id) {
-        try {
-          await axios.post(`${EDIT_BASE(publicationId)}/${endpoint}`, toDb(c));
-          added++;
-        } catch (err) { errors++; console.error(`Add ${label}:`, err); }
-      }
+
+    // POSTs for new items (no id). On success, record the returned id in
+    // `working` so the next save won't re-POST the same row.
+    for (let i = 0; i < working.length; i++) {
+      const c = working[i];
+      if (c.id) continue;
+      try {
+        const response = await axios.post(`${EDIT_BASE(publicationId)}/${endpoint}`, toDb(c));
+        const newId = response?.data?.id;
+        if (newId) {
+          working[i] = { ...c, id: newId };
+        }
+        added++;
+      } catch (err) { errors++; console.error(`Add ${label}:`, err); }
     }
-    // PUTs for changed
-    for (const c of current) {
+
+    // PUTs for changed rows (must use `working` post-POST because a failed
+    // POST leaves the row id-less, which correctly skips this loop for it).
+    const successfullyPutById = new Map();
+    for (const c of working) {
       if (!c.id) continue;
       const o = original.find((x) => x.id === c.id);
       if (o && hasChanged(toDb(o), toDb(c), compareKeys)) {
         try {
           await axios.put(`${EDIT_BASE(publicationId)}/${endpoint}/${c.id}`, toDb(c));
           updated++;
+          successfullyPutById.set(c.id, c);
         } catch (err) { errors++; console.error(`Update ${label} ${c.id}:`, err); }
       }
     }
+
+    // Commit working array back to React state so UI reflects new ids.
+    setter(working);
+
+    // Rebuild originalRef: drop successful deletes; replace successful PUTs
+    // with their new DB-shape; include newly-created rows; keep untouched
+    // rows; don't include items that failed (those remain "dirty" and will
+    // be retried on the next Save).
+    const nextOriginal = [];
+    for (const o of original) {
+      if (successfullyDeletedIds.has(o.id)) continue;           // gone
+      if (successfullyPutById.has(o.id)) continue;              // replaced below
+      nextOriginal.push(o);                                      // untouched
+    }
+    for (const [, c] of successfullyPutById) nextOriginal.push(c);
+    // Newly POSTed rows: any item in `working` with an id NOT in `original`.
+    const originalIds = new Set(original.map((x) => x.id).filter(Boolean));
+    for (const c of working) {
+      if (c.id && !originalIds.has(c.id) && !successfullyPutById.has(c.id)) {
+        nextOriginal.push(c);
+      }
+    }
+    originalRef.current = nextOriginal;
+
     return { added, updated, deleted, errors };
   }
 
@@ -339,6 +385,7 @@ export default function EditDocidPage() {
         result = await syncEntity({
           endpoint: 'creators',
           current: creators,
+          setter: setCreators,
           originalRef: originalCreators,
           toDb: formToDbCreator,
           compareKeys: ['family_name', 'given_name', 'identifier', 'affiliation', 'role_id'],
@@ -348,6 +395,7 @@ export default function EditDocidPage() {
         result = await syncEntity({
           endpoint: 'organizations',
           current: organizations,
+          setter: setOrganizations,
           originalRef: originalOrganizations,
           toDb: formToDbOrganization,
           compareKeys: ['name', 'type', 'other_name', 'country', 'identifier', 'rrid'],
@@ -357,6 +405,7 @@ export default function EditDocidPage() {
         result = await syncEntity({
           endpoint: 'funders',
           current: funders,
+          setter: setFunders,
           originalRef: originalFunders,
           toDb: formToDbFunder,
           compareKeys: ['name', 'type', 'other_name', 'country', 'identifier'],
@@ -366,6 +415,7 @@ export default function EditDocidPage() {
         result = await syncEntity({
           endpoint: 'projects',
           current: projects,
+          setter: setProjects,
           originalRef: originalProjects,
           toDb: formToDbProject,
           compareKeys: ['title', 'description', 'raid_id', 'identifier'],
@@ -432,25 +482,41 @@ export default function EditDocidPage() {
         } catch (err) { errors++; console.error('File update:', err); }
       }
       // POST new items. PublicationsForm shape: { file: Blob, metadata: {title, description, ...}, videoUrl? }
-      for (const f of files) {
+      // Track response.id in working copy so retry-after-partial-failure doesn't duplicate successful uploads.
+      let working = files.slice();
+      for (let i = 0; i < working.length; i++) {
+        const f = working[i];
         if (f.id || f.existing) continue;
         const meta = f.metadata || {};
+        const fd = new FormData();
+        fd.append('title', meta.title || f.name || f.file?.name || 'Untitled');
+        fd.append('description', meta.description || '');
+        fd.append('publication_type_id', f.publicationType || defaultType);
+        if (f.videoUrl) {
+          fd.append('video_url', f.videoUrl);
+        } else if (f.file instanceof File || f.file instanceof Blob) {
+          fd.append('file', f.file);
+        } else {
+          continue;
+        }
         try {
-          const fd = new FormData();
-          fd.append('title', meta.title || f.name || f.file?.name || 'Untitled');
-          fd.append('description', meta.description || '');
-          fd.append('publication_type_id', f.publicationType || defaultType);
-          if (f.videoUrl) {
-            fd.append('video_url', f.videoUrl);
-          } else if (f.file instanceof File || f.file instanceof Blob) {
-            fd.append('file', f.file);
-          } else {
-            continue;
+          const response = await axios.post(`${EDIT_BASE(publicationId)}/files`, fd);
+          const newId = response?.data?.id;
+          if (newId) {
+            // Mark as persisted so re-Save doesn't re-upload.
+            working[i] = { ...f, id: newId, existing: true, file: null };
           }
-          await axios.post(`${EDIT_BASE(publicationId)}/files`, fd);
           uploaded++;
         } catch (err) { errors++; console.error('File upload:', err); }
       }
+      // Commit ids back to state so UI + retry path see persisted items.
+      setPublicationsData((prev) => ({ ...prev, files: working }));
+      // Update originalRef to include newly-persisted rows so retry's diff loop
+      // treats them as existing (not re-POSTed).
+      if (working.some((f) => f.id && !originalPublicationFiles.current.find((x) => x.id === f.id))) {
+        originalPublicationFiles.current = working.filter((f) => f.id);
+      }
+
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
         text: `Files: ${uploaded} uploaded, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
@@ -500,26 +566,38 @@ export default function EditDocidPage() {
           updated++;
         } catch (err) { errors++; console.error('Document update:', err); }
       }
-      for (const d of docs) {
+      // POST new documents. Track returned id in working copy so retry doesn't duplicate.
+      let working = docs.slice();
+      for (let i = 0; i < working.length; i++) {
+        const d = working[i];
         if (d.id || d.existing) continue;
         const meta = d.metadata || {};
+        const fd = new FormData();
+        fd.append('title', meta.title || d.name || d.file?.name || 'Untitled');
+        fd.append('description', meta.description || '');
+        fd.append('publication_type_id', d.publicationType || defaultType);
+        fd.append('identifier_type_id', meta.identifierType || '1');
+        if (d.videoUrl) {
+          fd.append('video_url', d.videoUrl);
+        } else if (d.file instanceof File || d.file instanceof Blob) {
+          fd.append('file', d.file);
+        } else {
+          continue;
+        }
         try {
-          const fd = new FormData();
-          fd.append('title', meta.title || d.name || d.file?.name || 'Untitled');
-          fd.append('description', meta.description || '');
-          fd.append('publication_type_id', d.publicationType || defaultType);
-          fd.append('identifier_type_id', meta.identifierType || '1');
-          if (d.videoUrl) {
-            fd.append('video_url', d.videoUrl);
-          } else if (d.file instanceof File || d.file instanceof Blob) {
-            fd.append('file', d.file);
-          } else {
-            continue;
+          const response = await axios.post(`${EDIT_BASE(publicationId)}/documents`, fd);
+          const newId = response?.data?.id;
+          if (newId) {
+            working[i] = { ...d, id: newId, existing: true, file: null };
           }
-          await axios.post(`${EDIT_BASE(publicationId)}/documents`, fd);
           uploaded++;
         } catch (err) { errors++; console.error('Document upload:', err); }
       }
+      setDocumentsData((prev) => ({ ...prev, files: working }));
+      if (working.some((d) => d.id && !originalPublicationDocuments.current.find((x) => x.id === d.id))) {
+        originalPublicationDocuments.current = working.filter((d) => d.id);
+      }
+
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
         text: `Documents: ${uploaded} uploaded, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,

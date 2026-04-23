@@ -264,57 +264,17 @@ const DocumentsForm = ({ formData, updateFormData }) => {
     });
   };
 
-  const handleIdentifierChange = async (index, value) => {
-    console.log('handleIdentifierChange called with:', { index, value });
+  const handleIdentifierChange = (index, value) => {
+    // Edit-docid fork: only APA Handle iD (value=1) is offered in the
+    // dropdown. Dead DataCite/CrossRef/CSTR branches removed per Codex v2
+    // review. Backend mints the Cordra handle when the document is saved.
     setSelectedIdentifier(value);
-    const selectedType = identifiers.find(type => type.value === value)?.label;
-    console.log('Selected identifier type:', selectedType);
-    
-    if (value === 1) { // APA Handle iD — edit-docid mode: defer mint to save
-      // Do NOT mint here. Backend POST /publications/<id>/documents mints
-      // the Cordra handle atomically when the document is saved.
-      setFindingError(false);
-      setCrossrefTitle('');
-      setGeneratedIdentifier('pending');
-      handleMetadataChange(index, 'identifier', value);
-      handleMetadataChange(index, 'identifierType', value);
-      handleMetadataChange(index, 'generated_identifier', 'pending');
-    } else if (value === 2) { // Datacite
-      setLoadingIdentifiers(prev => ({ ...prev, [index]: true }));
-      setFindingError(false);
-      setCrossrefTitle('');
-      setGeneratedIdentifier('');
-
-      try {
-        const response = await axios.get('/api/datacite/get-doi');
-        const identifierValue = response.data.doi;
-        handleMetadataChange(index, 'identifier', value);
-        handleMetadataChange(index, 'identifierType', value);
-        handleMetadataChange(index, 'generated_identifier', identifierValue);
-      } catch (error) {
-        console.error('Error fetching Data Cite:', error);
-        setFindingError(true);
-        setFindingErrorText(t('assign_docid.documents_form.errors.failed_datacite'));
-      } finally {
-        setLoadingIdentifiers(prev => ({ ...prev, [index]: false }));
-      }
-    } else if (value === 3) { // Crossref
-      // Reset states for CrossRef search
-      setGeneratedIdentifier('');
-      setCrossrefTitle('');
-      setFindingError(false);
-      handleMetadataChange(index, 'identifier', value);
-      handleMetadataChange(index, 'identifierType', value);
-      handleMetadataChange(index, 'generated_identifier', '');
-    } else if (value === 4) { // CSTR PID
-      console.log('CSTR PID selected, resetting states');
-      setGeneratedIdentifier('');
-      setCstrIdentifier('');
-      setFindingError(false);
-      handleMetadataChange(index, 'identifier', value);
-      handleMetadataChange(index, 'identifierType', value);
-      handleMetadataChange(index, 'generated_identifier', '');
-    }
+    setFindingError(false);
+    setCrossrefTitle('');
+    setGeneratedIdentifier('pending');
+    handleMetadataChange(index, 'identifier', value);
+    handleMetadataChange(index, 'identifierType', value);
+    handleMetadataChange(index, 'generated_identifier', 'pending');
   };
 
   const generateCrossref = async (index) => {
