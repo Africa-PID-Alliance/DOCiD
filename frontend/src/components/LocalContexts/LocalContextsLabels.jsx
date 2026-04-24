@@ -230,10 +230,16 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   // No data
   if (!labelData) return null;
 
-  // Collect all labels and notices
+  // Collect all labels and notices.
+  // LC Hub v2 returns `notice` as an array when present, but older paths return a single object — handle both.
   const tkLabels = labelData.tk_labels || [];
   const bcLabels = labelData.bc_labels || [];
-  const notices = labelData.notice ? [labelData.notice] : [];
+  const rawNotice = labelData.notice;
+  const notices = Array.isArray(rawNotice)
+    ? rawNotice
+    : rawNotice
+      ? [rawNotice]
+      : [];
   const totalLabelCount = tkLabels.length + bcLabels.length + notices.length;
 
   if (totalLabelCount === 0) return null;

@@ -1447,8 +1447,9 @@ def create_publication():
         publication_poster_url = None
         if publication_poster:
             poster_filename = publication_poster.filename
-            publication_poster.save(f'{Config.UPLOADS_DIRECTORY}/{poster_filename}')
-            base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+            publication_poster.save(f'uploads/{poster_filename}')
+            # Always use production domain for consistency
+            base_url = 'https://docid.africapidalliance.org'
             publication_poster_url = f'{base_url}/uploads/{poster_filename}'
             logger.info(f"Publication poster saved: {publication_poster_url}")
 
@@ -1533,8 +1534,9 @@ def create_publication():
 
             if file:
                 file_filename = file.filename
-                file.save(f'{Config.UPLOADS_DIRECTORY}/{file_filename}')
-                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+                file.save(f'uploads/{file_filename}')
+                # Always use production domain for consistency
+                base_url = 'https://docid.africapidalliance.org'
                 file_url = f'{base_url}/uploads/{file_filename}'
                 logger.info(f"File saved: {file_url}")
 
@@ -1662,8 +1664,9 @@ def create_publication():
 
           if file:
               file_filename = file.filename
-              file.save(f'{Config.UPLOADS_DIRECTORY}/{file_filename}')
-              base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+              file.save(f'uploads/{file_filename}')
+              # Always use production domain for consistency
+              base_url = 'https://docid.africapidalliance.org'
               file_url = f'{base_url}/uploads/{file_filename}'
               logger.info(f"File saved: {file_url}")
 
@@ -2495,6 +2498,7 @@ def get_drafts_by_user_id(user_id):
 
 
 @publications_bp.route('/update-publication/<int:publication_id>', methods=['PUT'])
+@jwt_required()
 def update_publication(publication_id):
     """
     Update an existing publication
@@ -2571,18 +2575,13 @@ def update_publication(publication_id):
     """
     try:
         logger.info(f"=== START: Update Publication Request for ID {publication_id} at {datetime.now()} ===")
-        
-        # Get user_id from form data
-        user_id_str = request.form.get('user_id')
-        if not user_id_str:
-            logger.warning("Missing user_id in update request")
-            return jsonify({'message': 'User ID is required'}), 400
-        
+
+        # Identity comes from the signed JWT, not from client-supplied form fields.
+        from flask_jwt_extended import get_jwt_identity
         try:
-            user_id = int(user_id_str)
-        except ValueError:
-            logger.warning(f"Invalid user_id format: {user_id_str}")
-            return jsonify({'message': 'Invalid user_id format (must be an integer)'}), 400
+            user_id = int(get_jwt_identity())
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Authentication required'}), 401
         
         # Check if publication exists and user owns it
         publication = Publications.query.filter_by(id=publication_id).first()
@@ -2684,15 +2683,21 @@ def update_publication(publication_id):
         # Handle file uploads (publication poster)
         publication_poster = request.files.get('publicationPoster')
         if publication_poster and publication_poster.filename:
-            # TODO: Implement file upload logic similar to create_publication
-            # This would involve saving the file and updating publication_poster_url
-            logger.info(f"New publication poster uploaded: {publication_poster.filename}")
-            # For now, log the change without implementing full file upload
+            from werkzeug.utils import secure_filename
+            from urllib.parse import quote as url_quote
+            poster_filename = secure_filename(publication_poster.filename)
+            os.makedirs('uploads', exist_ok=True)
+            publication_poster.save(f'uploads/{poster_filename}')
+            base_url = (os.environ.get('PUBLIC_BASE_URL') or 'https://docid.africapidalliance.org').rstrip('/')
+            new_poster_url = f"{base_url}/uploads/{url_quote(poster_filename)}"
+            old_poster_url = publication.publication_poster_url
+            publication.publication_poster_url = new_poster_url[:255]
             changes_made.append({
                 'field': 'publication_poster_url',
-                'old_value': publication.publication_poster_url,
-                'new_value': f'New file: {publication_poster.filename}'
+                'old_value': old_poster_url,
+                'new_value': new_poster_url,
             })
+            logger.info(f"Publication poster updated to {new_poster_url}")
         
         # Update the updated_at and updated_by fields
         publication.updated_at = datetime.utcnow()
@@ -2743,6 +2748,7 @@ def update_publication(publication_id):
 
 # Helper endpoint to get publication for editing (with user ownership validation)
 @publications_bp.route('/get-publication-for-edit/<int:publication_id>', methods=['GET'])
+@jwt_required()
 def get_publication_for_edit(publication_id):
     """
     Get publication data specifically for editing purposes
@@ -2778,16 +2784,13 @@ def get_publication_for_edit(publication_id):
     """
     try:
         logger.info(f"Get publication for edit: ID={publication_id}")
-        
-        # Get and validate user_id
-        user_id_str = request.args.get('user_id')
-        if not user_id_str:
-            return jsonify({'message': 'User ID parameter is required'}), 400
-        
+
+        # Identity comes from the signed JWT, not from query string.
+        from flask_jwt_extended import get_jwt_identity
         try:
-            user_id = int(user_id_str)
-        except ValueError:
-            return jsonify({'message': 'Invalid user_id format (must be an integer)'}), 400
+            user_id = int(get_jwt_identity())
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Authentication required'}), 401
         
         # Check if publication exists
         publication = Publications.query.filter_by(id=publication_id).first()
@@ -3334,8 +3337,8 @@ def create_version():
         publication_poster_url = None
         if publication_poster:
             poster_filename = publication_poster.filename
-            publication_poster.save(f'{Config.UPLOADS_DIRECTORY}/{poster_filename}')
-            base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+            publication_poster.save(f'uploads/{poster_filename}')
+            base_url = 'https://docid.africapidalliance.org'
             publication_poster_url = f'{base_url}/uploads/{poster_filename}'
 
         # --- Create the versioned publication record ---
@@ -3387,8 +3390,8 @@ def create_version():
             file_name = ''
             if file:
                 file_name = file.filename
-                file.save(f'{Config.UPLOADS_DIRECTORY}/{file_name}')
-                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+                file.save(f'uploads/{file_name}')
+                base_url = 'https://docid.africapidalliance.org'
                 file_url = f'{base_url}/uploads/{file_name}'
             elif video_url:
                 file_url = video_url
@@ -3428,8 +3431,8 @@ def create_version():
             doc_file_url = ''
             if doc_file:
                 doc_filename = doc_file.filename
-                doc_file.save(f'{Config.UPLOADS_DIRECTORY}/{doc_filename}')
-                base_url = Config.APPLICATION_BASE_URL.rstrip('/')
+                doc_file.save(f'uploads/{doc_filename}')
+                base_url = 'https://docid.africapidalliance.org'
                 doc_file_url = f'{base_url}/uploads/{doc_filename}'
             elif doc_video_url:
                 doc_file_url = doc_video_url

@@ -9,8 +9,13 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
+  const pubApiUrl = process.env.NEXT_PUBLIC_ORCID_PUB_API_URL;
+  if (!pubApiUrl) {
+    return NextResponse.json({ error: 'NEXT_PUBLIC_ORCID_PUB_API_URL not configured' }, { status: 500 });
+  }
+
   try {
-    const response = await fetch(`https://sandbox.orcid.org/v3.0/${orcidId}/person`, {
+    const response = await fetch(`${pubApiUrl}/v3.0/${orcidId}/person`, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',

@@ -181,7 +181,7 @@ const LoginPage = () => {
           const redirectUri = `${baseUrl}/callback/orcid`;
           const scope = process.env.NEXT_PUBLIC_ORCID_SCOPE || '/authenticate';
           const clientId = process.env.NEXT_PUBLIC_ORCID_CLIENT_ID;
-          const orcidAuthorizeUrl = process.env.NEXT_PUBLIC_ORCID_SANDBOX_URL;
+          const orcidAuthorizeUrl = process.env.NEXT_PUBLIC_ORCID_AUTHORIZE_URL;
           
           const authUrl = `${orcidAuthorizeUrl}?client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${redirectUri}`;
           console.log('authUrl', authUrl);
