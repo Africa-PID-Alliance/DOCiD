@@ -140,7 +140,9 @@ test_*.jpg
 !.planning/**/*.md
 
 # Utility/import/sync scripts (contain credentials, local paths, test data)
-backend/scripts/
+# Keep bootstrap in repo so Docker images can run DB init on deploy.
+backend/scripts/*
+!backend/scripts/bootstrap_and_seed.sh
 
 # Planning/overview documents
 FIGSHARE-OJS/
@@ -157,8 +159,8 @@ frontend/playwright/.cache/
 # Standalone DB admin tool (deployed via SSH only)
 backend/db-admin/
 
-# Deployment scripts (contain server-specific configurations)
-scripts/
+# Deployment scripts (contain server-specific configurations) — repo root only
+/scripts/
 
 # Server documentation/notes
 UBUNTU-ALLIANCE/
