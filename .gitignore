@@ -41,14 +41,12 @@ backend/.env
 backend/uploads/
 
 # Dockerization artifacts (local-only)
-.env.docker
-.env.docker.*
-.env.example
-docker-compose.yml
 docker-compose.*.yml
+docker-compose.yml
 backend/Dockerfile
 frontend/Dockerfile
 backend/.env
+frontend/.env
 
 # Node
 node_modules/

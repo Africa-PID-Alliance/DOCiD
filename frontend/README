@@ -1,0 +1,25 @@
+Frontend Environment Files
+
+Current standard:
+- Do not use tracked runtime env files for local/prod values.
+- Use tracked templates, then copy to untracked runtime file.
+
+Templates:
+- `frontend/.env.example`
+
+Runtime file:
+- `frontend/.env` (gitignored)
+
+Usage:
+- Any environment:
+  - `cp frontend/.env.example frontend/.env`
+  - Edit values for that environment (local/dev/staging/prod)
+
+Notes:
+- Keep all secrets blank in tracked templates.
+- Fill `frontend/.env` per environment on the target machine.
+- If backend ports change, update:
+  - `BACKEND_API_URL`
+  - `API_BASE_URL`
+  - `NEXT_PUBLIC_API_BASE_URL`
+  - `BACKEND_UPLOAD_ORIGIN`

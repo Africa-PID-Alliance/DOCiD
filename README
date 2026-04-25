@@ -1,0 +1,38 @@
+DOCiD - Environment Configuration Guide
+
+This project now uses template-first environment management.
+
+1) Root stack env (Docker Compose)
+- Template: `.env.example`
+- Runtime file: `.env` (local/server, untracked)
+- Purpose: ports, database connection, backend/frontend service wiring.
+
+Setup:
+- Copy `.env.example` to `.env`
+- Fill required values (especially secrets and credentials)
+
+Example:
+- `cp .env.example .env`
+
+2) Frontend env (single shared template)
+- Template: `frontend/.env.example`
+- Runtime file used by frontend: `frontend/.env` (untracked)
+
+Setup:
+- Any environment: `cp frontend/.env.example frontend/.env`
+- Fill required values (client secrets, SMTP creds, etc.)
+
+3) Security rules
+- Never commit real credentials.
+- Tracked `*.example` files keep keys and non-sensitive defaults only.
+- Real env files are gitignored.
+
+4) Port conventions used in current templates
+- Frontend host port: `3001`
+- Backend host/container port: `5002`
+- Postgres host port: `5432` (adjust if needed per server)
+
+5) Typical container startup
+- `docker compose --env-file .env up --build -d db redis backend frontend`
+- First-time DB init:
+  - `docker compose --env-file .env --profile bootstrap up --build backend-bootstrap`
