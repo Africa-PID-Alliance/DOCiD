@@ -1,10 +1,15 @@
-const INTERNAL_API_BASE = 'http://backend:5001/api/v1';
-const INTERNAL_BACKEND_BASE = 'http://backend:5001/api';
+function getRequiredEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
 
 export function getBackendApiV1BaseUrl() {
-  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || INTERNAL_API_BASE;
+  return process.env.API_BASE_URL || getRequiredEnv('NEXT_PUBLIC_API_BASE_URL');
 }
 
 export function getBackendApiBaseUrl() {
-  return process.env.BACKEND_API_URL || INTERNAL_BACKEND_BASE;
+  return getRequiredEnv('BACKEND_API_URL');
 }

@@ -7,4 +7,4 @@
  * constant ends in `/api` (no `/v1`). For versioned routes use
  * process.env.NEXT_PUBLIC_API_BASE_URL which ends in `/api/v1`.
  */
-export const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5001/api';
+export const BACKEND_API_URL = process.env.BACKEND_API_URL;
