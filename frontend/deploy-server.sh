@@ -61,7 +61,7 @@ fi
 if [ ! -f ".env.production" ]; then
     print_error ".env.production file not found!"
     echo "Please ensure .env.production exists with:"
-    echo "NEXT_PUBLIC_API_BASE_URL=https://docid.africapidalliance.org/api/v1"
+    echo "NEXT_PUBLIC_API_BASE_URL=<your_api_base_url>"
     exit 1
 fi
 
@@ -141,5 +141,5 @@ print_success "DOCiD Frontend is now running!"
 echo ""
 echo "Access your application at:"
 echo "  http://localhost:$PORT (from server)"
-echo "  https://docid.africapidalliance.org (from internet)"
+echo "  ${NEXT_PUBLIC_BASE_URL:-<set NEXT_PUBLIC_BASE_URL in .env.production>} (from internet)"
 echo ""

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
 
 // Comments endpoint doesn't use /v1 in Flask backend, so we need to handle it specially
 const COMMENTS_API_URL = API_BASE_URL.replace('/api/v1', '/api');

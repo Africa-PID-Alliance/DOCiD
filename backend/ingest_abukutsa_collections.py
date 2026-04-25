@@ -8,11 +8,11 @@ Reads a CSV with rows describing each PDF file, then for each row:
 - Creates a PublicationCreators record with affiliation='JKUAT'
 
 Assumes PDFs are already uploaded to the server at --files-base-url
-(e.g. https://docid.africapidalliance.org/uploads/abukutsa/).
+(e.g. https://your-domain.example/uploads/abukutsa/).
 
 Usage:
-    PYTHONPATH=. python3 ingest_abukutsa_collections.py --manifest manifest.csv --files-base-url https://docid.africapidalliance.org/uploads/abukutsa/ --dry-run
-    PYTHONPATH=. python3 ingest_abukutsa_collections.py --manifest manifest.csv --files-base-url https://docid.africapidalliance.org/uploads/abukutsa/
+    PYTHONPATH=. python3 ingest_abukutsa_collections.py --manifest manifest.csv --files-base-url https://your-domain.example/uploads/abukutsa/ --dry-run
+    PYTHONPATH=. python3 ingest_abukutsa_collections.py --manifest manifest.csv --files-base-url https://your-domain.example/uploads/abukutsa/
 """
 import argparse
 import csv
@@ -125,7 +125,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--manifest', required=True, help='Path to manifest CSV')
     parser.add_argument('--files-base-url', required=True,
-                        help='Base URL where PDFs are hosted (e.g. https://docid.africapidalliance.org/uploads/abukutsa/)')
+                        help='Base URL where PDFs are hosted (e.g. https://your-domain.example/uploads/abukutsa/)')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
 

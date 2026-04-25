@@ -122,7 +122,7 @@ def _save_upload(file_storage):
     """Save an uploaded FileStorage to uploads/. UUID-prefixed to avoid collision.
     Returns (stored_name, public_url, absolute_local_path).
     """
-    base_url = (os.environ.get('PUBLIC_BASE_URL') or 'https://docid.africapidalliance.org').rstrip('/')
+    base_url = (os.environ.get('PUBLIC_BASE_URL') or os.environ.get('APPLICATION_BASE_URL') or '').rstrip('/')
     safe_name = secure_filename(file_storage.filename) or 'upload.bin'
     unique_name = f"{uuid.uuid4().hex[:12]}_{safe_name}"
     os.makedirs(UPLOAD_DIR, exist_ok=True)

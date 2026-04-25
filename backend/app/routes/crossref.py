@@ -527,7 +527,7 @@ def do_submit_crossref_xml():
     #       "email_address": "test@africapidalliance.org",
     #       "title": "Example Title",
     #       "doi": "10.1234/example.doi",
-    #       "resource_url": "https://docid.africapidalliance.org/resource",
+    #       "resource_url": "https://your-domain.example/resource",
     #       "grant_metadata": "Grant information",
     #       "dataset_metadata": "Dataset information",
     #       "book_metadata": "Book metadata",

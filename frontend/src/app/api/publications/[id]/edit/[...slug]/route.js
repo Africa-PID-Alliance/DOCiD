@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://docid.africapidalliance.org/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
 
 // Catch-all proxy for publication edit routes.
 // Maps /api/publications/<id>/edit/<...slug> → <API_BASE>/publications/<id>/<...slug>

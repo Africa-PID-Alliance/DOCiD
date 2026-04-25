@@ -24,12 +24,13 @@ const PreFooter = () => {
   const tenantLogoSrc = tenant?.logo_url || '/assets/images/logo2.png';
   const tenantLogoAlt = `${tenant?.display_name || 'DOCiD™'} Logo`;
   const tenantContactEmail = tenant?.contact_email || 'info@africapidalliance.org';
+  const appBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
   
   const socialLinks = [
-    { icon: <Facebook />, url: 'https://docid.africapidalliance.org/#', label: 'Facebook', color: '#1877F2' },
-    { icon: <Twitter />, url: 'https://docid.africapidalliance.org/#', label: 'X (Twitter)', color: '#1DA1F2' },
-    { icon: <Instagram />, url: 'https://docid.africapidalliance.org/#', label: 'Instagram', color: '#E4405F' },
-    { icon: <LinkedIn />, url: 'https://docid.africapidalliance.org/#', label: 'LinkedIn', color: '#0A66C2' }
+    { icon: <Facebook />, url: `${appBaseUrl}/#`, label: 'Facebook', color: '#1877F2' },
+    { icon: <Twitter />, url: `${appBaseUrl}/#`, label: 'X (Twitter)', color: '#1DA1F2' },
+    { icon: <Instagram />, url: `${appBaseUrl}/#`, label: 'Instagram', color: '#E4405F' },
+    { icon: <LinkedIn />, url: `${appBaseUrl}/#`, label: 'LinkedIn', color: '#0A66C2' }
   ];
 
   const usefulLinks = [
