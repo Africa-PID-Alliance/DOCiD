@@ -18,6 +18,7 @@ class UserAccount(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     type = db.Column(db.String(20), nullable=False)  # Login type (google, facebook, etc.)
     avator = db.Column(db.String(255), nullable=True)  # Profile avator URL, 255 characters for URLs
+    logo_url = db.Column(db.String(500), nullable=True)  # User-specific custom logo URL
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False) #datetime.utcnow for consistent timestamp 
     affiliation = db.Column(db.String(100), nullable=True)  # Organization or affiliation
     role = db.Column(db.String(50), nullable=True)  # Role (e.g., admin, user)
@@ -67,6 +68,7 @@ class UserAccount(db.Model):
             "email": self.email,
             "type": self.type,
             "avator": self.avator,
+            "logo_url": self.logo_url,
             "timestamp": self.timestamp,
             "affiliation": self.affiliation,
             "role": self.role,

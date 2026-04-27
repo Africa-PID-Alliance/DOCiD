@@ -8,6 +8,7 @@ const initialState = {
     id: null,
     name: "",
     picture: "",
+    logo_url: "",
     username: "",
     type: "",
     affiliation: "",
@@ -53,6 +54,7 @@ const authSlice = createSlice({
         id: action.payload.user_id,
         name: action.payload.full_name,
         picture: action.payload.avator,
+        logo_url: action.payload.logo_url || "",
         username: action.payload.user_name,
         type: action.payload.type,
         affiliation: action.payload.affiliation,
@@ -77,6 +79,7 @@ const authSlice = createSlice({
         id: null,
         name: "",
         picture: "",
+        logo_url: "",
         username: "",
         type: "",
         affiliation: "",
@@ -111,5 +114,13 @@ const authSlice = createSlice({
   }
 });
 
-export const { rehydrateAuth, loginStart, loginSuccess, loginFailure, logout, updateAccessToken, setLanguage } = authSlice.actions;
+export const {
+  rehydrateAuth,
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout,
+  updateAccessToken,
+  setLanguage
+} = authSlice.actions;
 export default authSlice.reducer; 

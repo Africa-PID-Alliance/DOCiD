@@ -1705,6 +1705,7 @@ const MyAccountPage = () => {
                 />
               </Box>
             </Paper>
+
           </Grid>
 
           {/* Right Statistics Grid */}

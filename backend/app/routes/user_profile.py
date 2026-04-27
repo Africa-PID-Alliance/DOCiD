@@ -146,6 +146,7 @@ def get_user_profile(user_id):
             'email': user.email,
             'type': user.type,
             'avator': user.avator,
+            'logo_url': user.logo_url,
             'affiliation': user.affiliation,
             'role': user.role,
             'orcid_id': user.orcid_id,
@@ -340,6 +341,56 @@ def update_user_profile(user_id):
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error updating user profile: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_profile_bp.route('/me/logo', methods=['PUT'])
+@jwt_required()
+def update_my_logo():
+    """
+    Update authenticated user's custom logo URL.
+    """
+    try:
+        user_id = get_jwt_identity()
+        if user_id is None:
+            return jsonify({'message': 'Unauthorized'}), 401
+
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Invalid authentication identity'}), 401
+
+        data = request.get_json(silent=True) or {}
+        logo_url = data.get('logo_url')
+
+        if not isinstance(logo_url, str):
+            return jsonify({'message': 'logo_url must be a string'}), 400
+
+        logo_url = logo_url.strip()
+        if not logo_url:
+            return jsonify({'message': 'logo_url is required'}), 400
+        if len(logo_url) > 500:
+            return jsonify({'message': 'logo_url exceeds maximum length (500)'}), 400
+
+        user = UserAccount.query.get(user_id)
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+
+        user.logo_url = logo_url
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Logo updated successfully',
+            'user_data': user.serialize()
+        }), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Database error updating logo for user: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Database error occurred'}), 500
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating logo for user: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 

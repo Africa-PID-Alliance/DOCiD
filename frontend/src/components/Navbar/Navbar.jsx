@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -76,7 +76,52 @@ const Navbar = () => {
   const { t, i18n } = useTranslation('common');
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const userLogoSrc = typeof user?.logo_url === 'string' ? user.logo_url.trim() : '';
+  const [resolvedUserLogoSrc, setResolvedUserLogoSrc] = useState(userLogoSrc);
+  const userLogoAlt = `${user?.name || 'User'} Logo`;
   const { mode, toggleTheme } = useThemeContext();
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadUserLogo = async () => {
+      if (!isAuthenticated || !user?.id) {
+        if (isActive) setResolvedUserLogoSrc('');
+        return;
+      }
+
+      // Prefer auth payload when already present to avoid extra requests.
+      if (userLogoSrc) {
+        if (isActive) setResolvedUserLogoSrc(userLogoSrc);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/user-profile/${user.id}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) return;
+
+        const profile = await response.json();
+        const fetchedLogo = typeof profile?.logo_url === 'string' ? profile.logo_url.trim() : '';
+        if (isActive) setResolvedUserLogoSrc(fetchedLogo);
+      } catch (error) {
+        // Non-blocking enhancement; navbar remains usable if profile fetch fails.
+        console.warn('Failed to resolve user logo from profile:', error);
+      }
+    };
+
+    loadUserLogo();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, user?.id, userLogoSrc]);
+
+  const effectiveUserLogoSrc = resolvedUserLogoSrc || userLogoSrc;
+  const showUserLogo = Boolean(effectiveUserLogoSrc);
 
   const handleUserMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
@@ -163,6 +208,43 @@ const Navbar = () => {
               priority
             />
           </Box>
+          {showUserLogo && (
+            <>
+              <Box
+                sx={{
+                  width: '1px',
+                  height: '32px',
+                  bgcolor: 'rgba(0, 0, 0, 0.15)',
+                }}
+              />
+              <Box
+                sx={{
+                  height: '46px',
+                  width: '128px',
+                  position: 'relative',
+                  bgcolor: '#ffffff',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.12)',
+                }}
+              >
+                <Box
+                  component="img"
+                  src={effectiveUserLogoSrc}
+                  alt={userLogoAlt}
+                  sx={{
+                    display: 'block',
+                    objectFit: 'contain',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+              </Box>
+            </>
+          )}
           {showTenantLogo && (
             <>
               <Box
@@ -486,6 +568,45 @@ const Navbar = () => {
                 priority
               />
             </Box>
+            {showUserLogo && (
+              <>
+                <Box
+                  sx={{
+                    width: '1px',
+                    height: '36px',
+                    bgcolor: 'rgba(255, 255, 255, 0.35)',
+                    flexShrink: 0,
+                  }}
+                />
+                <Box
+                  sx={{
+                    height: '60px',
+                    width: { xs: '140px', sm: '200px' },
+                    position: 'relative',
+                    flexShrink: 0,
+                    bgcolor: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={effectiveUserLogoSrc}
+                    alt={userLogoAlt}
+                    sx={{
+                      display: 'block',
+                      objectFit: 'contain',
+                      width: '100%',
+                      height: '100%',
+                    }}
+                  />
+                </Box>
+              </>
+            )}
             {showTenantLogo && (
               <>
                 <Box
