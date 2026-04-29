@@ -122,7 +122,6 @@ const Navbar = () => {
 
   const effectiveUserLogoSrc = resolvedUserLogoSrc || userLogoSrc;
   const showUserLogo = Boolean(effectiveUserLogoSrc);
-  const showUserLogoCard = isAuthenticated && Boolean(user);
 
   const handleUserMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
@@ -192,15 +191,14 @@ const Navbar = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 1,
+            cursor: 'pointer',
+          }}
+          onClick={() => {
+            router.push('/');
+            handleMobileMenuClose();
           }}
         >
-          <Box
-            sx={{ height: '40px', width: '100px', position: 'relative', cursor: 'pointer' }}
-            onClick={() => {
-              router.push('/');
-              handleMobileMenuClose();
-            }}
-          >
+          <Box sx={{ height: '40px', width: '100px', position: 'relative' }}>
             <Image
               src={defaultLogoSrc}
               alt={defaultLogoAlt}
@@ -210,7 +208,7 @@ const Navbar = () => {
               priority
             />
           </Box>
-          {showUserLogoCard && (
+          {showUserLogo && (
             <>
               <Box
                 sx={{
@@ -224,41 +222,26 @@ const Navbar = () => {
                   height: '46px',
                   width: '128px',
                   position: 'relative',
-                  bgcolor: showUserLogo ? '#ffffff' : theme.palette.action.hover,
+                  bgcolor: '#ffffff',
                   borderRadius: '6px',
                   padding: '4px 8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: showUserLogo ? 'none' : `1px dashed ${theme.palette.divider}`,
-                  boxShadow: showUserLogo ? '0 1px 4px rgba(0, 0, 0, 0.12)' : 'none',
+                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.12)',
                 }}
               >
-                {showUserLogo ? (
-                  <Box
-                    component="img"
-                    src={effectiveUserLogoSrc}
-                    alt={userLogoAlt}
-                    sx={{
-                      display: 'block',
-                      objectFit: 'contain',
-                      width: '100%',
-                      height: '100%',
-                    }}
-                  />
-                ) : (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.palette.text.secondary,
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    + Upload custom logo
-                  </Typography>
-                )}
+                <Box
+                  component="img"
+                  src={effectiveUserLogoSrc}
+                  alt={userLogoAlt}
+                  sx={{
+                    display: 'block',
+                    objectFit: 'contain',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
               </Box>
             </>
           )}
@@ -550,6 +533,7 @@ const Navbar = () => {
               the DOCiD logo renders. */}
           <Box
             component="div"
+            onClick={() => router.push('/')}
             sx={{
               height: '50px',
               display: 'flex',
@@ -557,6 +541,7 @@ const Navbar = () => {
               gap: 2,
               marginRight: { xs: 'auto', md: '60px' },
               transition: 'transform 0.2s ease',
+              cursor: 'pointer',
               '&:hover': {
                 transform: 'scale(1.02)'
               }
@@ -568,9 +553,7 @@ const Navbar = () => {
                 width: { xs: '110px', sm: '140px' },
                 position: 'relative',
                 flexShrink: 0,
-                cursor: 'pointer',
               }}
-              onClick={() => router.push('/')}
             >
               <Image
                 src={defaultLogoSrc}
@@ -585,7 +568,7 @@ const Navbar = () => {
                 priority
               />
             </Box>
-            {showUserLogoCard && (
+            {showUserLogo && (
               <>
                 <Box
                   sx={{
@@ -601,42 +584,26 @@ const Navbar = () => {
                     width: { xs: '140px', sm: '200px' },
                     position: 'relative',
                     flexShrink: 0,
-                    bgcolor: showUserLogo ? '#ffffff' : 'rgba(255, 255, 255, 0.10)',
+                    bgcolor: '#ffffff',
                     borderRadius: '8px',
                     padding: '6px 10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: showUserLogo ? 'none' : '1px dashed rgba(255, 255, 255, 0.45)',
-                    boxShadow: showUserLogo ? '0 2px 6px rgba(0, 0, 0, 0.15)' : 'none',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
                   }}
                 >
-                  {showUserLogo ? (
-                    <Box
-                      component="img"
-                      src={effectiveUserLogoSrc}
-                      alt={userLogoAlt}
-                      sx={{
-                        display: 'block',
-                        objectFit: 'contain',
-                        width: '100%',
-                        height: '100%',
-                      }}
-                    />
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 'rgba(255, 255, 255, 0.92)',
-                        fontWeight: 700,
-                        textAlign: 'center',
-                        lineHeight: 1.2,
-                        letterSpacing: '0.01em',
-                      }}
-                    >
-                      + Upload custom logo
-                    </Typography>
-                  )}
+                  <Box
+                    component="img"
+                    src={effectiveUserLogoSrc}
+                    alt={userLogoAlt}
+                    sx={{
+                      display: 'block',
+                      objectFit: 'contain',
+                      width: '100%',
+                      height: '100%',
+                    }}
+                  />
                 </Box>
               </>
             )}
