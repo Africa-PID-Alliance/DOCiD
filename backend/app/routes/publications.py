@@ -2920,24 +2920,24 @@ def get_publication_for_edit(publication_id):
         publication_dict['publication_funders'] = [
             {
                 'id': funder.id,
-                'funder_name': funder.funder_name,
+                'name': funder.name,
+                'type': funder.type,
                 'funder_type_id': funder.funder_type_id,
-                'award_number': funder.award_number,
-                'award_title': funder.award_title,
-                'award_uri': funder.award_uri,
-                'identifier': getattr(funder, 'identifier', None),
-                'identifier_type': getattr(funder, 'identifier_type', None)
+                'other_name': funder.other_name,
+                'country': funder.country,
+                'identifier': funder.identifier,
+                'identifier_type': funder.identifier_type
             } for funder in data.publication_funders
         ]
-        
+
         publication_dict['publication_projects'] = [
             {
                 'id': project.id,
-                'project_name': project.project_name,
-                'project_description': project.project_description,
-                'project_acronym': project.project_acronym,
-                'identifier': getattr(project, 'identifier', None),
-                'identifier_type': getattr(project, 'identifier_type', None)
+                'title': project.title,
+                'description': project.description,
+                'raid_id': project.raid_id,
+                'identifier': project.identifier,
+                'identifier_type': project.identifier_type
             } for project in data.publication_projects
         ]
         
