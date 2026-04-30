@@ -191,11 +191,6 @@ const Navbar = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            router.push('/');
-            handleMobileMenuClose();
           }}
         >
           <Box sx={{ height: '40px', width: '100px', position: 'relative' }}>
@@ -533,7 +528,6 @@ const Navbar = () => {
               the DOCiD logo renders. */}
           <Box
             component="div"
-            onClick={() => router.push('/')}
             sx={{
               height: '50px',
               display: 'flex',
@@ -541,7 +535,6 @@ const Navbar = () => {
               gap: 2,
               marginRight: { xs: 'auto', md: '60px' },
               transition: 'transform 0.2s ease',
-              cursor: 'pointer',
               '&:hover': {
                 transform: 'scale(1.02)'
               }
