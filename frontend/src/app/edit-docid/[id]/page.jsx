@@ -14,6 +14,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
+import RichTextEditor from '@/components/RichTextEditor';
 
 // Forked forms (same UI as assign-docid)
 import CreatorsForm from '../components/CreatorsForm';
@@ -747,7 +748,7 @@ export default function EditDocidPage() {
           <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
           <Stack spacing={2}>
             <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
-            <TextField label="Description (HTML allowed)" fullWidth multiline minRows={6} value={documentDescription} onChange={(e) => setDocumentDescription(e.target.value)} />
+            <RichTextEditor label="Description" value={documentDescription} onChange={setDocumentDescription} />
             <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
             <Box>
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel} disabled={isSaving}>
