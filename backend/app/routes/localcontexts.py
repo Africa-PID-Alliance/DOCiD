@@ -49,7 +49,9 @@ logger = logging.getLogger(__name__)
 localcontexts_bp = Blueprint('localcontexts', __name__, url_prefix='/api/v1/localcontexts')
 
 # Local Contexts API base URL - v2 with trailing slash handling
-LOCAL_CONTEXTS_API_BASE_URL = "https://sandbox.localcontextshub.org/api/v2"
+# Switched 2026-05-04 from sandbox to live Hub for LC certification demo (key expires 2026-05-30).
+# Env-driven refactor (read from current_app.config) is deferred — see PLAN-live-hub-switch.md.
+LOCAL_CONTEXTS_API_BASE_URL = "https://localcontextshub.org/api/v2"
 
 # Cache TTL settings per DocID_Local_Contexts_Tech_Documentation.md
 CACHE_TTL_DAYS = 30  # Cached labels expire after 30 days

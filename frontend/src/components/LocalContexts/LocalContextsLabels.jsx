@@ -170,12 +170,12 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
               </Box>
             )}
 
-            {/* Link to label page on Local Contexts Hub */}
-            {label.label_page && (
+            {/* Link to label / notice page on Local Contexts Hub */}
+            {(label.label_page || label.notice_page) && (
               <Typography
                 variant="caption"
                 component="a"
-                href={label.label_page}
+                href={label.label_page || label.notice_page}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -230,16 +230,12 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
   // No data
   if (!labelData) return null;
 
-  // Collect all labels and notices.
-  // LC Hub v2 returns `notice` as an array when present, but older paths return a single object — handle both.
+  // Collect all labels and notices
   const tkLabels = labelData.tk_labels || [];
   const bcLabels = labelData.bc_labels || [];
-  const rawNotice = labelData.notice;
-  const notices = Array.isArray(rawNotice)
-    ? rawNotice
-    : rawNotice
-      ? [rawNotice]
-      : [];
+  const notices = Array.isArray(labelData.notice)
+    ? labelData.notice
+    : (labelData.notice ? [labelData.notice] : []);
   const totalLabelCount = tkLabels.length + bcLabels.length + notices.length;
 
   if (totalLabelCount === 0) return null;
@@ -248,12 +244,6 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
     <Box mb={2} p={2} borderRadius={2}>
       {/* Section heading — only shown when there are actual labels */}
       <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-        <Box
-          component="img"
-          src="https://localcontexts.org/wp-content/uploads/2023/04/Local-Contexts-favicon-1.png"
-          alt="Local Contexts"
-          sx={{ width: 20, height: 20 }}
-        />
         <Typography fontWeight={600}>Local Contexts Labels</Typography>
       </Box>
 
