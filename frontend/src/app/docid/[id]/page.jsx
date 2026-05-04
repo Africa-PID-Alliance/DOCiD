@@ -27,6 +27,9 @@ import {
   IconButton,
   Chip,
   Stack,
+  Snackbar,
+  Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   Comment as CommentIcon,
@@ -45,6 +48,7 @@ import {
   Add as AddIcon,
   History as HistoryIcon,
   Edit as EditIcon,
+  ContentCopy as ContentCopyIcon,
 } from '@mui/icons-material';
 import EmailIcon from '@mui/icons-material/Email';
 import FacebookIcon from '@mui/icons-material/Facebook';
@@ -94,6 +98,8 @@ const DocIDPage = ({ params }) => {
   const [commentSuccess, setCommentSuccess] = useState('');
   const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
   const [filesStats, setFilesStats] = useState({ files: [], documents: [] });
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Version history state
   const [versionHistory, setVersionHistory] = useState(null);
@@ -667,6 +673,26 @@ const DocIDPage = ({ params }) => {
     handleShareClose();
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setSnackbarMessage('Link copied to clipboard!');
+      setSnackbarOpen(true);
+      handleShareClose();
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      setSnackbarMessage('Failed to copy link');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
+
   const handleViewSection = (section) => {
     setSelectedSection(section);
     setModalOpen(true);
@@ -949,56 +975,78 @@ const DocIDPage = ({ params }) => {
                 transformOrigin={{ vertical: 'top', horizontal: 'center' }}
               >
                 <Box sx={{ display: 'flex', p: 2, gap: 2 }}>
-                  <IconButton 
-                    aria-label="email"
-                    onClick={handleEmailShare}
-                    sx={{ 
-                      '&:hover': { bgcolor: '#EA433533' },
-                      '& .MuiSvgIcon-root': { color: '#EA4335' }
-                    }}
-                  >
-                    <EmailIcon fontSize="large" />
-                  </IconButton>
-                  <IconButton 
-                    aria-label="facebook"
-                    onClick={handleFacebookShare}
-                    sx={{ 
-                      '&:hover': { bgcolor: '#1877F233' },
-                      '& .MuiSvgIcon-root': { color: '#1877F2' }
-                    }}
-                  >
-                    <FacebookIcon fontSize="large" />
-                  </IconButton>
-                  <IconButton 
-                    aria-label="twitter"
-                    onClick={handleTwitterShare}
-                    sx={{ 
-                      '&:hover': { bgcolor: '#1DA1F233' },
-                      '& .MuiSvgIcon-root': { color: '#1DA1F2' }
-                    }}
-                  >
-                    <TwitterIcon fontSize="large" />
-                  </IconButton>
-                  <IconButton 
-                    aria-label="whatsapp"
-                    onClick={handleWhatsAppShare}
-                    sx={{ 
-                      '&:hover': { bgcolor: '#25D36633' },
-                      '& .MuiSvgIcon-root': { color: '#25D366' }
-                    }}
-                  >
-                    <WhatsAppIcon fontSize="large" />
-                  </IconButton>
-                  <IconButton 
-                    aria-label="linkedin"
-                    onClick={handleLinkedInShare}
-                    sx={{ 
-                      '&:hover': { bgcolor: '#0A66C233' },
-                      '& .MuiSvgIcon-root': { color: '#0A66C2' }
-                    }}
-                  >
-                    <LinkedInIcon fontSize="large" />
-                  </IconButton>
+                  <Tooltip title="Share via Email" arrow>
+                    <IconButton 
+                      aria-label="email"
+                      onClick={handleEmailShare}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#EA433533' },
+                        '& .MuiSvgIcon-root': { color: '#EA4335' }
+                      }}
+                    >
+                      <EmailIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Share on Facebook" arrow>
+                    <IconButton 
+                      aria-label="facebook"
+                      onClick={handleFacebookShare}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#1877F233' },
+                        '& .MuiSvgIcon-root': { color: '#1877F2' }
+                      }}
+                    >
+                      <FacebookIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Share on Twitter" arrow>
+                    <IconButton 
+                      aria-label="twitter"
+                      onClick={handleTwitterShare}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#1DA1F233' },
+                        '& .MuiSvgIcon-root': { color: '#1DA1F2' }
+                      }}
+                    >
+                      <TwitterIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Share on WhatsApp" arrow>
+                    <IconButton 
+                      aria-label="whatsapp"
+                      onClick={handleWhatsAppShare}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#25D36633' },
+                        '& .MuiSvgIcon-root': { color: '#25D366' }
+                      }}
+                    >
+                      <WhatsAppIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Share on LinkedIn" arrow>
+                    <IconButton 
+                      aria-label="linkedin"
+                      onClick={handleLinkedInShare}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#0A66C233' },
+                        '& .MuiSvgIcon-root': { color: '#0A66C2' }
+                      }}
+                    >
+                      <LinkedInIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Copy Link" arrow>
+                    <IconButton 
+                      aria-label="copy link"
+                      onClick={handleCopyLink}
+                      sx={{ 
+                        '&:hover': { bgcolor: '#75757533' },
+                        '& .MuiSvgIcon-root': { color: '#757575' }
+                      }}
+                    >
+                      <ContentCopyIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               </Popover>
               {/* Feature Not Available Modal */}
@@ -2084,8 +2132,7 @@ const DocIDPage = ({ params }) => {
                                 InputProps={{ readOnly: true, disableUnderline: true }}
                                 variant="filled"
                                 size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                                sx={{ mb: 2 }}
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' }, mb: 2 }}
                               />
                             </Grid>
 
@@ -2101,8 +2148,7 @@ const DocIDPage = ({ params }) => {
                                 InputProps={{ readOnly: true, disableUnderline: true }}
                                 variant="filled"
                                 size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                                sx={{ mb: 2 }}
+                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' }, mb: 2 }}
                               />
                             </Grid>
 
@@ -2717,6 +2763,22 @@ const DocIDPage = ({ params }) => {
           </Grid>
         </Grid>
       </Container>
+      
+      {/* Snackbar for copy link notification */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbarMessage.includes('Failed') ? 'error' : 'success'}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
