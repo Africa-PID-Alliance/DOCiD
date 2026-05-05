@@ -206,7 +206,6 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                     collection_name=collection_name,
                     owner=source.owner_name,
                     resource_type_id=resource_type_id,
-                    avatar=(publication_data.get('avatar_url') or '')[:255] or None,
                 )
                 db.session.add(publication)
                 db.session.flush()

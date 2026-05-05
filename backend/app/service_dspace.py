@@ -475,27 +475,14 @@ class DSpaceMetadataMapper:
     def _extract_avatar_url(cls, dspace_item: Dict) -> Optional[str]:
         """
         Extract thumbnail/avatar URL from DSpace 7+ item.
-
-        DSpace 7+ exposes thumbnails via _links.thumbnail.href, but that endpoint
-        returns bitstream JSON metadata (not the image). To get the displayable
-        image URL, fetch the thumbnail JSON and read _links.content.href, which
-        points to /api/core/bitstreams/{uuid}/content — the actual image binary.
+        DSpace 7+ exposes thumbnails via _links.thumbnail.href.
         """
-        import requests
         links = dspace_item.get('_links', {})
         thumbnail_link = links.get('thumbnail', {})
         thumbnail_url = thumbnail_link.get('href')
-        if not thumbnail_url:
-            return None
-        try:
-            response = requests.get(thumbnail_url, timeout=10)
-            if response.status_code != 200:
-                return None
-            thumb_data = response.json()
-            content_url = thumb_data.get('_links', {}).get('content', {}).get('href')
-            return content_url
-        except Exception:
-            return None
+        if thumbnail_url:
+            return thumbnail_url
+        return None
 
     @classmethod
     def _parse_author_name(cls, full_name: str) -> tuple:
