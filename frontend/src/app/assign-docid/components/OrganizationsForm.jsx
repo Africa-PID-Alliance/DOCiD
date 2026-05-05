@@ -19,7 +19,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Tooltip,
+  Link
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -498,18 +500,21 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
             {t('assign_docid.organizations_form.title')} ({label})
           </Typography>
           {type === 'ringgold' && (
-            <IconButton
-              size="small"
-              onClick={() => setInfoDialogOpen(true)}
-              sx={{
-                color: theme.palette.primary.main,
-                '&:hover': {
-                  bgcolor: theme.palette.action.hover
-                }
-              }}
-            >
-              <InfoIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="What is a Ringgold ID? Click for details." arrow>
+              <IconButton
+                size="small"
+                onClick={() => setInfoDialogOpen(true)}
+                aria-label="About Ringgold IDs"
+                sx={{
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: theme.palette.action.hover
+                  }
+                }}
+              >
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
         </Box>
         <Button
@@ -822,6 +827,62 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
           setRridModalOpen(false);
         }}
       />
+
+      {/* Ringgold info dialog */}
+      <Dialog
+        open={infoDialogOpen}
+        onClose={() => setInfoDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          About Ringgold IDs
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" paragraph>
+            A <strong>Ringgold ID</strong> is a unique numeric identifier assigned to
+            an institution by the Ringgold Identify Database, the authoritative
+            organization registry maintained by the ISNI International Agency. It
+            disambiguates institutions globally — separating, for example, two
+            universities that share a common name.
+          </Typography>
+          <Typography variant="body2" paragraph>
+            On this form you can either:
+          </Typography>
+          <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
+            <li>
+              <Typography variant="body2">
+                Enter a known Ringgold ID directly to fetch the institution&rsquo;s
+                metadata, or
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body2">
+                Search by institution name + country in the Details tab to look up
+                the matching Ringgold record.
+              </Typography>
+            </li>
+          </Box>
+          <Typography variant="body2" paragraph>
+            Ringgold IDs are issued by ISNI and are interoperable with ISNI
+            identifiers — every Ringgold record has a corresponding ISNI ID.
+          </Typography>
+          <Typography variant="body2">
+            Learn more:{' '}
+            <Link href="https://www.ringgold.com/ringgold-identifier/" target="_blank" rel="noopener noreferrer">
+              Ringgold Identifier
+            </Link>
+            {' · '}
+            <Link href="https://isni.org/" target="_blank" rel="noopener noreferrer">
+              ISNI
+            </Link>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );
