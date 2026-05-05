@@ -1973,6 +1973,15 @@ def create_publication():
 
                 resolvable_identifier = format_organization_identifier(identifier_type, identifier_value)
 
+                # If the dedicated cross-ref columns weren't filled by their own form fields
+                # (legacy frontend sends ISNI under [ror_id], etc.), backfill them from the
+                # primary identifier when types match — so the new ringgold_id/isni columns
+                # stay lossless regardless of which submit path the frontend used.
+                if not isni_val and identifier_type == 'isni' and identifier_value:
+                    isni_val = ''.join(filter(str.isdigit, identifier_value))[-16:] or None
+                if not ringgold_id_val and identifier_type == 'ringgold' and identifier_value:
+                    ringgold_id_val = identifier_value
+
                 rrid_value = (request.form.get(f'{source_prefix}[{index}][rrid]') or '').strip() or None
 
                 logger.info(f"PublicationOrganization [{source_prefix}][{index}]:")

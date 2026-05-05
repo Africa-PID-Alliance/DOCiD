@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,7 @@ import {
   Tabs,
   Tab,
   TextField,
-
+  Autocomplete,
   IconButton,
   Paper,
   Grid,
@@ -64,6 +64,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
     department: '',
     role: '',
     rorId: '',
+    isni: '',
     city: '',
     website: '',
     rrid: ''
@@ -73,6 +74,32 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
   const [rorError, setRorError] = useState('');
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [rridModalOpen, setRridModalOpen] = useState(false);
+
+  // Ringgold autocomplete (Details tab) — type-as-you-search against the local 17,329-row seed
+  const [ringgoldOptions, setRinggoldOptions] = useState([]);
+  const [isRinggoldSearching, setIsRinggoldSearching] = useState(false);
+  const ringgoldSearchTimerRef = useRef(null);
+
+  const debouncedRinggoldSearch = useCallback((value) => {
+    if (ringgoldSearchTimerRef.current) clearTimeout(ringgoldSearchTimerRef.current);
+    const trimmed = (value || '').trim();
+    if (trimmed.length < 2) {
+      setRinggoldOptions([]);
+      return;
+    }
+    setIsRinggoldSearching(true);
+    ringgoldSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/v1/ringgold/search?q=${encodeURIComponent(trimmed)}&limit=10`);
+        const data = await res.json();
+        setRinggoldOptions(Array.isArray(data.institutions) ? data.institutions : []);
+      } catch {
+        setRinggoldOptions([]);
+      } finally {
+        setIsRinggoldSearching(false);
+      }
+    }, 400);
+  }, []);
 
   const handleModalOpen = () => {
     setIsModalOpen(true);
@@ -87,9 +114,12 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
       department: '',
       role: '',
       rorId: '',
+      isni: '',
       city: '',
-      website: ''
+      website: '',
+      rrid: ''
     });
+    setRinggoldOptions([]);
     setRorError('');
     setShowRorForm(false);
     setIsLoadingRor(false);
@@ -104,9 +134,12 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
       department: '',
       role: '',
       rorId: '',
+      isni: '',
       city: '',
-      website: ''
+      website: '',
+      rrid: ''
     });
+    setRinggoldOptions([]);
     setActiveTab(0);
     setRorError('');
     setShowRorForm(false);
@@ -499,23 +532,32 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
           >
             {t('assign_docid.organizations_form.title')} ({label})
           </Typography>
-          {type === 'ringgold' && (
-            <Tooltip title="What is a Ringgold ID? Click for details." arrow>
-              <IconButton
-                size="small"
-                onClick={() => setInfoDialogOpen(true)}
-                aria-label="About Ringgold IDs"
-                sx={{
-                  color: theme.palette.primary.main,
-                  '&:hover': {
-                    bgcolor: theme.palette.action.hover
-                  }
-                }}
-              >
-                <InfoIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Tooltip
+            title={
+              type === 'ringgold' ? 'What is a Ringgold ID? Click for details.' :
+              type === 'isni'     ? 'What is an ISNI ID? Click for details.' :
+                                    'What is a ROR ID? Click for details.'
+            }
+            arrow
+          >
+            <IconButton
+              size="small"
+              onClick={() => setInfoDialogOpen(true)}
+              aria-label={
+                type === 'ringgold' ? 'About Ringgold IDs' :
+                type === 'isni'     ? 'About ISNI IDs' :
+                                      'About ROR IDs'
+              }
+              sx={{
+                color: theme.palette.primary.main,
+                '&:hover': {
+                  bgcolor: theme.palette.action.hover
+                }
+              }}
+            >
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
         <Button
           variant="contained"
@@ -771,15 +813,86 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      fullWidth
-                      label={t('assign_docid.organizations_form.organization_name')}
-                      value={newOrganization.name}
-                      onChange={handleInputChange('name')}
-                      error={Boolean(rorError)}
-                      helperText={rorError}
-                      required
-                    />
+                    {(type === 'ringgold' || type === 'isni') ? (
+                      <Autocomplete
+                        freeSolo
+                        filterOptions={(x) => x}
+                        options={ringgoldOptions}
+                        loading={isRinggoldSearching}
+                        inputValue={newOrganization.name}
+                        onInputChange={(_evt, value, reason) => {
+                          if (reason === 'reset') return; // selection event already updated state
+                          setNewOrganization((prev) => ({ ...prev, name: value }));
+                          if (reason === 'input') debouncedRinggoldSearch(value);
+                        }}
+                        onChange={(_evt, picked) => {
+                          if (picked && typeof picked === 'object') {
+                            const ringgold = String(picked.ringgold_id || '');
+                            const isni = picked.ISNI || picked.isni || '';
+                            setNewOrganization((prev) => ({
+                              ...prev,
+                              name: picked.name || '',
+                              // The form field `rorId` carries the primary identifier in legacy
+                              // naming. For ISNI mode we use the ISNI; for Ringgold mode the Ringgold ID.
+                              rorId: type === 'isni' ? isni : ringgold,
+                              isni,
+                              country: picked.country_code || picked.country || '',
+                            }));
+                          }
+                        }}
+                        getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.name || '')}
+                        isOptionEqualToValue={(opt, val) =>
+                          (opt?.ringgold_id ?? null) === (val?.ringgold_id ?? null)
+                        }
+                        renderOption={(props, opt) => (
+                          <li {...props} key={opt.ringgold_id}>
+                            <Box>
+                              <Typography variant="body2">{opt.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Ringgold {opt.ringgold_id}
+                                {opt.ISNI || opt.isni ? ` · ISNI ${opt.ISNI || opt.isni}` : ''}
+                                {opt.locality ? ` · ${opt.locality}` : ''}
+                                {opt.country_code ? ` · ${opt.country_code}` : ''}
+                              </Typography>
+                            </Box>
+                          </li>
+                        )}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={t('assign_docid.organizations_form.organization_name')}
+                            placeholder="Start typing… (e.g. Nairobi)"
+                            error={Boolean(rorError)}
+                            helperText={
+                              rorError ||
+                              (type === 'isni'
+                                ? 'Pick from the list to auto-fill ISNI and country.'
+                                : 'Pick from the list to auto-fill Ringgold ID, ISNI, and country.')
+                            }
+                            required
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {isRinggoldSearching ? <CircularProgress size={18} /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                      />
+                    ) : (
+                      <TextField
+                        fullWidth
+                        label={t('assign_docid.organizations_form.organization_name')}
+                        value={newOrganization.name}
+                        onChange={handleInputChange('name')}
+                        error={Boolean(rorError)}
+                        helperText={rorError}
+                        required
+                      />
+                    )}
                     <TextField
                       fullWidth
                       label={t('assign_docid.organizations_form.country')}
@@ -828,7 +941,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         }}
       />
 
-      {/* Ringgold info dialog */}
+      {/* Organization-identifier info dialog (ROR / ISNI / Ringgold) */}
       <Dialog
         open={infoDialogOpen}
         onClose={() => setInfoDialogOpen(false)}
@@ -837,47 +950,114 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <InfoIcon color="primary" />
-          About Ringgold IDs
+          {type === 'ringgold' ? 'About Ringgold IDs' :
+           type === 'isni'     ? 'About ISNI IDs' :
+                                 'About ROR IDs'}
         </DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2" paragraph>
-            A <strong>Ringgold ID</strong> is a unique numeric identifier assigned to
-            an institution by the Ringgold Identify Database, the authoritative
-            organization registry maintained by the ISNI International Agency. It
-            disambiguates institutions globally — separating, for example, two
-            universities that share a common name.
-          </Typography>
-          <Typography variant="body2" paragraph>
-            On this form you can either:
-          </Typography>
-          <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
-            <li>
-              <Typography variant="body2">
-                Enter a known Ringgold ID directly to fetch the institution&rsquo;s
-                metadata, or
+          {type === 'ringgold' && (
+            <>
+              <Typography variant="body2" paragraph>
+                A <strong>Ringgold ID</strong> is a unique numeric identifier assigned
+                to an institution by the Ringgold Identify Database, the authoritative
+                organization registry maintained by the ISNI International Agency. It
+                disambiguates institutions globally — separating, for example, two
+                universities that share a common name.
               </Typography>
-            </li>
-            <li>
-              <Typography variant="body2">
-                Search by institution name + country in the Details tab to look up
-                the matching Ringgold record.
+              <Typography variant="body2" paragraph>On this form you can either:</Typography>
+              <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
+                <li>
+                  <Typography variant="body2">
+                    Enter a known Ringgold ID directly to fetch the institution&rsquo;s
+                    metadata, or
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2">
+                    Search by institution name + country in the Details tab to look up
+                    the matching Ringgold record.
+                  </Typography>
+                </li>
+              </Box>
+              <Typography variant="body2" paragraph>
+                Ringgold IDs are issued by ISNI and are interoperable with ISNI
+                identifiers — every Ringgold record has a corresponding ISNI ID.
               </Typography>
-            </li>
-          </Box>
-          <Typography variant="body2" paragraph>
-            Ringgold IDs are issued by ISNI and are interoperable with ISNI
-            identifiers — every Ringgold record has a corresponding ISNI ID.
-          </Typography>
-          <Typography variant="body2">
-            Learn more:{' '}
-            <Link href="https://www.ringgold.com/ringgold-identifier/" target="_blank" rel="noopener noreferrer">
-              Ringgold Identifier
-            </Link>
-            {' · '}
-            <Link href="https://isni.org/" target="_blank" rel="noopener noreferrer">
-              ISNI
-            </Link>
-          </Typography>
+              <Typography variant="body2">
+                Learn more:{' '}
+                <Link href="https://www.ringgold.com/ringgold-identifier/" target="_blank" rel="noopener noreferrer">Ringgold Identifier</Link>
+                {' · '}
+                <Link href="https://isni.org/" target="_blank" rel="noopener noreferrer">ISNI</Link>
+              </Typography>
+            </>
+          )}
+          {type === 'isni' && (
+            <>
+              <Typography variant="body2" paragraph>
+                An <strong>ISNI</strong> (International Standard Name Identifier) is a
+                16-digit ISO standard (ISO 27729) for the public identities of persons
+                and organizations involved in creative work — researchers, authors,
+                publishers, performers, universities, funders, and more.
+              </Typography>
+              <Typography variant="body2" paragraph>On this form you can either:</Typography>
+              <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
+                <li>
+                  <Typography variant="body2">
+                    Enter a known ISNI ID directly to fetch the organization&rsquo;s
+                    metadata, or
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2">
+                    Search by organization name + country in the Details tab.
+                  </Typography>
+                </li>
+              </Box>
+              <Typography variant="body2" paragraph>
+                ISNI is interoperable with Ringgold and ORCID — Ringgold records carry
+                an ISNI, and ORCID profiles can be linked to an ISNI identity.
+              </Typography>
+              <Typography variant="body2">
+                Learn more:{' '}
+                <Link href="https://isni.org/" target="_blank" rel="noopener noreferrer">isni.org</Link>
+              </Typography>
+            </>
+          )}
+          {type !== 'ringgold' && type !== 'isni' && (
+            <>
+              <Typography variant="body2" paragraph>
+                A <strong>ROR ID</strong> (Research Organization Registry) is a
+                community-led, open persistent identifier for research-producing
+                organizations — universities, hospitals, government labs, funders,
+                and more. ROR is free, openly licensed, and integrated with Crossref,
+                DataCite, ORCID, and most major scholarly infrastructure.
+              </Typography>
+              <Typography variant="body2" paragraph>On this form you can either:</Typography>
+              <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
+                <li>
+                  <Typography variant="body2">
+                    Enter a known ROR ID (e.g. <code>https://ror.org/02mhbdp94</code>) to
+                    fetch the organization&rsquo;s metadata, or
+                  </Typography>
+                </li>
+                <li>
+                  <Typography variant="body2">
+                    Search by organization name + country in the Details tab.
+                  </Typography>
+                </li>
+              </Box>
+              <Typography variant="body2" paragraph>
+                ROR records often include cross-references to ISNI, GRID, and Wikidata,
+                so a single ROR ID resolves to a wide identity graph.
+              </Typography>
+              <Typography variant="body2">
+                Learn more:{' '}
+                <Link href="https://ror.org/" target="_blank" rel="noopener noreferrer">ror.org</Link>
+                {' · '}
+                <Link href="https://ror.readme.io/" target="_blank" rel="noopener noreferrer">ROR docs</Link>
+              </Typography>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>

@@ -563,6 +563,7 @@ const VersionDocIDInner = () => {
           submitData.append(`organizationRinggold[${index}][type]`, organization.type);
           submitData.append(`organizationRinggold[${index}][country]`, organization.country);
           submitData.append(`organizationRinggold[${index}][ringgold_id]`, organization.rorId || '');
+          submitData.append(`organizationRinggold[${index}][isni_id]`, organization.isni || '');
           submitData.append(`organizationRinggold[${index}][rrid]`, organization.rrid || '');
         });
       }
