@@ -641,8 +641,11 @@ class PublicationOrganization(db.Model):
     type = Column(String(255), nullable=False)
     other_name = Column(String(255))
     country = Column(String(255))
-    identifier = Column(String(500))  # Stores the full resolvable URL (e.g., https://ror.org/02nr0ka47)
-    identifier_type = Column(String(50))  # Stores the type (e.g., 'ror', 'grid', 'isni')
+    identifier = Column(String(500))  # Primary resolvable URL (back-compat — usually the ROR or first PID)
+    identifier_type = Column(String(50))  # Type for `identifier` (e.g., 'ror', 'grid', 'isni', 'ringgold')
+    # Cross-reference identifiers — Ringgold lookup returns both, store both losslessly.
+    ringgold_id = Column(String(50), nullable=True, index=True)
+    isni = Column(String(50), nullable=True, index=True)
     rrid = Column(String(100), nullable=True)  # Optional RRID e.g. "RRID:SCR_012345"
 
     # Relationships

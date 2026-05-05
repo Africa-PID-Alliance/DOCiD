@@ -797,6 +797,8 @@ def get_publication(publication_id):
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
+                'ringgold_id': getattr(org, 'ringgold_id', None),
+                'isni': getattr(org, 'isni', None),
                 'rrid': getattr(org, 'rrid', None),
                 **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
@@ -980,6 +982,8 @@ def get_publication_by_docid_prefix():
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
+                'ringgold_id': getattr(org, 'ringgold_id', None),
+                'isni': getattr(org, 'isni', None),
                 'rrid': getattr(org, 'rrid', None),
                 **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
@@ -1170,6 +1174,8 @@ def get_publication_by_docid_simple(document_docid):
                 'country': org.country,
                 'identifier': org.identifier,
                 'identifier_type': org.identifier_type,
+                'ringgold_id': getattr(org, 'ringgold_id', None),
+                'isni': getattr(org, 'isni', None),
                 'rrid': getattr(org, 'rrid', None),
                 **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
@@ -1918,13 +1924,30 @@ def create_publication():
                 identifier_type = request.form.get(f'{source_prefix}[{index}][identifier_type]')
                 identifier_value = request.form.get(f'{source_prefix}[{index}][identifier]')
 
-                # If no explicit identifier, check for ror_id field
+                # Read all known cross-reference fields up-front. Each is a separate
+                # column on the row, so we keep them all even when only one is the
+                # primary `identifier`.
+                ror_id_val      = request.form.get(f'{source_prefix}[{index}][ror_id]')
+                ringgold_id_val = request.form.get(f'{source_prefix}[{index}][ringgold_id]')
+                isni_val        = request.form.get(f'{source_prefix}[{index}][isni_id]') \
+                                   or request.form.get(f'{source_prefix}[{index}][isni]')
+
+                # If no explicit identifier, fall back to ror_id / ringgold_id / isni
+                # (in priority order), so the legacy single-identifier columns stay
+                # populated for back-compat with existing display code.
                 if not identifier_value:
-                    ror_id = request.form.get(f'{source_prefix}[{index}][ror_id]')
-                    if ror_id:
-                        identifier_value = ror_id
+                    candidate, candidate_type = next(
+                        ((v, t) for v, t in [
+                            (ror_id_val, 'ror'),
+                            (ringgold_id_val, 'ringgold'),
+                            (isni_val, 'isni'),
+                        ] if v),
+                        (None, None),
+                    )
+                    if candidate:
+                        identifier_value = candidate
                         if not identifier_type:
-                            identifier_type = default_identifier_type or 'ror'
+                            identifier_type = default_identifier_type or candidate_type
                 
             
 
@@ -1970,6 +1993,8 @@ def create_publication():
                     country=country,
                     identifier=resolvable_identifier,
                     identifier_type=identifier_type,
+                    ringgold_id=(ringgold_id_val or None),
+                    isni=(isni_val or None),
                     rrid=rrid_value
                 ))
                 index += 1
