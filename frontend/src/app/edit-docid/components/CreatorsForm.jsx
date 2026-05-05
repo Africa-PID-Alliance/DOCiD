@@ -22,12 +22,19 @@ import {
   Grid,
   Divider,
   CircularProgress,
-  useTheme
+  useTheme,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Link
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import InfoIcon from '@mui/icons-material/Info';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
@@ -92,6 +99,7 @@ const CreatorsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [creators, setCreators] = useState(formData?.creators || []);
   const [creatorRoles, setCreatorRoles] = useState([]);
@@ -456,16 +464,31 @@ const CreatorsForm = ({ formData, updateFormData }) => {
         alignItems: 'center', 
         mb: 2 
       }}>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: theme.palette.text.primary,
-            fontWeight: 600,
-            fontSize: '1.25rem'
-          }}
-        >
-          Creators (ORCID)
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              color: theme.palette.text.primary,
+              fontWeight: 600,
+              fontSize: '1.25rem'
+            }}
+          >
+            Creators (ORCID)
+          </Typography>
+          <Tooltip title="What is an ORCID? Click for details." arrow>
+            <IconButton
+              size="small"
+              onClick={() => setInfoDialogOpen(true)}
+              aria-label="About ORCID"
+              sx={{
+                color: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.action.hover }
+              }}
+            >
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -910,6 +933,43 @@ const CreatorsForm = ({ formData, updateFormData }) => {
           </Box>
         </Box>
       </Modal>
+
+      {/* About-ORCID info dialog */}
+      <Dialog
+        open={infoDialogOpen}
+        onClose={() => setInfoDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          About ORCID
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" paragraph>
+            An <strong>ORCID iD</strong> (Open Researcher and Contributor ID) is a
+            persistent unique identifier for researchers, authors, and other
+            contributors to scholarly work. It distinguishes you from every
+            other researcher — including those who share your name — and connects
+            you to your professional information across publishers, funders,
+            employers, and platforms.
+          </Typography>
+          <Typography variant="body2" paragraph>
+            An ORCID iD takes the shape <code>0000-0000-0000-0000</code>{' '}
+            (16 digits, four groups of four). Register or look up an ORCID iD at{' '}
+            <Link href="https://orcid.org" target="_blank" rel="noopener noreferrer">
+              orcid.org
+            </Link>.
+          </Typography>
+          <Typography variant="body2">
+            When you add a creator with their ORCID iD, DOCiD fetches their
+            registered name from the public ORCID record automatically.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
