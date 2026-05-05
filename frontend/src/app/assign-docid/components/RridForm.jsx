@@ -10,17 +10,25 @@ import {
   Divider,
   Chip,
   useTheme,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Link,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Science as ScienceIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
 const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourceTypes }) => {
   const theme = useTheme();
   const [isRridModalOpen, setIsRridModalOpen] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [researchResources, setResearchResources] = useState(formData?.resources || []);
 
   const handleAddResource = (selectedRridData) => {
@@ -59,6 +67,19 @@ const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourc
           <Typography variant="h6" sx={{ color: theme.palette.text.primary }}>
             Research Resources (RRID)
           </Typography>
+          <Tooltip title="What is an RRID? Click for details." arrow>
+            <IconButton
+              size="small"
+              onClick={() => setInfoDialogOpen(true)}
+              aria-label="About RRIDs"
+              sx={{
+                color: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.action.hover }
+              }}
+            >
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
         <Button
           variant="contained"
@@ -146,6 +167,52 @@ const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourc
         onSelectRrid={handleAddResource}
         allowedResourceTypes={allowedResourceTypes}
       />
+
+      {/* RRID info dialog */}
+      <Dialog
+        open={infoDialogOpen}
+        onClose={() => setInfoDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          About RRIDs
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" paragraph>
+            An <strong>RRID</strong> (Research Resource Identifier) is a persistent
+            unique identifier for a research resource — a software tool, antibody,
+            cell line, organism, plasmid, biological sample, or core facility — used
+            in published research. RRIDs make resources citable, searchable, and
+            verifiable across studies.
+          </Typography>
+          <Typography variant="body2" paragraph>
+            RRIDs are issued by the SciCrunch Resource Identification Initiative and
+            take the form <code>RRID:SCR_xxxxxx</code> (software / facility),{' '}
+            <code>RRID:AB_xxxxxx</code> (antibody), <code>RRID:CVCL_xxxx</code>{' '}
+            (cell line), and similar prefixes.
+          </Typography>
+          <Typography variant="body2" paragraph>
+            Click <strong>Add</strong> to search the SciCrunch resolver and attach
+            one or more RRIDs to this DOCiD. Each RRID is resolved to its name,
+            description and resource type before being saved.
+          </Typography>
+          <Typography variant="body2">
+            Learn more:{' '}
+            <Link href="https://scicrunch.org/resources" target="_blank" rel="noopener noreferrer">
+              SciCrunch Resources
+            </Link>
+            {' · '}
+            <Link href="https://www.rrids.org/" target="_blank" rel="noopener noreferrer">
+              rrids.org
+            </Link>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
