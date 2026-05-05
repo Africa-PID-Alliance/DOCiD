@@ -102,23 +102,48 @@ def get_by_isni_id(isni_id):
       5XX:
         description: Internal server error
     """
-    # Clean the ISNI ID (remove spaces and special characters)
-    clean_isni = ''.join(filter(str.isdigit, isni_id))
+    # Strip non-digits. Despite the route name, the input may be either a
+    # full 16-digit ISNI or a shorter Ringgold ID — autodetect by length.
+    digits = ''.join(filter(str.isdigit, isni_id))
 
-    # 1. Try local database first
+    if not digits:
+        return jsonify({'error': 'Invalid identifier — must contain digits'}), 400
+
+    is_isni = len(digits) == 16
+
+    # 1a. If input looks like a Ringgold ID (not 16 digits), try local DB by ringgold_id first
+    if not is_isni:
+        try:
+            local_institution = RinggoldInstitution.get_by_ringgold_id(int(digits))
+            if local_institution:
+                print(f"Found institution in local database for Ringgold ID: {digits}")
+                result = local_institution.to_dict()
+                result['source'] = 'local'
+                return jsonify(result)
+        except (ValueError, Exception) as e:
+            print(f"Local Ringgold-ID lookup failed: {e}")
+
+    # 1b. Try local DB by ISNI
     try:
-        local_institution = RinggoldInstitution.get_by_isni(clean_isni)
+        local_institution = RinggoldInstitution.get_by_isni(digits)
         if local_institution:
-            print(f"Found institution in local database for ISNI: {clean_isni}")
+            print(f"Found institution in local database for ISNI: {digits}")
             result = local_institution.to_dict()
             result['source'] = 'local'
             return jsonify(result)
     except Exception as e:
-        print(f"Local database lookup failed: {e}")
+        print(f"Local database ISNI lookup failed: {e}")
 
-    # 2. Fall back to Ringgold API
-    print(f"Making Ringgold API request for ISNI ID: {clean_isni}")
-    url = f"{RINGGOLD_API_URL}/institution/{clean_isni}"
+    # 2. Fall back to Ringgold API — only meaningful if input is a 16-digit ISNI.
+    # The upstream /institution/<id> endpoint expects ISNIs, not Ringgold IDs.
+    if not is_isni:
+        return jsonify({
+            'error': f"Institution with Ringgold ID '{digits}' not found in local database. "
+                     f"Upstream API does not support Ringgold-ID lookup; ensure the institution is seeded locally."
+        }), 404
+
+    print(f"Making Ringgold API request for ISNI ID: {digits}")
+    url = f"{RINGGOLD_API_URL}/institution/{digits}"
 
     try:
         response = requests.get(url, timeout=10)
@@ -128,7 +153,7 @@ def get_by_isni_id(isni_id):
             data['source'] = 'api'
             return jsonify(data)
         elif response.status_code == 404:
-            return jsonify({'error': f"Institution with ISNI ID '{clean_isni}' not found"}), 404
+            return jsonify({'error': f"Institution with ISNI ID '{digits}' not found"}), 404
         else:
             return jsonify({'error': f"Failed to retrieve institutional data (status code: {response.status_code})"}), response.status_code
 
