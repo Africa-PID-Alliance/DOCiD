@@ -142,6 +142,7 @@ test_*.jpg
 # Keep bootstrap in repo so Docker images can run DB init on deploy.
 backend/scripts/*
 !backend/scripts/bootstrap_and_seed.sh
+!backend/scripts/report_nwu_iks_evidence.py
 
 # Planning/overview documents
 FIGSHARE-OJS/
