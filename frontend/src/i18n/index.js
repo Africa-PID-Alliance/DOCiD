@@ -41,6 +41,7 @@ const resources = {
         "privacy_policy": "DOCiD™ Privacy and Data Protection Policy",
         "moderation_process": "Submission moderation process",
         "metadata_schema_docs": "DOCiD™ Metadata Schema Docs",
+        "faq": "Frequently Asked Questions",
         "contact_us": "Contact Us",
         "address": "Training Centre in Communication, Gecaga Institute Building, Nairobi, Kenya",
         "working_hours": "Monday - Friday (8.00am - 5.00pm)",

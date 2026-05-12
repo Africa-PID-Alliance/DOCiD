@@ -39,7 +39,8 @@ const PreFooter = () => {
     { text: t('pre_footer.community_statement'), url: 'https://africapidalliance.org/sign-apa/' },
     { text: t('pre_footer.privacy_policy'), url: 'https://africapidalliance.org/privacy-policy' },
     { text: t('pre_footer.moderation_process'), url: '/moderation-process' },
-    { text: t('pre_footer.metadata_schema_docs'), url: '/docs/index.html' }
+    { text: t('pre_footer.metadata_schema_docs'), url: '/docs/index.html' },
+    { text: t('pre_footer.faq'), url: '/faq', internal: true }
   ];
 
   const SectionTitle = ({ children }) => (
@@ -125,8 +126,8 @@ const PreFooter = () => {
                 <Link
                   key={index}
                   href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={link.internal ? '_self' : '_blank'}
+                  rel={link.internal ? undefined : 'noopener noreferrer'}
                   sx={{
                     color: 'white',
                     textDecoration: 'none',
