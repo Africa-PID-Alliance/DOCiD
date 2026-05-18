@@ -48,6 +48,7 @@ SOURCES = [
         'username': 'data@tcc-africa.org',
         'password': 'docid',
         'owner_name': 'Stellenbosch University',
+        'owner_email': 'bibalerts@lists.lib.sun.ac.za',
         'harvest_frequency': 'weekly',
         'extra_mappings': [],  # Uses defaults only
     },
@@ -61,6 +62,7 @@ SOURCES = [
         'username': None,
         'password': None,
         'owner_name': 'University of Lagos',
+        'owner_email': 'librarian@unilag.edu.ng',
         'harvest_frequency': 'daily',
         'extra_mappings': [
             # UNILAG stores DOIs in dc.identifier.other (non-standard)
@@ -107,6 +109,7 @@ def seed_sources(dry_run=False):
             encrypted_username=encrypted_username,
             encrypted_password=encrypted_password,
             owner_name=source_config['owner_name'],
+            owner_email=source_config.get('owner_email'),
             harvest_frequency=source_config.get('harvest_frequency', 'weekly'),
             is_active=True,
         )

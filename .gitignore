@@ -47,6 +47,8 @@ backend/Dockerfile
 frontend/Dockerfile
 backend/.env
 frontend/.env
+backend/tests/*.env
+backend/tests/*.env.production
 
 # Node
 node_modules/

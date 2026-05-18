@@ -115,6 +115,19 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
 
     results = {'total': 0, 'created': 0, 'skipped': 0, 'errors': 0}
 
+    # Resolve owner from harvest_sources.owner_email → user_accounts.user_id.
+    # Refuse to harvest when no official institutional account is linked, to
+    # prevent silently attributing records to user 1 (legacy default).
+    source.resolve_owner()
+    owner_user_id = source.owner_user_id
+    if not owner_user_id:
+        logger.error(
+            f"[{source.name}] owner_user_id is NULL (owner_email={source.owner_email!r}). "
+            "Skipping harvest — link an institutional user_account before retrying."
+        )
+        return results
+    logger.info(f"[{source.name}] Harvesting as user_id={owner_user_id} (owner_email={source.owner_email})")
+
     # Prefetch lookup data
     resource_type_cache = {resource_type.resource_type: resource_type.id for resource_type in ResourceTypes.query.all()}
     default_resource_type_id = resource_type_cache.get('Text', 1)
@@ -181,7 +194,7 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                     pass
 
                 # Map metadata
-                mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, user_id=1, collection_name=collection_name)
+                mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, user_id=owner_user_id, collection_name=collection_name)
                 publication_data = mapped_data.get('publication', {})
 
                 # Determine resource type
@@ -197,7 +210,7 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
 
                 # Create publication
                 publication = Publications(
-                    user_id=1,
+                    user_id=owner_user_id,
                     document_title=publication_data.get('document_title', 'Untitled')[:255],
                     document_description=publication_data.get('document_description', ''),
                     document_docid=item_handle,
@@ -267,6 +280,15 @@ def harvest_legacy_source(client, source, batch_size=50, dry_run=False):
     """
     dspace_legacy_url = source.base_url
     results = {'total': 0, 'created': 0, 'skipped': 0, 'errors': 0}
+
+    source.resolve_owner()
+    if not source.owner_user_id:
+        logger.error(
+            f"[{source.name}] owner_user_id is NULL (owner_email={source.owner_email!r}). "
+            "Skipping harvest — link an institutional user_account before retrying."
+        )
+        return results
+    logger.info(f"[{source.name}] Harvesting as user_id={source.owner_user_id} (owner_email={source.owner_email})")
 
     # Discover communities
     try:

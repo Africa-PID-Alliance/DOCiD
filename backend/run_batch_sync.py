@@ -14,14 +14,14 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
-from app.models import db, Publications, PublicationCreators, DSpaceMapping, ResourceTypes, CreatorsRoles
+from app.models import db, Publications, PublicationCreators, DSpaceMapping, ResourceTypes, CreatorsRoles, HarvestSource
 from app.routes.dspace_legacy import (
     get_dspace_legacy_client, DSpaceLegacyMetadataMapper,
     _extract_legacy_doi, _apply_legacy_data_to_publication, _save_legacy_creators,
     DSPACE_LEGACY_URL
 )
 
-def run_batch_sync(collection_id, limit=200, offset=0, user_id=1, update_existing=False, force_remap=False):
+def run_batch_sync(collection_id, limit=200, offset=0, user_id=None, update_existing=False, force_remap=False):
     app = create_app()
     with app.app_context():
         if force_remap:
@@ -152,16 +152,34 @@ if __name__ == '__main__':
     parser.add_argument('--collection_id', required=True, help='DSpace collection UUID')
     parser.add_argument('--limit', type=int, default=200, help='Max items to sync')
     parser.add_argument('--offset', type=int, default=0, help='Offset for pagination')
-    parser.add_argument('--user_id', type=int, default=1, help='DOCiD user ID for ownership')
+    owner_group = parser.add_mutually_exclusive_group(required=True)
+    owner_group.add_argument('--source_id', type=int, help='harvest_sources.id — owner derived from source.owner_user_id (preferred)')
+    owner_group.add_argument('--user_id', type=int, help='Explicit DOCiD user_id override (use only for ad-hoc re-attribution)')
     parser.add_argument('--force_remap', action='store_true', help='Force re-sync even if unchanged')
     parser.add_argument('--update_existing', action='store_true', help='Update existing records')
     args = parser.parse_args()
+
+    resolved_user_id = args.user_id
+    if args.source_id is not None:
+        app = create_app()
+        with app.app_context():
+            source = HarvestSource.query.get(args.source_id)
+            if not source:
+                parser.error(f"--source_id {args.source_id} not found in harvest_sources")
+            source.resolve_owner()
+            if not source.owner_user_id:
+                parser.error(
+                    f"harvest_sources.id={args.source_id} ({source.name!r}) has no owner_user_id "
+                    f"(owner_email={source.owner_email!r}). Link an institutional user_account first."
+                )
+            resolved_user_id = source.owner_user_id
+            print(f"[INFO] Derived user_id={resolved_user_id} from harvest_sources.id={args.source_id} ({source.name})")
 
     run_batch_sync(
         collection_id=args.collection_id,
         limit=args.limit,
         offset=args.offset,
-        user_id=args.user_id,
+        user_id=resolved_user_id,
         update_existing=args.update_existing,
         force_remap=args.force_remap
     )

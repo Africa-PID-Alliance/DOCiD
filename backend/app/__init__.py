@@ -118,6 +118,7 @@ def create_app():
     from app.routes.rrid import rrid_bp
     from app.routes.national_id import national_id_bp
     from app.routes.tenants import tenants_bp
+    from app.routes.admin_harvest_sources import admin_harvest_sources_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(datacite_bp, url_prefix='/api/v1/datacite')
@@ -148,6 +149,7 @@ def create_app():
     app.register_blueprint(rrid_bp, url_prefix='/api/v1/rrid')
     app.register_blueprint(national_id_bp, url_prefix='/api/v1/national-id')
     app.register_blueprint(tenants_bp)  # url_prefix is set on the blueprint itself
+    app.register_blueprint(admin_harvest_sources_bp)  # /api/v1/admin/harvest-sources
 
     # Add root-level DocID route
     from app.routes.docid_root import setup_docid_root_route

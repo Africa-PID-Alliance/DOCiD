@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, Boolean
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, Boolean, event
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app import db
@@ -1776,6 +1776,8 @@ class HarvestSource(db.Model):
     encrypted_username = db.Column(db.Text, nullable=True)
     encrypted_password = db.Column(db.Text, nullable=True)
     owner_name = db.Column(db.String(255), nullable=False)
+    owner_email = db.Column(db.String(255), nullable=True, index=True)
+    owner_user_id = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id', ondelete='SET NULL'), nullable=True, index=True)
     harvest_frequency = db.Column(db.String(20), default='weekly')  # daily|weekly|biweekly|monthly
     is_active = db.Column(db.Boolean, default=True)
     last_harvested_at = db.Column(db.DateTime, nullable=True)
@@ -1783,6 +1785,7 @@ class HarvestSource(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
 
+    owner_user = relationship('UserAccount', foreign_keys=[owner_user_id])
     field_mappings = relationship(
         'HarvestSourceFieldMapping',
         back_populates='source',
@@ -1792,20 +1795,52 @@ class HarvestSource(db.Model):
     def __repr__(self):
         return f"<HarvestSource(id={self.id}, name='{self.name}', api_type='{self.api_type}')>"
 
+    def resolve_owner(self):
+        """Look up owner_user_id from owner_email (case-insensitive).
+
+        Sets self.owner_user_id when a matching UserAccount exists and returns it.
+        Called automatically by the before_insert/before_update event below and
+        defensively at the start of each harvest run.
+        """
+        if not self.owner_email:
+            return self.owner_user_id
+        user = UserAccount.query.filter(
+            db.func.lower(UserAccount.email) == self.owner_email.lower()
+        ).first()
+        if user:
+            self.owner_user_id = user.user_id
+        return self.owner_user_id
+
     def serialize(self):
         return {
             'id': self.id,
             'name': self.name,
             'base_url': self.base_url,
+            'ui_base_url': self.ui_base_url,
             'dspace_version': self.dspace_version,
             'api_type': self.api_type,
             'auth_required': self.auth_required,
             'owner_name': self.owner_name,
+            'owner_email': self.owner_email,
+            'owner_user_id': self.owner_user_id,
             'harvest_frequency': self.harvest_frequency,
             'is_active': self.is_active,
             'last_harvested_at': self.last_harvested_at.isoformat() if self.last_harvested_at else None,
             'total_items_synced': self.total_items_synced,
         }
+
+
+@event.listens_for(HarvestSource, 'before_insert')
+@event.listens_for(HarvestSource, 'before_update')
+def _harvest_source_resolve_owner(mapper, connection, target):
+    """Auto-resolve owner_user_id from owner_email on any insert/update."""
+    if target.owner_email and not target.owner_user_id:
+        result = connection.execute(
+            db.text("SELECT user_id FROM user_accounts WHERE LOWER(email) = LOWER(:e) LIMIT 1"),
+            {"e": target.owner_email},
+        ).first()
+        if result:
+            target.owner_user_id = result[0]
 
 
 class HarvestSourceFieldMapping(db.Model):
