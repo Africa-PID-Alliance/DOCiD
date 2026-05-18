@@ -73,34 +73,10 @@ def get_publications_to_enrich(source_name, batch_size, force_reprocess=False, r
 
 
 def enrich_with_openalex(publication, client, mapper):
-    """Enrich a single publication with OpenAlex data."""
-    from app.service_openalex import normalize_doi
+    """Enrich a single publication with OpenAlex data (delegates to shared helper)."""
+    from app.service_openalex import enrich_publication_openalex
 
-    normalized_doi = normalize_doi(publication.doi)
-    if not normalized_doi:
-        return 'skipped', 'no_valid_doi', None
-
-    work_data = client.get_work_by_doi(normalized_doi)
-    if not work_data:
-        return 'not_found', None, None
-
-    enrichment_data = mapper.extract_work_enrichment(work_data)
-
-    # Apply to publication — OpenAlex is primary for citations and topics
-    if enrichment_data.get('citation_count') is not None:
-        publication.citation_count = enrichment_data['citation_count']
-    if enrichment_data.get('open_access_status'):
-        publication.open_access_status = enrichment_data['open_access_status']
-    if enrichment_data.get('open_access_url'):
-        publication.open_access_url = enrichment_data['open_access_url']
-    if enrichment_data.get('topics'):
-        publication.openalex_topics = enrichment_data['topics']
-    if enrichment_data.get('openalex_id'):
-        publication.openalex_id = enrichment_data['openalex_id']
-    if enrichment_data.get('abstract') and not publication.abstract_text:
-        publication.abstract_text = enrichment_data['abstract']
-
-    return 'enriched', None, work_data
+    return enrich_publication_openalex(publication, client, mapper, performed_by="system")
 
 
 def enrich_with_unpaywall(publication, client, mapper):

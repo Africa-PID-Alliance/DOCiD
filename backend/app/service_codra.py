@@ -897,3 +897,80 @@ def assign_doi_user(username: str,password: str, email: str, role: str, metadata
         }
     }
     return cordra_service._assign_doi_generic(payload)
+
+
+def build_openalex_external_metadata(publication):
+    """
+    Build the externalMetadata.openAlex + provenance block for a publication's
+    CORDRA payload, based on the latest enriched PublicationEnrichment row.
+
+    Returns:
+        (external_metadata_dict, provenance_events_list)
+        (None, []) if there is no enriched OpenAlex row for this publication.
+    """
+    from datetime import datetime
+    from app.models import PublicationEnrichment
+
+    row = PublicationEnrichment.query.filter_by(
+        publication_id=publication.id,
+        source_name='openalex',
+        status='enriched',
+    ).first()
+    if not row:
+        return None, []
+
+    raw = row.raw_response or {}
+    # Backward-compat: older rows stored the raw work dict directly under raw_response.
+    if isinstance(raw, dict) and 'work' in raw:
+        work = raw.get('work') or {}
+    else:
+        work = raw if isinstance(raw, dict) else {}
+
+    open_access = work.get('open_access') if isinstance(work, dict) else None
+    open_access = open_access or {}
+
+    # Normalise workId: openalex_id may be stored bare ("Wxxx") or as full URL.
+    raw_oid = publication.openalex_id or ""
+    if raw_oid.startswith("http"):
+        work_id_url = raw_oid
+    elif raw_oid:
+        work_id_url = f"https://openalex.org/{raw_oid}"
+    else:
+        work_id_url = work.get('id') if isinstance(work, dict) else None
+
+    retrieved_at = (row.enriched_at or datetime.utcnow()).isoformat() + 'Z'
+
+    external = {
+        "source": "OpenAlex",
+        "retrievedAt": retrieved_at,
+        "matchMethod": "doi",
+        "confidence": "high",
+        "workId": work_id_url,
+        "doi": publication.doi,
+        "citedByCount": publication.citation_count,
+        "openAccess": {
+            "isOpenAccess": bool(open_access.get('is_oa')) if open_access else None,
+            "oaStatus": publication.open_access_status,
+            "oaUrl": publication.open_access_url,
+        },
+        "topics": publication.openalex_topics or [],
+    }
+
+    provenance = raw.get('provenance') if isinstance(raw, dict) else None
+    if isinstance(provenance, dict):
+        provenance_events = [provenance]
+    elif isinstance(provenance, list):
+        provenance_events = provenance
+    else:
+        provenance_events = [{
+            "eventType": "external_metadata_enrichment",
+            "source": "OpenAlex",
+            "sourceUrl": work_id_url,
+            "retrievedAt": retrieved_at,
+            "matchedBy": "doi",
+            "confidence": "high",
+            "performedBy": "system",
+            "status": "accepted",
+        }]
+
+    return external, provenance_events

@@ -6,6 +6,7 @@ Handles communication with OpenAlex for scholarly metadata enrichment (works, au
 import time
 import requests
 import logging
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 # Configure logging
@@ -14,7 +15,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
+ 
 
 def normalize_doi(doi_string: str) -> Optional[str]:
     """
@@ -306,6 +307,38 @@ class OpenAlexEnrichmentMapper:
             'last_known_institutions': last_known_institutions,
         }
 
+    @classmethod
+    def extract_work_summary(cls, openalex_work: Dict) -> Dict:
+        """
+        Extract a richer summary used by the on-demand preview/conflict diff.
+        Additive to extract_work_enrichment — exposes fields needed to compare
+        OpenAlex against DOCiD Publication fields (title, year, DOI, OA, source).
+        """
+        if not openalex_work:
+            return {}
+
+        open_access_data = openalex_work.get('open_access', {}) or {}
+        primary_location = openalex_work.get('primary_location') or {}
+        source = (primary_location.get('source') or {}) if isinstance(primary_location, dict) else {}
+
+        return {
+            'title': openalex_work.get('title') or openalex_work.get('display_name'),
+            'publication_year': openalex_work.get('publication_year'),
+            'publication_date': openalex_work.get('publication_date'),
+            'doi': openalex_work.get('doi'),
+            'work_id_url': openalex_work.get('id'),
+            'is_oa': open_access_data.get('is_oa'),
+            'oa_status': open_access_data.get('oa_status'),
+            'oa_url': open_access_data.get('oa_url'),
+            'type': openalex_work.get('type'),
+            'authorships': openalex_work.get('authorships', []) or [],
+            'source': {
+                'display_name': source.get('display_name'),
+                'issn_l': source.get('issn_l'),
+                'type': source.get('type'),
+            } if source else None,
+        }
+
     # ==================== Internal Helpers ====================
 
     @staticmethod
@@ -337,3 +370,59 @@ class OpenAlexEnrichmentMapper:
         reconstructed_text = ' '.join(word for _, word in position_word_pairs)
 
         return reconstructed_text if reconstructed_text else None
+
+
+def enrich_publication_openalex(publication, client, mapper, performed_by: str = "system") -> Tuple[str, Optional[str], Optional[Dict]]:
+    """
+    Run OpenAlex enrichment for a single Publication.
+
+    Mutates publication columns (citation_count, open_access_status, open_access_url,
+    openalex_topics, openalex_id, abstract_text). Does NOT touch PublicationEnrichment —
+    the caller decides whether to insert (CLI) or upsert (route).
+
+    Returns:
+        (status, error_message, payload)
+        payload on success: {"work": <raw>, "enrichment": <mapper output>, "provenance": <dict>}
+    """
+    normalized_doi = normalize_doi(publication.doi)
+    if not normalized_doi:
+        return 'skipped', 'no_valid_doi', None
+
+    work_data = client.get_work_by_doi(normalized_doi)
+    if not work_data:
+        return 'not_found', None, None
+
+    enrichment_data = mapper.extract_work_enrichment(work_data)
+
+    if enrichment_data.get('citation_count') is not None:
+        publication.citation_count = enrichment_data['citation_count']
+    if enrichment_data.get('open_access_status'):
+        publication.open_access_status = enrichment_data['open_access_status']
+    if enrichment_data.get('open_access_url'):
+        publication.open_access_url = enrichment_data['open_access_url']
+    if enrichment_data.get('topics'):
+        publication.openalex_topics = enrichment_data['topics']
+    if enrichment_data.get('openalex_id'):
+        publication.openalex_id = enrichment_data['openalex_id']
+    if enrichment_data.get('abstract') and not publication.abstract_text:
+        publication.abstract_text = enrichment_data['abstract']
+
+    retrieved_at = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    provenance = {
+        "eventType": "external_metadata_enrichment",
+        "source": "OpenAlex",
+        "sourceUrl": work_data.get("id"),
+        "retrievedAt": retrieved_at,
+        "matchedBy": "doi",
+        "confidence": "high",
+        "performedBy": performed_by,
+        "status": "accepted",
+    }
+
+    payload = {
+        "work": work_data,
+        "enrichment": enrichment_data,
+        "provenance": provenance,
+    }
+
+    return 'enriched', None, payload

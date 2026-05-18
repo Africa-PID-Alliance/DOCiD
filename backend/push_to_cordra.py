@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 try:
     from config import Config
-    from app.service_codra import update_object, create_or_update_semantic_object
+    from app.service_codra import update_object, create_or_update_semantic_object, build_openalex_external_metadata
     from app.models import (
         Publications, PublicationFiles, PublicationDocuments,
         PublicationCreators, PublicationOrganization, PublicationFunders,
@@ -99,7 +99,13 @@ def push_publication_to_cordra(publication):
             "groupName": publication.document_title,  # Container iD requires groupName
             "created_on": int(publication.published.timestamp()) if publication.published else None
         }
-        
+
+        # Inject OpenAlex enrichment + provenance if available (Phase 1)
+        external_metadata, provenance_events = build_openalex_external_metadata(publication)
+        if external_metadata:
+            metadata["externalMetadata"] = {"openAlex": external_metadata}
+            metadata["provenance"] = provenance_events
+
         object_data = {
             "attributes": {
                 "content": metadata
