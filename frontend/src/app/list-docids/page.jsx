@@ -112,13 +112,6 @@ const ListDocIds = () => {
     checkRehydration();
   }, []);
 
-  useEffect(() => {
-    // Only check authentication after rehydration is complete
-    if (isRehydrated && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, isRehydrated, router]);
-
   // Initialize state from URL parameters on mount
   useEffect(() => {
     if (!isStateInitialized.current) {
@@ -486,11 +479,6 @@ const ListDocIds = () => {
 
   // Show loading while waiting for rehydration
   if (!isRehydrated) {
-    return null;
-  }
-
-  // If not authenticated after rehydration, don't render the page content
-  if (!isAuthenticated) {
     return null;
   }
 

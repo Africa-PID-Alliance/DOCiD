@@ -3,7 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from flask import Blueprint, jsonify, request, Response, abort
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
@@ -426,6 +426,18 @@ def get_all_publications():
         description: Internal server error
     """
     try:
+        # Resolve optional JWT identity; tolerate expired/invalid tokens by falling back to anonymous.
+        # Cast to int because flask-jwt-extended stores identity as a string in the JWT,
+        # which won't compare against integer Publications.user_id reliably.
+        current_user_id = None
+        try:
+            verify_jwt_in_request(optional=True)
+            identity = get_jwt_identity()
+            if identity is not None:
+                current_user_id = int(identity)
+        except Exception:
+            current_user_id = None
+
         # Default pagination parameters
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 10))
@@ -463,6 +475,8 @@ def get_all_publications():
 
         # Build the query using the Publications model
         query = Publications.query
+        if current_user_id is not None:
+            query = query.filter(Publications.user_id == current_user_id)
         needs_distinct = False
 
         # Apply search filter based on selected field
@@ -541,6 +555,8 @@ def get_all_publications():
             # Use subquery to get distinct publication IDs first, then fetch full objects
             distinct_ids_query = query.with_entities(Publications.id).distinct()
             query = Publications.query.filter(Publications.id.in_(distinct_ids_query))
+            if current_user_id is not None:
+                query = query.filter(Publications.user_id == current_user_id)
 
         publications = (
             query.order_by(sort_column)
@@ -588,6 +604,8 @@ def get_all_publications():
         ).outerjoin(
             AccountTypes, UserAccount.account_type_id == AccountTypes.id
         )
+        if current_user_id is not None:
+            account_type_count_query = account_type_count_query.filter(Publications.user_id == current_user_id)
         # Apply same search filters for accurate counts
         if search_term:
             if search_field == 'title':

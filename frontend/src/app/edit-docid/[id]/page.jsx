@@ -240,6 +240,7 @@ export default function EditDocidPage() {
   const { user, isAuthenticated } = useSelector((state) => state.auth || {});
   const currentUserId = user?.id || user?.user_id || null;
 
+  const [isRehydrated, setIsRehydrated] = useState(false);
   const [publicationData, setPublicationData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -315,6 +316,21 @@ export default function EditDocidPage() {
       setIsLoading(false);
     }
   }, [publicationId, currentUserId]);
+
+  useEffect(() => {
+    const persistedAuth = typeof window !== 'undefined' ? localStorage.getItem('persist:root') : null;
+    if (persistedAuth) {
+      setIsRehydrated(true);
+    } else {
+      setTimeout(() => setIsRehydrated(true), 100);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isRehydrated && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isRehydrated, isAuthenticated, router]);
 
   useEffect(() => { loadPublication(); }, [loadPublication]);
 
@@ -667,13 +683,8 @@ export default function EditDocidPage() {
     </Box>
   );
 
-  if (!isAuthenticated) {
-    return pageWrap(
-      <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
-        <Alert severity="warning">You must be signed in to edit.</Alert>
-      </Paper>
-    );
-  }
+  if (!isRehydrated) return null;
+  if (!isAuthenticated) return null;
   if (isLoading) {
     return pageWrap(
       <Paper elevation={2} sx={{ p: 6, borderRadius: 2, textAlign: 'center' }}>

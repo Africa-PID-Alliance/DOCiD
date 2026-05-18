@@ -10,11 +10,17 @@ export async function GET(request) {
     const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/publications/get-publications${queryString ? `?${queryString}` : ''}`;
     
+    const forwardedHeaders = {
+      'Content-Type': 'application/json',
+    };
+    const incomingAuth = request.headers.get('authorization');
+    if (incomingAuth) {
+      forwardedHeaders['Authorization'] = incomingAuth;
+    }
+
     const response = await fetch(apiUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: forwardedHeaders,
     });
 
     if (!response.ok) {

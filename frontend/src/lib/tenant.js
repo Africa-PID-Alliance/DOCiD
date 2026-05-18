@@ -47,7 +47,7 @@ export function getDefaultTenant() {
  * Examples:
  *   stellenbosch.africapidalliance.test:8080 → "stellenbosch"
  *   unilag.africapidalliance.org            → "unilag"
- *   docid.africapidalliance.test:8080       → null (default)
+ *   docid-core.africapidalliance.test:8080  → null (default)
  *   www.africapidalliance.org               → null (default)
  *   localhost:3000                          → null (default)
  *   127.0.0.1                               → null (default)

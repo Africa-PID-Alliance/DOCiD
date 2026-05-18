@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import {
   Container,
@@ -51,7 +52,9 @@ import RridForm from './components/RridForm';
 
 const AssignDocID = () => {
   const { t } = useTranslation();
-  const { user } = useSelector((state) => state.auth);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const router = useRouter();
+  const [isRehydrated, setIsRehydrated] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -241,6 +244,24 @@ const AssignDocID = () => {
       console.error('Failed to load draft:', error);
     }
   }, [user?.email]);
+
+  useEffect(() => {
+    const checkRehydration = () => {
+      const persistedAuth = localStorage.getItem('persist:root');
+      if (persistedAuth) {
+        setIsRehydrated(true);
+      } else {
+        setTimeout(() => setIsRehydrated(true), 100);
+      }
+    };
+    checkRehydration();
+  }, []);
+
+  useEffect(() => {
+    if (isRehydrated && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isRehydrated, router]);
 
   // Load saved draft only when explicitly navigated from my-account page
   useEffect(() => {
@@ -837,9 +858,12 @@ const AssignDocID = () => {
     }
   };
 
+  if (!isRehydrated) return null;
+  if (!isAuthenticated) return null;
+
   return (
-    <Box sx={{ 
-      width: '100%', 
+    <Box sx={{
+      width: '100%',
       py: { xs: 2, sm: 3, md: 4 },
       bgcolor: theme.palette.background.content, 
       minHeight: '100vh'
