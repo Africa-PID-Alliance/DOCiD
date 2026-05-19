@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
   Container,
@@ -75,6 +75,7 @@ const IDENTIFIER_TYPE_LABELS = {
 
 const DocIDPage = ({ params }) => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const lcDemoProjectId = searchParams?.get('lc_demo') || null;
   const [comment, setComment] = useState('');
   const [docData, setDocData] = useState(null);
@@ -1147,58 +1148,90 @@ const DocIDPage = ({ params }) => {
                   ) : (
                     <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
                       {/* Add New Comment Section */}
-                      <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200' }}>
-                        {/* Error Message */}
-                        {commentError && (
-                          <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main' }}>
-                            <Typography variant="body2" color="error.dark" sx={{ fontWeight: 500 }}>
-                              ⚠️ {commentError}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {/* Success Message */}
-                        {commentSuccess && (
-                          <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
-                            <Typography variant="body2" color="success.dark" sx={{ fontWeight: 500 }}>
-                              ✅ {commentSuccess}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        <TextField
-                          placeholder={t('docid_page.comments.placeholder')}
-                          fullWidth
-                          size="medium"
-                          multiline
-                          minRows={3}
-                          value={comment}
-                          onChange={e => setComment(e.target.value)}
-                          sx={{ 
-                            mb: 2,
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: 'background.paper',
-                              borderRadius: 2,
-                              fontSize: '0.95rem',
-                              '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'primary.main',
-                              },
-                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'primary.main',
-                                borderWidth: 2,
-                              },
-                              '& .MuiOutlinedInput-input': {
-                                color: 'text.primary'
+                      {isAuthenticated ? (
+                        <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200' }}>
+                          {/* Error Message */}
+                          {commentError && (
+                            <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main' }}>
+                              <Typography variant="body2" color="error.dark" sx={{ fontWeight: 500 }}>
+                                ⚠️ {commentError}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {/* Success Message */}
+                          {commentSuccess && (
+                            <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
+                              <Typography variant="body2" color="success.dark" sx={{ fontWeight: 500 }}>
+                                ✅ {commentSuccess}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          <TextField
+                            placeholder={t('docid_page.comments.placeholder')}
+                            fullWidth
+                            size="medium"
+                            multiline
+                            minRows={3}
+                            value={comment}
+                            onChange={e => setComment(e.target.value)}
+                            sx={{ 
+                              mb: 2,
+                              '& .MuiOutlinedInput-root': {
+                                bgcolor: 'background.paper',
+                                borderRadius: 2,
+                                fontSize: '0.95rem',
+                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                  borderColor: 'primary.main',
+                                },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                  borderColor: 'primary.main',
+                                  borderWidth: 2,
+                                },
+                                '& .MuiOutlinedInput-input': {
+                                  color: 'text.primary'
+                                }
                               }
-                            }
-                          }}
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            }}
+                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                              variant="contained"
+                              endIcon={commentLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                              size="medium"
+                              sx={{ 
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                px: 4,
+                                py: 1,
+                                borderRadius: 2,
+                                bgcolor: 'primary.main',
+                                '&:hover': {
+                                  bgcolor: 'primary.dark',
+                                  transform: 'translateY(-1px)',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                },
+                                '&:disabled': {
+                                  bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.300'
+                                }
+                              }}
+                              onClick={handleCommentSubmit}
+                              disabled={commentLoading || !comment.trim()}
+                            >
+                              {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
+                            </Button>
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ mb: 3, p: 3, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200', textAlign: 'center' }}>
+                          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                            Please log in to leave a comment
+                          </Typography>
                           <Button
                             variant="contained"
-                            endIcon={commentLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
-                            size="medium"
-                            sx={{ 
+                            onClick={() => router.push('/login')}
+                            sx={{
                               textTransform: 'none',
                               fontWeight: 600,
                               px: 4,
@@ -1206,21 +1239,14 @@ const DocIDPage = ({ params }) => {
                               borderRadius: 2,
                               bgcolor: 'primary.main',
                               '&:hover': {
-                                bgcolor: 'primary.dark',
-                                transform: 'translateY(-1px)',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                              },
-                              '&:disabled': {
-                                bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.300'
+                                bgcolor: 'primary.dark'
                               }
                             }}
-                            onClick={handleCommentSubmit}
-                            disabled={commentLoading || !comment.trim()}
                           >
-                            {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
+                            Log In
                           </Button>
                         </Box>
-                      </Box>
+                      )}
 
                       {/* Comments List */}
                       <Box sx={{ maxHeight: '400px', overflowY: 'auto', pr: 1 }}>
@@ -1289,23 +1315,25 @@ const DocIDPage = ({ params }) => {
                                     {comment.comment_text}
                                   </Typography>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Button 
-                                      size="small" 
-                                      onClick={() => handleReplyClick(comment.id)}
-                                      startIcon={<CommentIcon sx={{ fontSize: 16 }} />}
-                                      sx={{ 
-                                        textTransform: 'none', 
-                                        fontSize: '0.8rem',
-                                        fontWeight: 500,
-                                        color: 'primary.main',
-                                        '&:hover': {
-                                          bgcolor: 'primary.light',
-                                          color: 'white'
-                                        }
-                                      }}
-                                    >
-                                      Reply
-                                    </Button>
+                                    {isAuthenticated && (
+                                      <Button 
+                                        size="small" 
+                                        onClick={() => handleReplyClick(comment.id)}
+                                        startIcon={<CommentIcon sx={{ fontSize: 16 }} />}
+                                        sx={{ 
+                                          textTransform: 'none', 
+                                          fontSize: '0.8rem',
+                                          fontWeight: 500,
+                                          color: 'primary.main',
+                                          '&:hover': {
+                                            bgcolor: 'primary.light',
+                                            color: 'white'
+                                          }
+                                        }}
+                                      >
+                                        Reply
+                                      </Button>
+                                    )}
                                     
                                     {/* Replies Toggle Button */}
                                     {comment.replies && comment.replies.length > 0 && (
@@ -2437,26 +2465,28 @@ const DocIDPage = ({ params }) => {
                                 {comment.comment_text}
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Button 
-                                  size="small" 
-                                  onClick={() => handleReplyClick(comment.id)}
-                                  startIcon={<CommentIcon sx={{ fontSize: 14 }} />}
-                                  sx={{ 
-                                    textTransform: 'none', 
-                                    fontSize: '0.75rem',
-                                    fontWeight: 500,
-                                    color: 'primary.main',
-                                    minHeight: 'auto',
-                                    py: 0.5,
-                                    px: 1,
-                                    '&:hover': {
-                                      bgcolor: 'primary.light',
-                                      color: theme.palette.mode === 'dark' ? 'white' : 'white'
+                                {isAuthenticated && (
+                                  <Button 
+                                    size="small" 
+                                    onClick={() => handleReplyClick(comment.id)}
+                                    startIcon={<CommentIcon sx={{ fontSize: 14 }} />}
+                                    sx={{ 
+                                      textTransform: 'none', 
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      color: 'primary.main',
+                                      minHeight: 'auto',
+                                      py: 0.5,
+                                      px: 1,
+                                      '&:hover': {
+                                        bgcolor: 'primary.light',
+                                        color: theme.palette.mode === 'dark' ? 'white' : 'white'
                                     }
                                   }}
                                 >
                                   {t('docid_page.comments.reply')}
                                 </Button>
+                                )}
                                 
                                 {/* Replies Toggle Button */}
                                 {comment.replies && comment.replies.length > 0 && (
@@ -2671,58 +2701,90 @@ const DocIDPage = ({ params }) => {
                   )}
                 </Box>
               )}
-                <Box sx={{ mt: 3, p: 2, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200' }}>
-                  {/* Error Message */}
-                  {commentError && (
-                    <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main' }}>
-                      <Typography variant="body2" color="error.dark" sx={{ fontWeight: 500 }}>
-                        ⚠️ {commentError}
-                      </Typography>
-                    </Box>
-                  )}
-                  
-                  {/* Success Message */}
-                  {commentSuccess && (
-                    <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
-                      <Typography variant="body2" color="success.dark" sx={{ fontWeight: 500 }}>
-                        ✅ {commentSuccess}
-                      </Typography>
-                    </Box>
-                  )}
-                  
-                  <TextField
-                    placeholder={t('docid_page.comments.placeholder')}
-                    fullWidth
-                    size="medium"
-                    multiline
-                    minRows={3}
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
-                    sx={{ 
-                      mb: 2,
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'background.paper',
-                        borderRadius: 2,
-                        fontSize: '0.95rem',
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'primary.main',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'primary.main',
-                          borderWidth: 2,
-                        },
-                        '& .MuiOutlinedInput-input': {
-                          color: 'text.primary'
+                {isAuthenticated ? (
+                  <Box sx={{ mt: 3, p: 2, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200' }}>
+                    {/* Error Message */}
+                    {commentError && (
+                      <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main' }}>
+                        <Typography variant="body2" color="error.dark" sx={{ fontWeight: 500 }}>
+                          ⚠️ {commentError}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {/* Success Message */}
+                    {commentSuccess && (
+                      <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
+                        <Typography variant="body2" color="success.dark" sx={{ fontWeight: 500 }}>
+                          ✅ {commentSuccess}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    <TextField
+                      placeholder={t('docid_page.comments.placeholder')}
+                      fullWidth
+                      size="medium"
+                      multiline
+                      minRows={3}
+                      value={comment}
+                      onChange={e => setComment(e.target.value)}
+                      sx={{ 
+                        mb: 2,
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: 'background.paper',
+                          borderRadius: 2,
+                          fontSize: '0.95rem',
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                            borderWidth: 2,
+                          },
+                          '& .MuiOutlinedInput-input': {
+                            color: 'text.primary'
+                          }
                         }
-                      }
-                    }}
-                  />
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      }}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="contained"
+                        endIcon={commentLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                        size="medium"
+                        sx={{ 
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          px: 4,
+                          py: 1,
+                          borderRadius: 2,
+                          bgcolor: 'primary.main',
+                          '&:hover': {
+                            bgcolor: 'primary.dark',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                          },
+                          '&:disabled': {
+                            bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.300'
+                          }
+                        }}
+                        onClick={handleCommentSubmit}
+                        disabled={commentLoading || !comment.trim()}
+                        >
+                          {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
+                        </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 3, p: 3, borderRadius: 2, bgcolor: theme.palette.mode === 'dark' ? '#141a3a' : 'grey.50', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.200', textAlign: 'center' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                      Please log in to leave a comment
+                    </Typography>
                     <Button
                       variant="contained"
-                      endIcon={commentLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
-                      size="medium"
-                      sx={{ 
+                      onClick={() => router.push('/login')}
+                      sx={{
                         textTransform: 'none',
                         fontWeight: 600,
                         px: 4,
@@ -2730,21 +2792,14 @@ const DocIDPage = ({ params }) => {
                         borderRadius: 2,
                         bgcolor: 'primary.main',
                         '&:hover': {
-                          bgcolor: 'primary.dark',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                        },
-                        '&:disabled': {
-                          bgcolor: theme.palette.mode === 'dark' ? '#2a3275' : 'grey.300'
+                          bgcolor: 'primary.dark'
                         }
                       }}
-                      onClick={handleCommentSubmit}
-                      disabled={commentLoading || !comment.trim()}
-                      >
-                        {commentLoading ? t('docid_page.comments.posting') : t('docid_page.comments.post_comment')}
-                      </Button>
+                    >
+                      Log In
+                    </Button>
                   </Box>
-                </Box>
+                )}
             </Paper>
             {/* Related Docids */}
             <Button variant="outlined" fullWidth sx={{ 
