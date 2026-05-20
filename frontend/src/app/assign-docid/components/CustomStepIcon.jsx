@@ -8,7 +8,9 @@ import {
   Person,
   Business,
   AttachMoney,
-  Folder
+  Folder,
+  Public,
+  CheckCircle,
 } from '@mui/icons-material';
 
 const icons = {
@@ -18,11 +20,13 @@ const icons = {
   4: Person,
   5: Business,
   6: AttachMoney,
-  7: Folder
+  7: Folder,
+  8: Public, // Local Contexts (conditional, IK / Cultural Heritage only)
 };
 
 const CustomStepIcon = ({ active, completed, icon }) => {
-  const Icon = icons[icon];
+  // Defensive: an unknown step number must not crash the stepper.
+  const Icon = icons[icon] || CheckCircle;
 
   return (
     <div

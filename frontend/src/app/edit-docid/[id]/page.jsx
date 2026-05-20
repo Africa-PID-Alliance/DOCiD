@@ -823,10 +823,6 @@ export default function EditDocidPage() {
     `Funders (${funders.length})`,
     `Projects (${projects.length})`,
   ];
-  if (showLocalContextsStep) {
-    const nonLegacyCount = (localContexts || []).filter((p) => !p._legacy).length;
-    stepLabels.push(`Local Contexts (${nonLegacyCount})`);
-  }
   const lastStepIndex = stepLabels.length - 1;
 
   return pageWrap(
@@ -870,21 +866,37 @@ export default function EditDocidPage() {
         <Button variant="contained" disabled={activeStep === lastStepIndex} onClick={() => setActiveStep((p) => Math.min(lastStepIndex, p + 1))}>Next</Button>
       </Stack>
 
-      {/* Step 0 — Details */}
+      {/* Step 0 — Details (+ inline Local Contexts picker for IK / Cultural Heritage) */}
       {activeStep === 0 && (
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-          <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
-          <Stack spacing={2}>
-            <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
-            <RichTextEditor label="Description" value={documentDescription} onChange={setDocumentDescription} />
-            <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
-            <Box>
-              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save Details'}
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
+        <Stack spacing={3}>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <Typography variant="h6" fontWeight={600} gutterBottom>DOCiD™ Details</Typography>
+            <Stack spacing={2}>
+              <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
+              <RichTextEditor label="Description" value={documentDescription} onChange={setDocumentDescription} />
+              <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
+              <Box>
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Details'}
+                </Button>
+              </Box>
+            </Stack>
+          </Paper>
+          {showLocalContextsStep && (
+            <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+              <LocalContextsForm
+                value={localContexts}
+                onChange={setLocalContexts}
+                disabled={isSaving}
+              />
+              <Box mt={2}>
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={saveLocalContexts} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Local Contexts'}
+                </Button>
+              </Box>
+            </Paper>
+          )}
+        </Stack>
       )}
 
       {/* Step 1 — Publications (files) */}
@@ -980,22 +992,6 @@ export default function EditDocidPage() {
           <Box mt={2}>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('projects')} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Projects'}
-            </Button>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Step 7 — Local Contexts (conditional on IK / Cultural Heritage) */}
-      {showLocalContextsStep && activeStep === 7 && (
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-          <LocalContextsForm
-            value={localContexts}
-            onChange={setLocalContexts}
-            disabled={isSaving}
-          />
-          <Box mt={2}>
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={saveLocalContexts} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Local Contexts'}
             </Button>
           </Box>
         </Paper>

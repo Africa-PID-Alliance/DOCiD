@@ -104,35 +104,22 @@ const AssignDocID = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Local Contexts step is conditional on resource type (IK / Cultural Heritage).
+  // Local Contexts picker is shown inline on Step 1 (DOCiD step) when resource type is IK / Cultural Heritage.
   const showLocalContextsStep = useMemo(() => {
     const rt = Number(formData.docId?.resourceType);
     return LC_RESOURCE_TYPE_IDS.has(rt);
   }, [formData.docId?.resourceType]);
 
-  // Define steps using translations; the LC step is appended only when applicable.
-  const steps = useMemo(() => {
-    const base = [
-      t('assign_docid.steps.docid'),
-      t('assign_docid.steps.publications'),
-      t('assign_docid.steps.documents'),
-      t('assign_docid.steps.creators'),
-      t('assign_docid.steps.organizations'),
-      t('assign_docid.steps.funders'),
-      t('assign_docid.steps.projects'),
-    ];
-    if (showLocalContextsStep) {
-      base.push(t('assign_docid.steps.local_contexts') || 'Local Contexts');
-    }
-    return base;
-  }, [t, showLocalContextsStep]);
-
-  // If the LC step disappears (resource type change), make sure activeStep stays in range.
-  useEffect(() => {
-    if (activeStep >= steps.length) {
-      setActiveStep(steps.length - 1);
-    }
-  }, [steps.length, activeStep]);
+  // Define steps using translations (LC is inlined into Step 1, not its own step).
+  const steps = [
+    t('assign_docid.steps.docid'),
+    t('assign_docid.steps.publications'),
+    t('assign_docid.steps.documents'),
+    t('assign_docid.steps.creators'),
+    t('assign_docid.steps.organizations'),
+    t('assign_docid.steps.funders'),
+    t('assign_docid.steps.projects'),
+  ];
 
   // Add console.log to debug
   console.log('Current formData:', formData);
@@ -405,10 +392,28 @@ const AssignDocID = () => {
     switch (step) {
       case 0:
         return (
-          <DocIDForm
-            formData={formData.docId}
-            updateFormData={(data) => updateFormData('docId', data)}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <DocIDForm
+              formData={formData.docId}
+              updateFormData={(data) => updateFormData('docId', data)}
+            />
+            {showLocalContextsStep && (
+              <Paper
+                elevation={2}
+                sx={{
+                  p: { xs: 2, sm: 3 },
+                  borderRadius: 2,
+                  border: `1px solid ${theme.palette.divider}`,
+                  bgcolor: theme.palette.background.paper,
+                }}
+              >
+                <LocalContextsForm
+                  value={formData.localContexts || []}
+                  onChange={(next) => setFormData((prev) => ({ ...prev, localContexts: next }))}
+                />
+              </Paper>
+            )}
+          </Box>
         );
       case 1:
         return (
@@ -549,16 +554,6 @@ const AssignDocID = () => {
           <ProjectForm
             formData={formData.project}
             updateFormData={(data) => updateFormData('project', data)}
-          />
-        );
-      case 7:
-        if (!showLocalContextsStep) return null;
-        return (
-          <LocalContextsForm
-            value={formData.localContexts || []}
-            onChange={(next) =>
-              setFormData((prev) => ({ ...prev, localContexts: next }))
-            }
           />
         );
       default:
