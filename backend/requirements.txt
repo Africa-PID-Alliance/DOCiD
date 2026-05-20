@@ -73,3 +73,7 @@ python-dotenv
 redis
 Flask-Migrate
 
+
+# Thumbnail generation (server-side, see app/service_thumbnails.py)
+pdf2image==1.17.0
+Pillow>=10.0.0

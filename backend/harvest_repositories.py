@@ -30,11 +30,64 @@ from app.models import (
 )
 from app.utils_crypto import decrypt_value
 from app.service_identifiers import IdentifierService
+from app.service_thumbnails import generate_thumbnail_from_url, get_uploads_dir
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 FREQUENCY_DAYS = {'daily': 1, 'weekly': 7, 'biweekly': 14, 'monthly': 30}
+
+
+def _generate_dspace_thumbnail(client, item_uuid):
+    """Best-effort: download the item's ORIGINAL bitstream and produce a JPEG thumbnail.
+
+    Returns the relative /uploads/<file>.jpg path on success, or None on any failure.
+    Tries the DSpace `/thumbnail` endpoint first (cheap if DSpace already made one),
+    then falls back to the ORIGINAL bundle's first bitstream.
+    """
+    try:
+        base = client.base_url.rstrip('/') if hasattr(client, 'base_url') else None
+        if not base:
+            return None
+        uploads_dir = get_uploads_dir()
+
+        # 1. Try DSpace's own thumbnail endpoint
+        try:
+            response = client.session.get(f"{base}/api/core/items/{item_uuid}/thumbnail", timeout=10)
+            if response.status_code == 200 and response.content:
+                # DSpace's thumbnail is already a JPEG — reuse as-is
+                return generate_thumbnail_from_url(
+                    f"{base}/api/core/items/{item_uuid}/thumbnail",
+                    "thumbnail.jpg",
+                    uploads_dir,
+                )
+        except Exception:
+            pass
+
+        # 2. Fall back to ORIGINAL bundle's first bitstream
+        bundles_response = client.session.get(f"{base}/api/core/items/{item_uuid}/bundles", timeout=15)
+        if bundles_response.status_code != 200:
+            return None
+        bundles = bundles_response.json().get('_embedded', {}).get('bundles', [])
+        original = next((bundle for bundle in bundles if bundle.get('name') == 'ORIGINAL'), None)
+        if not original:
+            return None
+        bitstreams_response = client.session.get(
+            f"{base}/api/core/bundles/{original.get('uuid')}/bitstreams", timeout=15
+        )
+        if bitstreams_response.status_code != 200:
+            return None
+        bitstreams = bitstreams_response.json().get('_embedded', {}).get('bitstreams', [])
+        if not bitstreams:
+            return None
+        bitstream = bitstreams[0]
+        bitstream_uuid = bitstream.get('uuid')
+        bitstream_name = bitstream.get('name') or 'bitstream'
+        content_url = f"{base}/api/core/bitstreams/{bitstream_uuid}/content"
+        return generate_thumbnail_from_url(content_url, bitstream_name, uploads_dir)
+    except Exception as exc:
+        logger.warning(f"thumbnail: failed for item {item_uuid}: {exc}")
+        return None
 
 
 def is_due_for_harvest(source):
@@ -243,6 +296,13 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                             role_id=author_role_id or 'Author',
                         )
                         db.session.add(creator)
+
+                # Generate thumbnail from the item's ORIGINAL bitstream when DSpace
+                # didn't provide one. Best-effort: any failure leaves poster empty.
+                thumbnail_path = _generate_dspace_thumbnail(client, item_uuid)
+                if thumbnail_path:
+                    publication.publication_poster_url = thumbnail_path
+                    logger.info(f"[{source.name}] Thumbnail saved for item {item_uuid}: {thumbnail_path}")
 
                 # Create DSpace mapping for dedup
                 dspace_mapping = DSpaceMapping(
