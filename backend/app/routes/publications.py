@@ -577,7 +577,7 @@ def get_all_publications():
         # /uploads folder from the same DB without data migration: legacy rows store
         # `https://<old-host>/uploads/X.jpg` and the response rewrites the host to
         # whichever backend (KENET or docker) is answering.
-        upload_base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
+        upload_base_url = (Config.UPLOADS_BASE_URL or Config.APPLICATION_BASE_URL or '').rstrip('/')
 
         def _absolute_upload_url(value):
             if not value:

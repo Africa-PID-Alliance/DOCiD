@@ -18,6 +18,12 @@ class Config:
     CSTR_PREFIX = os.getenv('CSTR_PREFIX')
     CSTR_USERNAME = os.getenv('CSTR_USERNAME')
     APPLICATION_BASE_URL = os.getenv('APPLICATION_BASE_URL', 'http://localhost:3000')
+    # UPLOADS_BASE_URL controls where stored /uploads/... URLs resolve at read time.
+    # Defaults to APPLICATION_BASE_URL so single-host deployments need no config.
+    # Override on the dockerized host where the public domain differs from the
+    # host that physically holds the upload files (e.g. set to
+    # https://docid-core.africapidalliance.org so docker responses point at KENET).
+    UPLOADS_BASE_URL = os.getenv('UPLOADS_BASE_URL') or APPLICATION_BASE_URL
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
     _raw_uploads_directory = os.getenv('UPLOADS_DIRECTORY', 'uploads')
     UPLOADS_DIRECTORY = (
