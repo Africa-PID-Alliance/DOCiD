@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import {
   Box, Container, Paper, Typography, TextField, Button,
   Stepper, Step, StepLabel, Alert, CircularProgress, Stack, useTheme,
   useMediaQuery,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -23,6 +24,11 @@ import FundersForm from '../components/FundersForm';
 import ProjectForm from '../components/ProjectForm';
 import PublicationsForm from '../components/PublicationsForm';
 import DocumentsForm from '../components/DocumentsForm';
+// Shared LC step wrapper (defined under assign-docid; same component is used here).
+import LocalContextsForm from '../../assign-docid/components/LocalContextsForm';
+
+// Resource type IDs where the Local Contexts step is shown (Indigenous Knowledge, Cultural Heritage).
+const LC_RESOURCE_TYPE_IDS = new Set([1, 3]);
 
 const EDIT_BASE = (publicationId) => `/api/publications/${publicationId}/edit`;
 
@@ -267,6 +273,22 @@ export default function EditDocidPage() {
   const [documentsData, setDocumentsData] = useState({ documentType: '', files: [] });
   const originalPublicationDocuments = useRef([]);
 
+  // Local Contexts attachments (project-level, M2M). `_legacy` synthetic entry
+  // groups NULL-project attachment rows so we never lose-track-of legacy data.
+  const [localContexts, setLocalContexts] = useState([]);
+  const originalLocalContexts = useRef([]);
+  // pendingDetach holds the snapshot when the user changes resource type away
+  // from IK/Cultural Heritage; restored if they switch back before saving.
+  const pendingLcDetach = useRef([]);
+  const [resourceTypeId, setResourceTypeId] = useState(null);
+  const [lcDialogOpen, setLcDialogOpen] = useState(false);
+  const [lcDialogTargetType, setLcDialogTargetType] = useState(null);
+
+  const showLocalContextsStep = useMemo(
+    () => LC_RESOURCE_TYPE_IDS.has(Number(resourceTypeId)),
+    [resourceTypeId]
+  );
+
   const loadPublication = useCallback(async () => {
     if (!publicationId || !currentUserId) return;
     setIsLoading(true);
@@ -308,6 +330,41 @@ export default function EditDocidPage() {
       const mostCommonDocType = mostCommonValue(mappedDocs.map(dd => dd.publicationType).filter(Boolean));
       setDocumentsData({ documentType: mostCommonDocType || '', files: mappedDocs });
       originalPublicationDocuments.current = snapshotCopy(mappedDocs);
+
+      setResourceTypeId(d.resource_type_id ?? null);
+
+      // Local Contexts attachments — reuse /projects-display which already
+      // returns the {projects, legacy} envelope shape we need.
+      try {
+        const lcResp = await axios.get(`/api/localcontexts/publications/${publicationId}/projects-display`);
+        const projectsArr = Array.isArray(lcResp.data?.projects) ? lcResp.data.projects : [];
+        const legacyArr = Array.isArray(lcResp.data?.legacy) ? lcResp.data.legacy : [];
+        const grouped = projectsArr.map((p) => ({
+          external_id: p.project_external_id,
+          title: p.title,
+          project_type: p.project_type || 'Other',
+          project_page: p.project_page,
+          contributing_institutions: p.contributing_institutions || [],
+        }));
+        if (legacyArr.length > 0) {
+          grouped.push({
+            external_id: '_legacy',
+            title: `${legacyArr.length} legacy item-level attachment(s)`,
+            project_type: 'Legacy',
+            project_page: null,
+            contributing_institutions: [],
+            _legacy: true,
+          });
+        }
+        setLocalContexts(grouped);
+        originalLocalContexts.current = snapshotCopy(grouped);
+        pendingLcDetach.current = [];
+      } catch (lcErr) {
+        // Non-fatal; LC step will appear with empty state if applicable.
+        console.warn('Failed to load Local Contexts attachments:', lcErr);
+        setLocalContexts([]);
+        originalLocalContexts.current = [];
+      }
 
       setFetchError(null);
     } catch (err) {
@@ -484,6 +541,61 @@ export default function EditDocidPage() {
         if (errors === 0) {
           await loadPublication();
         }
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ---- Local Contexts: serial diff + project-level attach/detach ----
+  const saveLocalContexts = async () => {
+    setIsSaving(true);
+    let added = 0, removed = 0, errors = 0;
+    try {
+      const realCurrent = (localContexts || []).filter((p) => !p._legacy);
+      const realOriginal = (originalLocalContexts.current || []).filter((p) => !p._legacy);
+      const currentIds = new Set(realCurrent.map((p) => p.external_id));
+      const originalIds = new Set(realOriginal.map((p) => p.external_id));
+
+      // The pendingDetach snapshot captures projects the user marked-for-removal
+      // via the resource-type-change dialog. They are no longer in the picker
+      // (which currently only shows _legacy) but must still be detached server-side.
+      const detachPool = realOriginal.filter((p) => !currentIds.has(p.external_id));
+      for (const p of detachPool) {
+        try {
+          await axios.delete(`/api/localcontexts/publications/${publicationId}/projects/${p.external_id}`);
+          removed += 1;
+        } catch (err) {
+          console.error(`Detach failed for ${p.external_id}:`, err);
+          errors += 1;
+        }
+      }
+      const toAdd = realCurrent.filter((p) => !originalIds.has(p.external_id));
+      for (const p of toAdd) {
+        try {
+          await axios.post(`/api/localcontexts/publications/${publicationId}/projects`, {
+            external_id: p.external_id,
+          });
+          added += 1;
+        } catch (err) {
+          console.error(`Attach failed for ${p.external_id}:`, err);
+          errors += 1;
+        }
+      }
+
+      if (errors === 0) {
+        setFeedbackMessage({
+          type: 'success',
+          text: `Local Contexts: ${added} attached, ${removed} detached.`,
+        });
+        // Refresh the snapshot so a second save in the same session doesn't replay this diff.
+        pendingLcDetach.current = [];
+        await loadPublication();
+      } else {
+        setFeedbackMessage({
+          type: 'warning',
+          text: `Local Contexts: ${added} attached, ${removed} detached, ${errors} error(s).`,
+        });
       }
     } finally {
       setIsSaving(false);
@@ -711,6 +823,11 @@ export default function EditDocidPage() {
     `Funders (${funders.length})`,
     `Projects (${projects.length})`,
   ];
+  if (showLocalContextsStep) {
+    const nonLegacyCount = (localContexts || []).filter((p) => !p._legacy).length;
+    stepLabels.push(`Local Contexts (${nonLegacyCount})`);
+  }
+  const lastStepIndex = stepLabels.length - 1;
 
   return pageWrap(
     <>
@@ -750,7 +867,7 @@ export default function EditDocidPage() {
 
       <Stack direction="row" spacing={2} justifyContent="center" mb={3}>
         <Button disabled={activeStep === 0} onClick={() => setActiveStep((p) => Math.max(0, p - 1))}>Back</Button>
-        <Button variant="contained" disabled={activeStep === 6} onClick={() => setActiveStep((p) => Math.min(6, p + 1))}>Next</Button>
+        <Button variant="contained" disabled={activeStep === lastStepIndex} onClick={() => setActiveStep((p) => Math.min(lastStepIndex, p + 1))}>Next</Button>
       </Stack>
 
       {/* Step 0 — Details */}
@@ -867,6 +984,53 @@ export default function EditDocidPage() {
           </Box>
         </Paper>
       )}
+
+      {/* Step 7 — Local Contexts (conditional on IK / Cultural Heritage) */}
+      {showLocalContextsStep && activeStep === 7 && (
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <LocalContextsForm
+            value={localContexts}
+            onChange={setLocalContexts}
+            disabled={isSaving}
+          />
+          <Box mt={2}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={saveLocalContexts} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Local Contexts'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Resource-type-change confirm dialog (deferred detach) */}
+      <Dialog open={lcDialogOpen} onClose={() => setLcDialogOpen(false)}>
+        <DialogTitle>Detach Local Contexts?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Changing the resource type away from Indigenous Knowledge / Cultural Heritage will detach
+            the {(localContexts || []).filter((p) => !p._legacy).length} attached project(s) when you save.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Legacy item-level attachments (if any) are preserved.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setLcDialogOpen(false); setLcDialogTargetType(null); }}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              pendingLcDetach.current = (localContexts || []).filter((p) => !p._legacy);
+              setLocalContexts((prev) => (prev || []).filter((p) => p._legacy));
+              setResourceTypeId(lcDialogTargetType);
+              setLcDialogOpen(false);
+              setLcDialogTargetType(null);
+              if (activeStep === 7) setActiveStep(6);
+            }}
+          >
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

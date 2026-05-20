@@ -21,18 +21,51 @@ Per DocID_Local_Contexts_Tech_Documentation.md:
 """
 
 import os
+import re
 import json
 import logging
 import requests
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Tuple
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app import db
 from app.models import (
     LocalContext, LocalContextType, PublicationLocalContext,
     LocalContextAuditLog, Publications
 )
 from app.service_codra import push_apa_metadata
+
+# Canonical UUID format used by the LC Hub. Validate every external_id at the
+# system boundary so arbitrary strings never reach Hub URLs, logs, or DB rows.
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
+
+def _normalize_uuid(value: Optional[str]) -> Optional[str]:
+    """Lowercase + trim and validate as a canonical UUID. Returns None if invalid."""
+    if not value or not isinstance(value, str):
+        return None
+    candidate = value.strip().lower()
+    return candidate if _UUID_RE.match(candidate) else None
+
+
+def _require_owner_or_403(publication_id: int) -> Tuple[Optional[Publications], Optional[Any]]:
+    """Resolve the publication and verify the JWT identity owns it.
+
+    Returns (publication, None) on success or (None, flask_response) on failure
+    so callers can `return resp` directly.
+    """
+    publication = Publications.query.get(publication_id)
+    if not publication:
+        return None, (jsonify({"error": "Publication not found"}), 404)
+    try:
+        current_user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None, (jsonify({"error": "Authentication required"}), 401)
+    if publication.user_id != current_user_id:
+        return None, (jsonify({"error": "Access denied: you do not own this publication"}), 403)
+    return publication, None
 
 # Configure logging
 logging.basicConfig(
@@ -444,6 +477,103 @@ def list_projects():
         return jsonify({"error": str(e)}), 500
 
 
+# Simple in-process LRU for picker autocomplete. Stores the *unbounded* result so
+# a cached limit=5 doesn't poison a later limit=20 for the same query.
+_SEARCH_CACHE: Dict[str, Tuple[float, list]] = {}
+_SEARCH_CACHE_TTL_SECONDS = 300
+_SEARCH_RATE_BUCKET: Dict[str, list] = {}  # ip -> list of request timestamps
+_SEARCH_RATE_LIMIT_PER_MINUTE = 20
+
+_PRINTABLE_RE = re.compile(r'^[\x20-\x7e]+$')
+
+
+def _search_rate_limit_check(ip: str) -> bool:
+    """Returns True if the request is allowed, False if rate-limited."""
+    import time
+    now = time.monotonic()
+    window = 60.0
+    bucket = _SEARCH_RATE_BUCKET.setdefault(ip, [])
+    # Drop entries older than the window.
+    while bucket and now - bucket[0] > window:
+        bucket.pop(0)
+    if len(bucket) >= _SEARCH_RATE_LIMIT_PER_MINUTE:
+        return False
+    bucket.append(now)
+    return True
+
+
+@localcontexts_bp.route("/projects/search", methods=["GET"])
+def search_projects():
+    """
+    Search the Local Contexts Hub by project title.
+
+    Public endpoint backing the picker autocomplete. Forwards to Hub
+    ``/projects/?title=<q>`` (confirmed available 2026-05-20). Rate-limited to
+    20 requests / minute / IP to protect Hub quota.
+    """
+    import time
+    q_raw = (request.args.get('q') or '').strip()
+    try:
+        limit = int(request.args.get('limit', '20'))
+    except ValueError:
+        return jsonify({"error": "limit must be an integer"}), 400
+    limit = max(1, min(limit, 20))
+
+    if len(q_raw) < 3:
+        return jsonify({"error": "q must be at least 3 characters"}), 400
+    if not _PRINTABLE_RE.match(q_raw):
+        return jsonify({"error": "q contains invalid characters"}), 400
+
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
+    if not _search_rate_limit_check(ip):
+        return jsonify({"error": "Rate limit exceeded — try again in a minute"}), 429
+
+    cache_key = q_raw.lower()
+    cached = _SEARCH_CACHE.get(cache_key)
+    if cached and time.monotonic() - cached[0] < _SEARCH_CACHE_TTL_SECONDS:
+        return jsonify({"results": cached[1][:limit]}), 200
+
+    api_key = current_app.config.get("LC_API_KEY")
+    if not api_key or api_key == "xxx":
+        return jsonify({"error": "LC_API_KEY not configured"}), 503
+
+    try:
+        resp = requests.get(
+            f"{LOCAL_CONTEXTS_API_BASE_URL}/projects/",
+            params={"title": q_raw},
+            headers={"x-api-key": api_key, "Accept": "application/json"},
+            timeout=10,
+        )
+    except requests.RequestException as e:
+        logger.warning(f"Hub search failed: {e}")
+        return jsonify({"error": "Local Contexts Hub temporarily unavailable"}), 503
+
+    if resp.status_code != 200:
+        logger.warning(f"Hub search returned {resp.status_code}: {resp.text[:200]}")
+        return jsonify({"error": f"Hub returned status {resp.status_code}"}), 502
+
+    payload = resp.json()
+    raw_results = payload.get('results', []) if isinstance(payload, dict) else (payload if isinstance(payload, list) else [])
+
+    trimmed = []
+    for r in raw_results:
+        institutions = []
+        for cb in r.get('created_by') or []:
+            inst = cb.get('institution') or {}
+            if inst.get('name'):
+                institutions.append(inst['name'])
+        trimmed.append({
+            "unique_id": r.get('unique_id'),
+            "title": r.get('title'),
+            "project_type": r.get('project_type') or 'Other',
+            "project_page": r.get('project_page'),
+            "contributing_institutions": institutions,
+        })
+
+    _SEARCH_CACHE[cache_key] = (time.monotonic(), trimmed)
+    return jsonify({"results": trimmed[:limit]}), 200
+
+
 @localcontexts_bp.route("/projects/<string:project_id>", methods=["GET"])
 def get_project(project_id):
     """
@@ -683,10 +813,32 @@ def list_publication_contexts(publication_id):
             publication_id=publication_id
         ).order_by(PublicationLocalContext.display_order).all()
 
+        # Flatten attachment + cached item into a single row per attachment so
+        # the frontend can drive both diff (by external_id) and item-level
+        # DELETE (by ctx_id, the attachment row PK) without extra round-trips.
+        rows = []
+        for a in attachments:
+            lc = a.local_context
+            rows.append({
+                "ctx_id": a.id,
+                "local_context_id": a.local_context_id,
+                "external_id": lc.external_id if lc else None,
+                "context_type": lc.context_type if lc else None,
+                "project_external_id": a.project_external_id,
+                "display_order": a.display_order,
+                "attached_at": a.attached_at.isoformat() if a.attached_at else None,
+                "title": lc.title if lc else None,
+                "summary": lc.summary if lc else None,
+                "community_name": lc.community_name if lc else None,
+                "image_url": lc.image_url if lc else None,
+                "source_url": lc.source_url if lc else None,
+                "is_active": lc.is_active if lc else None,
+            })
+
         return jsonify({
             "publication_id": publication_id,
-            "total": len(attachments),
-            "local_contexts": [a.serialize() for a in attachments]
+            "total": len(rows),
+            "local_contexts": rows,
         }), 200
 
     except Exception as e:
@@ -695,6 +847,7 @@ def list_publication_contexts(publication_id):
 
 
 @localcontexts_bp.route('/publications/<int:publication_id>/contexts', methods=['POST'])
+@jwt_required()
 def attach_context_to_publication(publication_id):
     """
     Attach a Local Context to a publication
@@ -751,16 +904,17 @@ def attach_context_to_publication(publication_id):
         if not request.is_json:
             return jsonify({"error": "Request must be JSON"}), 400
 
-        publication = Publications.query.get(publication_id)
-        if not publication:
-            return jsonify({"error": "Publication not found"}), 404
+        publication, err = _require_owner_or_403(publication_id)
+        if err:
+            return err
 
         data = request.json
         external_id = data.get('external_id')
         context_type = data.get('context_type')
         source_url = data.get('source_url')
         display_order = data.get('display_order', 0)
-        user_id = data.get('user_id')
+        # user_id from payload is ignored — identity comes from the JWT.
+        user_id = int(get_jwt_identity())
 
         if not external_id or not context_type:
             return jsonify({
@@ -785,26 +939,36 @@ def attach_context_to_publication(publication_id):
         if created:
             db.session.flush()  # Get ID for the new context
 
-        # Check if already attached
-        existing = PublicationLocalContext.query.filter_by(
-            publication_id=publication_id,
-            local_context_id=context.id
-        ).first()
-
-        if existing:
-            return jsonify({
-                "error": "Context already attached to this publication",
-                "attachment_id": existing.id
-            }), 409
-
-        # Create attachment
-        attachment = PublicationLocalContext(
+        # Item-level POST always writes project_external_id = NULL (the "legacy"
+        # partial index). Use ON CONFLICT DO NOTHING targeted at that index so a
+        # duplicate item-level attach does not raise, and so an existing
+        # *project-level* attachment for the same item is not treated as a
+        # collision (different partial index).
+        stmt = pg_insert(PublicationLocalContext.__table__).values(
             publication_id=publication_id,
             local_context_id=context.id,
+            project_external_id=None,
             display_order=display_order,
-            attached_by=user_id
-        )
-        db.session.add(attachment)
+            attached_by=user_id,
+        ).on_conflict_do_nothing(
+            index_elements=['publication_id', 'local_context_id'],
+            index_where=PublicationLocalContext.project_external_id.is_(None),
+        ).returning(PublicationLocalContext.__table__.c.id)
+        result = db.session.execute(stmt).fetchone()
+
+        if result is None:
+            existing = PublicationLocalContext.query.filter_by(
+                publication_id=publication_id,
+                local_context_id=context.id,
+                project_external_id=None,
+            ).first()
+            db.session.commit()
+            return jsonify({
+                "error": "Context already attached to this publication",
+                "attachment_id": existing.id if existing else None,
+            }), 409
+
+        attachment_id = result[0]
 
         # Audit log per Section 11
         LocalContextAuditLog.log(
@@ -821,6 +985,7 @@ def attach_context_to_publication(publication_id):
         )
 
         db.session.commit()
+        attachment = PublicationLocalContext.query.get(attachment_id)
 
         logger.info(f"Attached Local Context {external_id} to publication {publication_id}")
 
@@ -839,6 +1004,7 @@ def attach_context_to_publication(publication_id):
 
 
 @localcontexts_bp.route('/publications/<int:publication_id>/contexts/<int:context_id>', methods=['DELETE'])
+@jwt_required()
 def detach_context_from_publication(publication_id, context_id):
     """
     Detach a Local Context from a publication
@@ -871,43 +1037,411 @@ def detach_context_from_publication(publication_id, context_id):
         description: Internal server error
     """
     try:
+        publication, err = _require_owner_or_403(publication_id)
+        if err:
+            return err
+
+        # ctx_id semantics: this is the publication_local_contexts row PK
+        # (attachment-row), NOT local_contexts.id. Now that the same
+        # local_context_id can appear under multiple projects, deleting by
+        # local_context_id would be ambiguous.
         attachment = PublicationLocalContext.query.filter_by(
+            id=context_id,
             publication_id=publication_id,
-            local_context_id=context_id
         ).first()
 
         if not attachment:
             return jsonify({"error": "Attachment not found"}), 404
 
-        user_id = request.args.get('user_id', type=int)
+        user_id = int(get_jwt_identity())
         external_id = attachment.local_context.external_id if attachment.local_context else None
+        local_context_id = attachment.local_context_id
+        project_external_id = attachment.project_external_id
 
         # Audit log per Section 11
         LocalContextAuditLog.log(
             action='DETACH',
             publication_id=publication_id,
-            local_context_id=context_id,
+            local_context_id=local_context_id,
             external_id=external_id,
             user_id=user_id,
-            details={'removed_at': datetime.utcnow().isoformat()},
+            details={
+                'removed_at': datetime.utcnow().isoformat(),
+                'attachment_id': context_id,
+                'project_external_id': project_external_id,
+            },
             ip_address=request.remote_addr
         )
 
         db.session.delete(attachment)
         db.session.commit()
 
-        logger.info(f"Detached Local Context {context_id} from publication {publication_id}")
+        logger.info(f"Detached attachment {context_id} (local_context {local_context_id}) from publication {publication_id}")
 
         return jsonify({
             "message": "Context detached successfully",
             "publication_id": publication_id,
-            "local_context_id": context_id
+            "attachment_id": context_id,
+            "local_context_id": local_context_id,
         }), 200
 
     except Exception as e:
         db.session.rollback()
         logger.exception("Error detaching context from publication")
         return jsonify({"error": str(e)}), 500
+
+
+# ==============================================================================
+# Project-level Attachment Helpers and Endpoints (v1 researcher attachment path)
+# ==============================================================================
+
+def _classify_item(payload_kind: str) -> Optional[str]:
+    """Map a project-payload kind ('tk_labels'/'bc_labels'/'notice') to LocalContextType."""
+    return {
+        'tk_labels': LocalContextType.TK_LABEL,
+        'bc_labels': LocalContextType.BC_LABEL,
+        'notice': LocalContextType.NOTICE,
+    }.get(payload_kind)
+
+
+def _fetch_hub_project_no_side_effects(external_id: str, timeout: int = 10) -> Tuple[bool, Dict[str, Any]]:
+    """Plain GET against the Hub. Returns (success, payload_or_error).
+
+    Deliberately does NOT use ``_make_request`` because that helper writes
+    audit/inactive flags on 404 which would escape our project-level savepoint.
+    """
+    api_key = current_app.config.get("LC_API_KEY")
+    if not api_key or api_key == "xxx":
+        return False, {"error": "LC_API_KEY not configured"}
+    try:
+        resp = requests.get(
+            f"{LOCAL_CONTEXTS_API_BASE_URL}/projects/{external_id}/",
+            headers={"x-api-key": api_key, "Accept": "application/json"},
+            timeout=timeout,
+        )
+    except requests.RequestException as e:
+        return False, {"error": f"Hub request failed: {e}"}
+    if resp.status_code == 200:
+        return True, resp.json()
+    if resp.status_code == 404:
+        return False, {"error": "Project not found on Hub", "status": 404}
+    return False, {"error": f"Hub returned status {resp.status_code}", "status": resp.status_code}
+
+
+def attach_lc_project_to_publication(pub_id: int, external_id: str, user_id: int,
+                                     ip_address: Optional[str] = None) -> Dict[str, Any]:
+    """Atomically attach all labels + notices from one LC project to a publication.
+
+    Idempotent on duplicate attaches (ON CONFLICT DO NOTHING against the
+    non-NULL project partial unique index). Wrapped in a single savepoint per
+    project so partial failures rollback cleanly; the outer caller commits the
+    session once.
+    """
+    normalized = _normalize_uuid(external_id)
+    if not normalized:
+        return {"success": False, "error": "Invalid external_id format", "external_id": external_id}
+
+    ok, project = _fetch_hub_project_no_side_effects(normalized)
+    if not ok:
+        return {"success": False, "error": project.get('error', 'Hub fetch failed'), "external_id": normalized}
+
+    items: list = []
+    for kind in ('tk_labels', 'bc_labels', 'notice'):
+        for item in project.get(kind) or []:
+            context_type = _classify_item(kind)
+            if not context_type:
+                continue
+            unique_id = item.get('unique_id')
+            if not unique_id:
+                continue
+            items.append((unique_id, context_type, item))
+
+    attached_count = 0
+
+    try:
+        with db.session.begin_nested():
+            for unique_id, context_type, item in items:
+                # Upsert LocalContext using PostgreSQL ON CONFLICT to avoid SELECT-then-INSERT races.
+                lc_stmt = pg_insert(LocalContext.__table__).values(
+                    external_id=unique_id,
+                    context_type=context_type,
+                    title=item.get('name') or item.get('title'),
+                    summary=item.get('default_text') or item.get('description'),
+                    community_name=(item.get('community') or {}).get('name') if isinstance(item.get('community'), dict) else None,
+                    image_url=item.get('img_url') or item.get('image_url'),
+                    source_url=item.get('notice_page') or item.get('label_page'),
+                    is_active=True,
+                    cached_at=datetime.utcnow(),
+                ).on_conflict_do_nothing(index_elements=['external_id']).returning(LocalContext.__table__.c.id)
+                result = db.session.execute(lc_stmt).fetchone()
+                if result is not None:
+                    local_context_id = result[0]
+                else:
+                    existing = LocalContext.query.filter_by(external_id=unique_id).first()
+                    local_context_id = existing.id if existing else None
+                if not local_context_id:
+                    continue
+
+                # Insert attachment row idempotently against the non-NULL partial unique index.
+                plc_stmt = pg_insert(PublicationLocalContext.__table__).values(
+                    publication_id=pub_id,
+                    local_context_id=local_context_id,
+                    project_external_id=normalized,
+                    display_order=attached_count,
+                    attached_by=user_id,
+                ).on_conflict_do_nothing(
+                    index_elements=['publication_id', 'local_context_id', 'project_external_id'],
+                    index_where=PublicationLocalContext.project_external_id.isnot(None),
+                )
+                db.session.execute(plc_stmt)
+                attached_count += 1
+
+            LocalContextAuditLog.log(
+                action='PROJECT_ATTACH',
+                publication_id=pub_id,
+                local_context_id=None,
+                external_id=normalized,
+                user_id=user_id,
+                details={
+                    'item_count': attached_count,
+                    'project_title': project.get('title'),
+                    'project_page': project.get('project_page'),
+                },
+                ip_address=ip_address,
+            )
+    except Exception as e:
+        logger.exception(f"attach_lc_project_to_publication failed for {normalized}")
+        return {"success": False, "error": str(e), "external_id": normalized}
+
+    return {
+        "success": True,
+        "external_id": normalized,
+        "attached_count": attached_count,
+        "project_title": project.get('title'),
+    }
+
+
+@localcontexts_bp.route('/publications/<int:publication_id>/projects', methods=['POST'])
+@jwt_required()
+def attach_project_to_publication(publication_id):
+    """Atomically attach an entire LC project (all its labels + notices) to a publication."""
+    publication, err = _require_owner_or_403(publication_id)
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    external_id = data.get('external_id')
+    normalized = _normalize_uuid(external_id)
+    if not normalized:
+        return jsonify({"error": "Invalid external_id format (must be canonical UUID)"}), 400
+
+    user_id = int(get_jwt_identity())
+
+    # Clear pending objects before begin_nested() inside the helper — SQLAlchemy
+    # flushes pending state into the savepoint, which would entangle unrelated work.
+    db.session.expunge_all()
+
+    result = attach_lc_project_to_publication(
+        pub_id=publication_id,
+        external_id=normalized,
+        user_id=user_id,
+        ip_address=request.remote_addr,
+    )
+
+    if not result.get('success'):
+        db.session.rollback()
+        status = 502 if 'Hub' in (result.get('error') or '') else 400
+        return jsonify(result), status
+
+    db.session.commit()
+    return jsonify(result), 201
+
+
+@localcontexts_bp.route('/publications/<int:publication_id>/projects/<string:external_id>', methods=['DELETE'])
+@jwt_required()
+def detach_project_from_publication(publication_id, external_id):
+    """Atomically detach every attachment under one LC project from a publication."""
+    publication, err = _require_owner_or_403(publication_id)
+    if err:
+        return err
+
+    normalized = _normalize_uuid(external_id)
+    if not normalized:
+        return jsonify({"error": "Invalid external_id format (must be canonical UUID)"}), 400
+
+    user_id = int(get_jwt_identity())
+
+    rows = PublicationLocalContext.query.filter_by(
+        publication_id=publication_id,
+        project_external_id=normalized,
+    ).all()
+    removed = len(rows)
+
+    if removed == 0:
+        return jsonify({"success": True, "removed_count": 0, "external_id": normalized}), 200
+
+    try:
+        for row in rows:
+            db.session.delete(row)
+        LocalContextAuditLog.log(
+            action='PROJECT_DETACH',
+            publication_id=publication_id,
+            local_context_id=None,
+            external_id=normalized,
+            user_id=user_id,
+            details={'removed_count': removed},
+            ip_address=request.remote_addr,
+        )
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.exception("Error detaching project from publication")
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({
+        "success": True,
+        "removed_count": removed,
+        "external_id": normalized,
+    }), 200
+
+
+# ==============================================================================
+# Display Aggregation Endpoint (public)
+# ==============================================================================
+
+def _hub_projects_multi(uuids: List[str], chunk_size: int = 20, timeout: int = 10) -> Tuple[bool, Dict[str, Dict[str, Any]]]:
+    """Fetch multiple projects from the Hub. Returns (success, {uuid: payload}).
+
+    Chunks at ``chunk_size`` to protect against URL-length and per-request Hub
+    limits. ``success=False`` indicates the Hub call failed at least once — the
+    caller is expected to fall back to cached items for unfetched UUIDs.
+    """
+    api_key = current_app.config.get("LC_API_KEY")
+    if not api_key or api_key == "xxx":
+        return False, {}
+    out: Dict[str, Dict[str, Any]] = {}
+    any_failure = False
+    for i in range(0, len(uuids), chunk_size):
+        batch = uuids[i:i + chunk_size]
+        if not batch:
+            continue
+        joined = ",".join(batch)
+        try:
+            resp = requests.get(
+                f"{LOCAL_CONTEXTS_API_BASE_URL}/projects/multi/{joined}/",
+                headers={"x-api-key": api_key, "Accept": "application/json"},
+                timeout=timeout,
+            )
+        except requests.RequestException:
+            any_failure = True
+            continue
+        if resp.status_code != 200:
+            any_failure = True
+            continue
+        payload = resp.json()
+        # The Hub returns either a list or a {results: [...]} envelope.
+        items = payload if isinstance(payload, list) else payload.get('results') or payload.get('projects') or []
+        for proj in items:
+            uid = proj.get('unique_id')
+            if uid:
+                out[uid] = proj
+    return (not any_failure), out
+
+
+def _project_shape_from_cache(uuid: str, attachments: List[PublicationLocalContext]) -> Dict[str, Any]:
+    """Reconstruct a project-shaped object from cached LocalContext rows when the Hub is unreachable."""
+    tk_labels, bc_labels, notice = [], [], []
+    for a in attachments:
+        lc = a.local_context
+        if not lc:
+            continue
+        row = {
+            "unique_id": lc.external_id,
+            "name": lc.title,
+            "default_text": lc.summary,
+            "img_url": lc.image_url,
+            "language": "en",
+            "language_tag": "en",
+            "translations": [],
+        }
+        if lc.context_type == LocalContextType.TK_LABEL:
+            tk_labels.append(row)
+        elif lc.context_type == LocalContextType.BC_LABEL:
+            bc_labels.append(row)
+        elif lc.context_type == LocalContextType.NOTICE:
+            notice.append(row)
+    return {
+        "project_external_id": uuid,
+        "title": "[Local Contexts Hub temporarily unavailable]",
+        "project_page": f"https://localcontextshub.org/projects/{uuid}/",
+        "contributing_institutions": [],
+        "tk_labels": tk_labels,
+        "bc_labels": bc_labels,
+        "notice": notice,
+        "_stale": True,
+    }
+
+
+@localcontexts_bp.route('/publications/<int:publication_id>/projects-display', methods=['GET'])
+def projects_display(publication_id):
+    """Return ``{projects, legacy}`` for the DOCiD detail page.
+
+    Public — no JWT required. Hub API key stays server-side. One round-trip to
+    Hub ``/projects/multi/`` regardless of project count (chunked at 20). Falls
+    back to cached LocalContext rows for unreachable Hub.
+    """
+    publication = Publications.query.get(publication_id)
+    if not publication:
+        return jsonify({"error": "Publication not found"}), 404
+
+    attachments = PublicationLocalContext.query.filter_by(
+        publication_id=publication_id,
+    ).all()
+
+    projects_buckets: Dict[str, List[PublicationLocalContext]] = {}
+    legacy_rows = []
+    for a in attachments:
+        if a.project_external_id:
+            projects_buckets.setdefault(a.project_external_id, []).append(a)
+        else:
+            lc = a.local_context
+            if lc:
+                legacy_rows.append({
+                    "ctx_id": a.id,
+                    "external_id": lc.external_id,
+                    "context_type": lc.context_type,
+                    "title": lc.title,
+                    "summary": lc.summary,
+                    "image_url": lc.image_url,
+                    "source_url": lc.source_url,
+                    "community_name": lc.community_name,
+                })
+
+    uuids = list(projects_buckets.keys())
+    hub_ok, hub_data = _hub_projects_multi(uuids) if uuids else (True, {})
+
+    projects_out = []
+    for uuid, atts in projects_buckets.items():
+        hub_proj = hub_data.get(uuid)
+        if hub_proj:
+            projects_out.append({
+                "project_external_id": uuid,
+                "title": hub_proj.get('title'),
+                "project_page": hub_proj.get('project_page'),
+                "contributing_institutions": [
+                    (cb.get('institution') or {}).get('name')
+                    for cb in (hub_proj.get('created_by') or [])
+                    if (cb.get('institution') or {}).get('name')
+                ],
+                "tk_labels": hub_proj.get('tk_labels') or [],
+                "bc_labels": hub_proj.get('bc_labels') or [],
+                "notice": hub_proj.get('notice') or [],
+                "_stale": False,
+            })
+        else:
+            projects_out.append(_project_shape_from_cache(uuid, atts))
+
+    return jsonify({"projects": projects_out, "legacy": legacy_rows}), 200
 
 
 # ==============================================================================

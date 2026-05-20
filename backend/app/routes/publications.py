@@ -1338,7 +1338,7 @@ def get_publication_by_docid_simple(document_docid):
         return jsonify({'error': str(e)}), 500
 
 @publications_bp.route('/publish', methods=['POST'])
-# @jwt_required()
+@jwt_required()
 def create_publication():
     """
     Create a new  Publication
@@ -1476,7 +1476,12 @@ def create_publication():
         document_title = request.form.get('documentTitle')
         document_description = request.form.get('documentDescription')
         resource_type = request.form.get('resourceType')
-        user_id = request.form.get('user_id')
+        # Identity comes from the JWT, not the payload. Any submitted `user_id`
+        # field is intentionally ignored (would otherwise allow spoofing).
+        try:
+            user_id = int(get_jwt_identity())
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Authentication required'}), 401
         doi = clean_undefined_string(request.form.get('doi'))
         owner = request.form.get('owner')
         publication_poster = request.files.get('publicationPoster')
@@ -1488,7 +1493,7 @@ def create_publication():
         logger.info(f"  documentTitle: {document_title}")
         logger.info(f"  documentDescription: {document_description[:100]}..." if document_description and len(document_description) > 100 else f"  documentDescription: {document_description}")
         logger.info(f"  resourceType: {resource_type}")
-        logger.info(f"  user_id: {user_id}")
+        logger.info(f"  user_id (from JWT): {user_id}")
         logger.info(f"  doi: {doi}")
         logger.info(f"  owner: {owner}")
         logger.info(f"  publicationPoster: {publication_poster.filename if publication_poster else 'None'}")
@@ -1505,15 +1510,14 @@ def create_publication():
             missing_fields.append('documentDescription')
         if not resource_type:
             missing_fields.append('resourceType')
-        if not user_id:
-            missing_fields.append('user_id')
+        # user_id no longer required from payload — derived from JWT above.
         if not owner:
             missing_fields.append('owner')
 
         if missing_fields:
             logger.warning(f"Missing required fields: {', '.join(missing_fields)}")
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
- 
+
         # Try to convert the resource_type to an integer
         try:
             resource_type = int(resource_type)
@@ -1530,15 +1534,7 @@ def create_publication():
         resource_type_id = resource_type_obj.id
         logger.info(f"Resource type validated: ID={resource_type_id}")
 
-        
-        # Try to convert the resource_type to an integer
-        try:
-            user_id = int(user_id)
-        except ValueError:
-            logger.error(f"Invalid user id type '{user_id}' - not an integer")
-            return jsonify({"message": f"Invalid user id type '{user_id}'."}), 400
-
-        # Validate user
+        # Validate user (derived from JWT, but defensive)
         user = UserAccount.query.filter_by(user_id=user_id).first()
         if not user:
             logger.error(f"User '{user_id}' validation failed")
@@ -2316,6 +2312,39 @@ def create_publication():
 
         logger.info(f"=== SUCCESS: Publication created successfully with ID: {publication_id} ===")
 
+        # Attach Local Contexts projects (optional; only meaningful for IK/Cultural Heritage resource types).
+        # Failures here do NOT roll back the publication — they surface in the response so the UI can prompt retry.
+        lc_attached, lc_failed = [], []
+        lc_projects_raw = request.form.get('local_contexts_projects')
+        if lc_projects_raw:
+            try:
+                from app.routes.localcontexts import attach_lc_project_to_publication
+                lc_projects = json.loads(lc_projects_raw)
+                if isinstance(lc_projects, list):
+                    for entry in lc_projects:
+                        ext_id = entry.get('external_id') if isinstance(entry, dict) else None
+                        if not ext_id:
+                            lc_failed.append({"external_id": None, "error": "missing external_id"})
+                            continue
+                        try:
+                            with db.session.begin_nested():
+                                result = attach_lc_project_to_publication(
+                                    pub_id=publication_id,
+                                    external_id=ext_id,
+                                    user_id=user_id,
+                                    ip_address=request.remote_addr,
+                                )
+                        except Exception as inner_e:
+                            logger.exception(f"LC attach savepoint failure for {ext_id}")
+                            lc_failed.append({"external_id": ext_id, "error": str(inner_e)})
+                            continue
+                        (lc_attached if result.get('success') else lc_failed).append(result)
+                    db.session.commit()
+            except Exception as e:
+                logger.exception("LC attach phase failed")
+                db.session.rollback()
+                lc_failed.append({"external_id": None, "error": f"LC attach phase: {e}"})
+
         # Prepare full publication data to return
         publication_data = {
             'id': publication.id,
@@ -2330,11 +2359,13 @@ def create_publication():
             'publication_poster_url': publication.publication_poster_url,
             'published': int(publication.published.timestamp()) if publication.published else None
         }
-        
+
         return jsonify({
-            "message": "Publication created successfully", 
+            "message": "Publication created successfully",
             "publication_id": publication_id,
-            "publication": publication_data
+            "publication": publication_data,
+            "local_contexts_attached": lc_attached,
+            "local_contexts_failed": lc_failed,
         }), 200
 
     except Exception as e:

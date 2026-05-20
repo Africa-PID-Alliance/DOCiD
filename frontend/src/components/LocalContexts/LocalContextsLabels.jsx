@@ -8,29 +8,41 @@ import {
   Skeleton,
   Chip,
   IconButton,
-  useTheme,
+  Alert,
+  Link as MuiLink,
+  Stack,
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  OpenInNew as OpenInNewIcon,
-} from '@mui/icons-material';
+import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import axios from 'axios';
 
+const TK_COLOR = '#8B4513';
+const BC_COLOR = '#2E7D32';
+const NOTICE_COLOR = '#1565C0';
+
 /**
- * Renders TK Labels, BC Labels, and Notices from a Local Contexts Hub project.
+ * Renders TK Labels, BC Labels, and Notices from one or more Local Contexts
+ * Hub projects attached to a DOCiD.
+ *
+ * Data sources:
+ * - `publicationId` (saved attachments): GET /api/localcontexts/publications/<id>/projects-display
+ *   returns { projects: [...], legacy: [...] }.
+ * - `projectId` (demo / preview): GET /api/localcontexts/projects/<uuid>
+ *   returns a single project payload. We wrap it in a 1-element array so the
+ *   outer-loop renderer handles both modes identically.
  *
  * Per Local Contexts display rules:
- * - Label icons cannot be changed
- * - Title and customized description must be easily accessible
- * - Labels should be displayed prominently
+ * - Label icons cannot be changed.
+ * - Title and customized description must be easily accessible.
+ * - Labels should be displayed prominently.
  */
 const LocalContextsLabels = ({ projectId, publicationId }) => {
-  const theme = useTheme();
-  const [labelData, setLabelData] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [legacy, setLegacy] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
-  const [expandedLabelIds, setExpandedLabelIds] = useState(new Set());
+  // Per-card translation selection. Key = `${projectExternalId}::${itemUniqueId}`
+  // to keep state stable even when the same item appears under two projects.
+  const [selectedLang, setSelectedLang] = useState({});
 
   useEffect(() => {
     if (!projectId && !publicationId) {
@@ -38,232 +50,265 @@ const LocalContextsLabels = ({ projectId, publicationId }) => {
       return;
     }
 
-    const fetchLabels = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       setFetchError(null);
-
       try {
-        if (projectId) {
-          const response = await axios.get(`/api/localcontexts/projects/${projectId}`);
-          setLabelData(response.data);
-        } else if (publicationId) {
-          const response = await axios.get(`/api/localcontexts/publications/${publicationId}/contexts`);
-          setLabelData(response.data);
+        if (publicationId) {
+          const resp = await axios.get(
+            `/api/localcontexts/publications/${publicationId}/projects-display`
+          );
+          setProjects(Array.isArray(resp.data?.projects) ? resp.data.projects : []);
+          setLegacy(Array.isArray(resp.data?.legacy) ? resp.data.legacy : []);
+        } else if (projectId) {
+          const resp = await axios.get(`/api/localcontexts/projects/${projectId}`);
+          // Normalize single-project response to the same shape /projects-display returns.
+          const p = resp.data || {};
+          setProjects([
+            {
+              project_external_id: p.unique_id || projectId,
+              title: p.title,
+              project_page: p.project_page,
+              contributing_institutions: (p.created_by || [])
+                .map((cb) => (cb.institution || {}).name)
+                .filter(Boolean),
+              tk_labels: p.tk_labels || [],
+              bc_labels: p.bc_labels || [],
+              notice: p.notice || [],
+            },
+          ]);
+          setLegacy([]);
         }
       } catch (error) {
-        console.error('Error fetching Local Contexts labels:', error);
-        setFetchError(error.response?.status === 404 ? 'Project not found' : 'Unable to load labels');
+        console.error('Error fetching Local Contexts data:', error);
+        setFetchError(error.response?.status === 404 ? 'Project not found' : 'Unable to load Local Contexts');
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchLabels();
+    fetchData();
   }, [projectId, publicationId]);
 
-  const toggleLabelExpanded = (labelUniqueId) => {
-    setExpandedLabelIds((previousIds) => {
-      const updatedIds = new Set(previousIds);
-      if (updatedIds.has(labelUniqueId)) {
-        updatedIds.delete(labelUniqueId);
-      } else {
-        updatedIds.add(labelUniqueId);
-      }
-      return updatedIds;
-    });
-  };
-
-  const getLabelCategoryColor = (category) => {
-    switch (category) {
-      case 'tk': return '#8B4513';
-      case 'bc': return '#2E7D32';
-      case 'notice': return '#1565C0';
-      default: return theme.palette.primary.main;
-    }
-  };
-
-  const getLabelCategoryName = (category) => {
-    switch (category) {
-      case 'tk': return 'TK Label';
-      case 'bc': return 'BC Label';
-      case 'notice': return 'Notice';
-      default: return 'Label';
-    }
-  };
-
-  const renderLabelCard = (label, category) => {
-    const isExpanded = expandedLabelIds.has(label.unique_id);
-    const categoryColor = getLabelCategoryColor(category);
-    const labelText = label.label_text || label.default_text || '';
-    const shouldTruncate = labelText.length > 120;
-
-    return (
-      <Paper
-        key={label.unique_id}
-        elevation={1}
-        sx={{
-          p: 2,
-          mb: 1.5,
-          borderRadius: 2,
-          border: `1px solid ${theme.palette.divider}`,
-          borderLeft: `4px solid ${categoryColor}`,
-          bgcolor: theme.palette.background.paper,
-        }}
-      >
-        <Box display="flex" gap={2} alignItems="flex-start">
-          {/* Label icon — cannot be modified per LC rules */}
-          <Box
-            component="img"
-            src={label.svg_url || label.img_url}
-            alt={label.name}
-            sx={{
-              width: 56,
-              height: 56,
-              borderRadius: 1,
-              flexShrink: 0,
-              objectFit: 'contain',
-            }}
-          />
-
-          <Box flex={1} minWidth={0}>
-            {/* Label name and category */}
-            <Box display="flex" alignItems="center" gap={1} flexWrap="wrap" mb={0.5}>
-              <Typography variant="subtitle2" fontWeight={700}>
-                {label.name}
-              </Typography>
-              <Chip
-                label={getLabelCategoryName(category)}
-                size="small"
-                sx={{
-                  bgcolor: categoryColor,
-                  color: '#fff',
-                  fontSize: '0.7rem',
-                  height: 20,
-                }}
-              />
-            </Box>
-
-            {/* Community name */}
-            {label.community?.name && (
-              <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                {label.community.name}
-              </Typography>
-            )}
-
-            {/* Label text — must be easily accessible per LC rules */}
-            {labelText && (
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                  {shouldTruncate && !isExpanded
-                    ? `${labelText.substring(0, 120)}...`
-                    : labelText}
-                </Typography>
-                {shouldTruncate && (
-                  <IconButton
-                    size="small"
-                    onClick={() => toggleLabelExpanded(label.unique_id)}
-                    sx={{ mt: 0.5, p: 0.25 }}
-                  >
-                    {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                  </IconButton>
-                )}
-              </Box>
-            )}
-
-            {/* Link to label / notice page on Local Contexts Hub */}
-            {(label.label_page || label.notice_page) && (
-              <Typography
-                variant="caption"
-                component="a"
-                href={label.label_page || label.notice_page}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  mt: 0.5,
-                  color: theme.palette.primary.main,
-                  textDecoration: 'none',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
-                View on Local Contexts Hub
-                <OpenInNewIcon sx={{ fontSize: 12 }} />
-              </Typography>
-            )}
-          </Box>
-        </Box>
-      </Paper>
-    );
-  };
-
-  // Loading state
   if (isLoading) {
     return (
       <Box>
-        {[1, 2].map((skeletonIndex) => (
-          <Paper key={skeletonIndex} elevation={1} sx={{ p: 2, mb: 1.5, borderRadius: 2 }}>
-            <Box display="flex" gap={2}>
-              <Skeleton variant="rounded" width={56} height={56} />
-              <Box flex={1}>
-                <Skeleton width="40%" height={24} />
-                <Skeleton width="60%" height={16} sx={{ mt: 0.5 }} />
-                <Skeleton width="90%" height={16} sx={{ mt: 0.5 }} />
-              </Box>
-            </Box>
-          </Paper>
-        ))}
+        <Skeleton variant="text" width={280} height={32} />
+        <Skeleton variant="rectangular" height={120} sx={{ mt: 1, borderRadius: 1 }} />
       </Box>
     );
   }
-
-  // Error state
   if (fetchError) {
-    return (
-      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-        {fetchError}
-      </Typography>
-    );
+    return <Alert severity="warning">{fetchError}</Alert>;
   }
-
-  // No data
-  if (!labelData) return null;
-
-  // Collect all labels and notices
-  const tkLabels = labelData.tk_labels || [];
-  const bcLabels = labelData.bc_labels || [];
-  const notices = Array.isArray(labelData.notice)
-    ? labelData.notice
-    : (labelData.notice ? [labelData.notice] : []);
-  const totalLabelCount = tkLabels.length + bcLabels.length + notices.length;
-
-  if (totalLabelCount === 0) return null;
+  if (projects.length === 0 && legacy.length === 0) {
+    return null;
+  }
 
   return (
-    <Box mb={2} p={2} borderRadius={2}>
-      {/* Section heading — only shown when there are actual labels */}
-      <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-        <Typography fontWeight={600}>Local Contexts Labels</Typography>
-      </Box>
+    <Box>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+        Local Contexts Labels and Notices
+      </Typography>
 
-      {/* Project title if available */}
-      {labelData.title && (
-        <Typography variant="body2" color="text.secondary" mb={1.5}>
-          Project: {labelData.title}
-        </Typography>
+      {projects.map((project) => (
+        <ProjectPanel
+          key={project.project_external_id}
+          project={project}
+          selectedLang={selectedLang}
+          setSelectedLang={setSelectedLang}
+        />
+      ))}
+
+      {legacy.length > 0 && (
+        <Paper elevation={0} variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Other Local Contexts items
+          </Typography>
+          <Stack spacing={1}>
+            {legacy.map((item) => (
+              <LegacyRow key={item.ctx_id} item={item} />
+            ))}
+          </Stack>
+        </Paper>
       )}
-
-      {/* TK Labels */}
-      {tkLabels.map((label) => renderLabelCard(label, 'tk'))}
-
-      {/* BC Labels */}
-      {bcLabels.map((label) => renderLabelCard(label, 'bc'))}
-
-      {/* Notices */}
-      {notices.map((notice) => renderLabelCard(notice, 'notice'))}
     </Box>
   );
 };
+
+const ProjectPanel = ({ project, selectedLang, setSelectedLang }) => {
+  const tk = project.tk_labels || [];
+  const bc = project.bc_labels || [];
+  const notices = project.notice || [];
+  const institutions = project.contributing_institutions || [];
+
+  return (
+    <Paper
+      elevation={0}
+      variant="outlined"
+      sx={{ p: 2, mb: 2, borderRadius: 1, opacity: project._stale ? 0.85 : 1 }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {project.project_page ? (
+            <MuiLink
+              href={project.project_page}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="subtitle1"
+              fontWeight={600}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              {project.title}
+              <OpenInNewIcon fontSize="inherit" />
+            </MuiLink>
+          ) : (
+            <Typography variant="subtitle1" fontWeight={600}>{project.title}</Typography>
+          )}
+          {institutions.length > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              {institutions.join(', ')}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      {project._stale && (
+        <Alert severity="info" sx={{ mt: 1 }} variant="outlined">
+          Cached data — Local Contexts Hub temporarily unavailable.
+        </Alert>
+      )}
+
+      <Stack spacing={1.5} sx={{ mt: 2 }}>
+        {tk.map((item) => (
+          <ItemCard
+            key={`${project.project_external_id}::${item.unique_id}::tk`}
+            project={project}
+            item={item}
+            category="TK Label"
+            color={TK_COLOR}
+            selectedLang={selectedLang}
+            setSelectedLang={setSelectedLang}
+          />
+        ))}
+        {bc.map((item) => (
+          <ItemCard
+            key={`${project.project_external_id}::${item.unique_id}::bc`}
+            project={project}
+            item={item}
+            category="BC Label"
+            color={BC_COLOR}
+            selectedLang={selectedLang}
+            setSelectedLang={setSelectedLang}
+          />
+        ))}
+        {notices.map((item) => (
+          <ItemCard
+            key={`${project.project_external_id}::${item.unique_id}::notice`}
+            project={project}
+            item={item}
+            category="Notice"
+            color={NOTICE_COLOR}
+            selectedLang={selectedLang}
+            setSelectedLang={setSelectedLang}
+          />
+        ))}
+      </Stack>
+    </Paper>
+  );
+};
+
+const ItemCard = ({ project, item, category, color, selectedLang, setSelectedLang }) => {
+  const key = `${project.project_external_id}::${item.unique_id}`;
+  const defaultLangTag = item.language_tag || 'en';
+  const translations = Array.isArray(item.translations) ? item.translations : [];
+  const seenTags = new Set();
+  // Build a chip list: default first, then de-duplicated translations.
+  const langChips = [
+    { language_tag: defaultLangTag, language: item.language || 'Default', text: item.default_text, is_default: true },
+  ];
+  seenTags.add(defaultLangTag);
+  for (const tr of translations) {
+    if (!tr || !tr.language_tag || seenTags.has(tr.language_tag)) continue;
+    seenTags.add(tr.language_tag);
+    langChips.push({
+      language_tag: tr.language_tag,
+      language: tr.language || tr.language_tag,
+      text: tr.translated_text || '',
+      is_default: false,
+    });
+  }
+  const activeTag = selectedLang[key] || defaultLangTag;
+  const activeChip = langChips.find((c) => c.language_tag === activeTag) || langChips[0];
+  const displayText = activeChip?.text || item.default_text || '';
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+      {item.img_url && (
+        // Local Contexts display rule: icons are served unmodified from the Hub.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.img_url} alt={item.name} width={56} height={56} style={{ objectFit: 'contain' }} />
+      )}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+          <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
+          <Chip
+            label={category}
+            size="small"
+            sx={{ bgcolor: color, color: 'white' }}
+          />
+          {item.community && (item.community.name || typeof item.community === 'string') && (
+            <Typography variant="caption" color="text.secondary">
+              {item.community.name || item.community}
+            </Typography>
+          )}
+        </Stack>
+        {langChips.length > 1 && (
+          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+            {langChips.map((c) => (
+              <Chip
+                key={c.language_tag}
+                label={c.language}
+                size="small"
+                variant={c.language_tag === activeTag ? 'filled' : 'outlined'}
+                onClick={() => setSelectedLang((prev) => ({ ...prev, [key]: c.language_tag }))}
+                disabled={!c.text}
+              />
+            ))}
+          </Stack>
+        )}
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+          {displayText}
+        </Typography>
+        {(item.notice_page || item.label_page) && (
+          <MuiLink
+            href={item.notice_page || item.label_page}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="caption"
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.5 }}
+          >
+            View on Local Contexts Hub <OpenInNewIcon fontSize="inherit" />
+          </MuiLink>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const LegacyRow = ({ item }) => (
+  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+    {item.image_url && (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={item.image_url} alt={item.title || ''} width={40} height={40} style={{ objectFit: 'contain' }} />
+    )}
+    <Box sx={{ flex: 1 }}>
+      <Typography variant="body2" fontWeight={600}>{item.title}</Typography>
+      {item.summary && (
+        <Typography variant="caption" color="text.secondary">{item.summary}</Typography>
+      )}
+    </Box>
+    <Chip label={item.context_type || 'Item'} size="small" variant="outlined" />
+  </Box>
+);
 
 export default LocalContextsLabels;

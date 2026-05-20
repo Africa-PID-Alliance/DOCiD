@@ -1502,7 +1502,8 @@ class PublicationLocalContext(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     publication_id = db.Column(db.Integer, db.ForeignKey('publications.id', ondelete='CASCADE'), nullable=False, index=True)
     local_context_id = db.Column(db.Integer, db.ForeignKey('local_contexts.id', ondelete='CASCADE'), nullable=False, index=True)
-    
+    project_external_id = db.Column(db.String(255), nullable=True, index=True)
+
     display_order = db.Column(db.Integer, default=0)
     attached_at = db.Column(db.DateTime, default=datetime.utcnow)
     attached_by = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id'), nullable=True)
@@ -1512,19 +1513,33 @@ class PublicationLocalContext(db.Model):
     local_context = db.relationship('LocalContext', back_populates='publication_contexts')
     user = db.relationship('UserAccount', foreign_keys=[attached_by])
 
-    # Unique constraint to prevent duplicate attachments
+    # Two partial unique indexes — the same item can be attached under different
+    # projects but never duplicated within the same project (or as a legacy
+    # NULL-project attachment).
     __table_args__ = (
-        db.UniqueConstraint('publication_id', 'local_context_id', name='uq_publication_local_context'),
+        db.Index(
+            'uq_plc_item_no_project',
+            'publication_id', 'local_context_id',
+            unique=True,
+            postgresql_where=db.text('project_external_id IS NULL'),
+        ),
+        db.Index(
+            'uq_plc_item_with_project',
+            'publication_id', 'local_context_id', 'project_external_id',
+            unique=True,
+            postgresql_where=db.text('project_external_id IS NOT NULL'),
+        ),
     )
 
     def __repr__(self):
-        return f'<PublicationLocalContext pub={self.publication_id} context={self.local_context_id}>'
+        return f'<PublicationLocalContext pub={self.publication_id} context={self.local_context_id} project={self.project_external_id}>'
 
     def serialize(self):
         """Serialize for JSON responses"""
         return {
             'id': self.id,
             'publication_id': self.publication_id,
+            'project_external_id': self.project_external_id,
             'local_context': self.local_context.serialize() if self.local_context else None,
             'display_order': self.display_order,
             'attached_at': self.attached_at.isoformat() if self.attached_at else None,

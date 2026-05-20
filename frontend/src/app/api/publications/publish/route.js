@@ -20,9 +20,15 @@ export async function POST(request) {
 
     // Use environment variable for base URL
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const forwardedHeaders = {};
+    const incomingAuth = request.headers.get('authorization');
+    if (incomingAuth) {
+      forwardedHeaders['Authorization'] = incomingAuth;
+    }
     const response = await fetch(`${baseUrl}/publications/publish`, {
       method: 'POST',
       body: formData,
+      headers: forwardedHeaders,
       // Don't set Content-Type header - let fetch handle it for FormData
     });
 

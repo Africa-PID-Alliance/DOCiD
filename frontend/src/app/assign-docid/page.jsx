@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import {
@@ -49,6 +49,11 @@ import OrganizationsForm from './components/OrganizationsForm';
 import FundersForm from './components/FundersForm';
 import ProjectForm from './components/ProjectForm';
 import RridForm from './components/RridForm';
+import LocalContextsForm from './components/LocalContextsForm';
+
+// Resource type IDs where the Local Contexts step is shown.
+// 1 = Indigenous Knowledge, 3 = Cultural Heritage (matched by numeric id, never by the typo'd display string).
+const LC_RESOURCE_TYPE_IDS = new Set([1, 3]);
 
 const AssignDocID = () => {
   const { t } = useTranslation();
@@ -81,7 +86,8 @@ const AssignDocID = () => {
     funders: { funders: [] },
     project: {
       projects: []
-    }
+    },
+    localContexts: []
   });
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   
@@ -98,16 +104,35 @@ const AssignDocID = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Define steps using translations
-  const steps = [
-    t('assign_docid.steps.docid'),
-    t('assign_docid.steps.publications'),
-    t('assign_docid.steps.documents'),
-    t('assign_docid.steps.creators'),
-    t('assign_docid.steps.organizations'),
-    t('assign_docid.steps.funders'),
-    t('assign_docid.steps.projects')
-  ];
+  // Local Contexts step is conditional on resource type (IK / Cultural Heritage).
+  const showLocalContextsStep = useMemo(() => {
+    const rt = Number(formData.docId?.resourceType);
+    return LC_RESOURCE_TYPE_IDS.has(rt);
+  }, [formData.docId?.resourceType]);
+
+  // Define steps using translations; the LC step is appended only when applicable.
+  const steps = useMemo(() => {
+    const base = [
+      t('assign_docid.steps.docid'),
+      t('assign_docid.steps.publications'),
+      t('assign_docid.steps.documents'),
+      t('assign_docid.steps.creators'),
+      t('assign_docid.steps.organizations'),
+      t('assign_docid.steps.funders'),
+      t('assign_docid.steps.projects'),
+    ];
+    if (showLocalContextsStep) {
+      base.push(t('assign_docid.steps.local_contexts') || 'Local Contexts');
+    }
+    return base;
+  }, [t, showLocalContextsStep]);
+
+  // If the LC step disappears (resource type change), make sure activeStep stays in range.
+  useEffect(() => {
+    if (activeStep >= steps.length) {
+      setActiveStep(steps.length - 1);
+    }
+  }, [steps.length, activeStep]);
 
   // Add console.log to debug
   console.log('Current formData:', formData);
@@ -526,6 +551,16 @@ const AssignDocID = () => {
             updateFormData={(data) => updateFormData('project', data)}
           />
         );
+      case 7:
+        if (!showLocalContextsStep) return null;
+        return (
+          <LocalContextsForm
+            value={formData.localContexts || []}
+            onChange={(next) =>
+              setFormData((prev) => ({ ...prev, localContexts: next }))
+            }
+          />
+        );
       default:
         return null;
     }
@@ -621,6 +656,12 @@ const AssignDocID = () => {
       submitData.append("avatar",String(user?.picture));
       submitData.append("doi", formData.docId.generatedId);
 
+      // 1b. Local Contexts attachments — only sent for IK / Cultural Heritage.
+      // Backend ignores the field if absent; explicit guard mirrors the UI.
+      if (showLocalContextsStep && (formData.localContexts || []).length > 0) {
+        const projects = (formData.localContexts || []).map((p) => ({ external_id: p.external_id }));
+        submitData.append('local_contexts_projects', JSON.stringify(projects));
+      }
 
       // 2. Publications Files
       if (formData.publications?.files?.length > 0) {
@@ -805,6 +846,14 @@ const AssignDocID = () => {
         );
 
         if (response.status === 200 || response.status === 201) {
+          const lcFailed = response.data?.local_contexts_failed || [];
+          if (lcFailed.length > 0) {
+            // Non-blocking: the DOCiD was created; the user can retry LC attach from Edit.
+            sessionStorage.setItem(
+              'lcAttachWarning',
+              `${lcFailed.length} Local Contexts project(s) could not be attached. You can retry from Edit.`
+            );
+          }
           setNotification({
             open: true,
             message: t('assign_docid.notifications.success_assigned'),
