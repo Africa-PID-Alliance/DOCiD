@@ -58,16 +58,30 @@ def _resolve_publication_avatar(pub):
     return _absolute_upload_url(pub.avatar) if pub.avatar else None
 
 
+def _resolve_publication_poster(pub):
+    """publication.publication_poster_url → resource_types.default_poster_url fallback."""
+    if pub.publication_poster_url:
+        return _absolute_upload_url(pub.publication_poster_url)
+    resource_type = getattr(pub, 'resource_type', None)
+    if resource_type and getattr(resource_type, 'default_poster_url', None):
+        return resource_type.default_poster_url  # already a relative /assets/... path
+    return None
+
+
 def _normalize_publication_dict(publication_dict, pub=None):
     """In-place rewrite of poster/avatar URLs on a detail-endpoint response dict.
 
     Idempotent: relative paths get expanded, absolute /uploads URLs get the host
-    swapped to UPLOADS_BASE_URL, external images pass through unchanged.
+    swapped to UPLOADS_BASE_URL, external images pass through unchanged. Falls
+    back to resource_types.default_poster_url when the publication has no
+    poster of its own and pub (the ORM object) was provided.
     """
     if 'publication_poster_url' in publication_dict:
-        publication_dict['publication_poster_url'] = _absolute_upload_url(
-            publication_dict.get('publication_poster_url')
-        )
+        current = publication_dict.get('publication_poster_url')
+        if not current and pub is not None:
+            publication_dict['publication_poster_url'] = _resolve_publication_poster(pub)
+        else:
+            publication_dict['publication_poster_url'] = _absolute_upload_url(current)
     if 'avatar' in publication_dict:
         publication_dict['avatar'] = _absolute_upload_url(publication_dict.get('avatar'))
     return publication_dict
@@ -628,7 +642,7 @@ def get_all_publications():
                 'description': pub.document_description,
                 'resource_type_id': pub.resource_type_id,
                 'user_id': pub.user_id,
-                'publication_poster_url': _absolute_upload_url(pub.publication_poster_url),
+                'publication_poster_url': _resolve_publication_poster(pub),
                 'docid': pub.document_docid,
                 'doi': pub.doi,
                 'owner': pub.owner,

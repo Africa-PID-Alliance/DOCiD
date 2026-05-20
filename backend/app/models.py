@@ -253,6 +253,7 @@ class ResourceTypes(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     resource_type = db.Column(db.String(50), nullable=False)
+    default_poster_url = db.Column(db.String(500), nullable=True)  # fallback card image when publication.publication_poster_url is empty
 
     def validate_resource_type(resource_type_id):
         """
@@ -512,6 +513,7 @@ class Publications(db.Model):
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
+    resource_type = relationship('ResourceTypes', foreign_keys=[resource_type_id])
     publications_files = relationship('PublicationFiles', back_populates='publication', cascade="all, delete-orphan")
     publication_documents = relationship('PublicationDocuments', back_populates='publication', cascade="all, delete-orphan")
     publication_creators = relationship('PublicationCreators', back_populates='publication', cascade="all, delete-orphan")
