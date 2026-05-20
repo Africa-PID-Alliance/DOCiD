@@ -565,7 +565,43 @@ def get_all_publications():
             .all()
         )
 
-        # Prepare the response data
+        # Prepare the response data.
+        # avatar falls back to the owning user_account's avator (or logo_url) when the
+        # publication itself has none — needed for individual manually-uploaded DOCiDs
+        # where the upload form doesn't set publications.avatar.
+        # _absolute_upload_url normalises stored poster URLs to the host that is
+        # currently serving the request:
+        #   - relative paths (/uploads/...) → prefix with this server's APPLICATION_BASE_URL
+        #   - absolute URLs whose path is /uploads/... → rewrite host to this server
+        # This is what lets KENET and the dockerized deployment each serve their own
+        # /uploads folder from the same DB without data migration: legacy rows store
+        # `https://<old-host>/uploads/X.jpg` and the response rewrites the host to
+        # whichever backend (KENET or docker) is answering.
+        upload_base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
+
+        def _absolute_upload_url(value):
+            if not value:
+                return value
+            if value.startswith('http://') or value.startswith('https://'):
+                # If it's an /uploads/... URL on some other host, rewrite to ours.
+                # Otherwise leave it alone (it's an external image, e.g. shutterstock).
+                try:
+                    from urllib.parse import urlsplit
+                    parts = urlsplit(value)
+                    if parts.path.startswith('/uploads/'):
+                        return f"{upload_base_url}{parts.path}"
+                except Exception:
+                    pass
+                return value
+            return f"{upload_base_url}{value if value.startswith('/') else '/' + value}"
+
+        def _resolve_avatar(pub):
+            if pub.avatar:
+                return _absolute_upload_url(pub.avatar)
+            if pub.user_account:
+                return pub.user_account.avator or pub.user_account.logo_url
+            return None
+
         data_list = [
             {
                 'id': pub.id,
@@ -573,11 +609,11 @@ def get_all_publications():
                 'description': pub.document_description,
                 'resource_type_id': pub.resource_type_id,
                 'user_id': pub.user_id,
-                'publication_poster_url': pub.publication_poster_url,
+                'publication_poster_url': _absolute_upload_url(pub.publication_poster_url),
                 'docid': pub.document_docid,
                 'doi': pub.doi,
                 'owner': pub.owner,
-                'avatar': pub.avatar,
+                'avatar': _resolve_avatar(pub),
                 'published_isoformat': pub.published.isoformat() if pub.published else None,
                 'published': int(pub.published.timestamp()) if pub.published else None,  # Converted to Unix timestamp
                 'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None
@@ -1472,9 +1508,10 @@ def create_publication():
         if publication_poster:
             poster_filename = publication_poster.filename
             publication_poster.save(f'uploads/{poster_filename}')
-            # Always use production domain for consistency
-            base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
-            publication_poster_url = f'{base_url}/uploads/{poster_filename}'
+            # Store as a relative path so the URL keeps working if the public domain
+            # ever changes. The read path in get-publications resolves it to an absolute
+            # URL via APPLICATION_BASE_URL at response time.
+            publication_poster_url = f'/uploads/{poster_filename}'
             logger.info(f"Publication poster saved: {publication_poster_url}")
 
         # Create the publication record
