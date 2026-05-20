@@ -35,8 +35,8 @@ def _dspace_base_url(source):
     return (source.base_url or '').rstrip('/')
 
 
-def _find_bitstream(session, base_url, dspace_uuid):
-    """Return (content_url, filename) for the item's ORIGINAL first bitstream, or None."""
+def _find_bitstream_modern(session, base_url, dspace_uuid):
+    """DSpace 7+ — bundles/bitstreams via /api/core/. Returns (content_url, filename) or None."""
     try:
         bundles = session.get(
             f"{base_url}/api/core/items/{dspace_uuid}/bundles", timeout=15
@@ -61,6 +61,49 @@ def _find_bitstream(session, base_url, dspace_uuid):
     )
 
 
+def _find_bitstream_legacy(session, base_url, dspace_uuid):
+    """DSpace 6 — flat bitstreams array on /rest/items/{uuid}/bitstreams.
+
+    Each entry has `bundleName`, `name`, `mimeType`, `retrieveLink`. Prefer:
+      1. an existing image preview in BRANDED_PREVIEW / THUMBNAIL
+      2. the first ORIGINAL bitstream (PDF / DOC / etc.)
+    """
+    try:
+        bitstreams = session.get(
+            f"{base_url}/rest/items/{dspace_uuid}/bitstreams", timeout=15,
+            headers={'Accept': 'application/json'},
+        ).json()
+    except Exception:
+        return None
+    if not isinstance(bitstreams, list) or not bitstreams:
+        return None
+    # Pass 1: prefer an already-generated preview/thumbnail
+    for bitstream in bitstreams:
+        bundle = bitstream.get('bundleName')
+        if bundle in ('BRANDED_PREVIEW', 'THUMBNAIL') and bitstream.get('retrieveLink'):
+            return (
+                f"{base_url}{bitstream['retrieveLink']}",
+                bitstream.get('name') or 'preview.jpg',
+            )
+    # Pass 2: fall back to the first ORIGINAL bitstream
+    for bitstream in bitstreams:
+        if bitstream.get('bundleName') == 'ORIGINAL' and bitstream.get('retrieveLink'):
+            return (
+                f"{base_url}{bitstream['retrieveLink']}",
+                bitstream.get('name') or 'bitstream',
+            )
+    return None
+
+
+def _find_bitstream(session, source, dspace_uuid):
+    """Route to the right DSpace API based on harvest_source.api_type."""
+    base_url = _dspace_base_url(source)
+    api_type = (source.api_type or 'modern').lower()
+    if api_type == 'legacy':
+        return _find_bitstream_legacy(session, base_url, dspace_uuid)
+    return _find_bitstream_modern(session, base_url, dspace_uuid)
+
+
 def backfill(source_id=None, limit=None, apply_changes=False):
     app = create_app()
     with app.app_context():
@@ -83,12 +126,19 @@ def backfill(source_id=None, limit=None, apply_changes=False):
 
         for source in sources:
             base_url = _dspace_base_url(source)
-            print(f"\n[SOURCE] id={source.id} name={source.name!r} base_url={base_url}")
+            print(f"\n[SOURCE] id={source.id} name={source.name!r} api_type={source.api_type} base_url={base_url}")
 
+            # Owner-name matching is fuzzy: legacy / older harvests sometimes stored
+            # variants like "University of Lagos (UNILAG)" while the harvest_source
+            # row has "University of Lagos". Match by prefix to cover both.
+            owner_prefix = (source.owner_name or '').split('(')[0].strip()
             query = (
                 db.session.query(Publications, DSpaceMapping)
                 .join(DSpaceMapping, DSpaceMapping.publication_id == Publications.id)
-                .filter(Publications.owner == source.owner_name)
+                .filter(
+                    (Publications.owner == source.owner_name)
+                    | (Publications.owner.like(f"{owner_prefix}%"))
+                )
                 .filter(
                     (Publications.publication_poster_url.is_(None))
                     | (Publications.publication_poster_url == '')
@@ -99,7 +149,7 @@ def backfill(source_id=None, limit=None, apply_changes=False):
 
             for publication, mapping in query.all():
                 total_examined += 1
-                bitstream = _find_bitstream(session, base_url, mapping.dspace_uuid)
+                bitstream = _find_bitstream(session, source, mapping.dspace_uuid)
                 if not bitstream:
                     total_skipped += 1
                     if total_examined % 20 == 0:
