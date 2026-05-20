@@ -46,17 +46,16 @@ def _absolute_upload_url(value):
 
 
 def _resolve_publication_avatar(pub):
-    """Avatar fallback chain: publication.avatar → user_account.avator → logo_url.
+    """Return publication.avatar normalised, with no owner-avatar fallback.
 
-    Used by every list/detail endpoint so individual manually-uploaded DOCiDs
-    (whose form sends user.picture undefined) still display the owner's avatar.
+    The previous version fell back through user_account.avator / logo_url when
+    publication.avatar was empty. That produced a wall of identical images on
+    pages where many records shared the same owner (a single user's default
+    profile pic stretched into every card). The card's image area is for the
+    publication's own poster/avatar; when there isn't one, the frontend already
+    shows a sensible DOCiD logo placeholder.
     """
-    if pub.avatar:
-        return _absolute_upload_url(pub.avatar)
-    user = getattr(pub, 'user_account', None)
-    if user:
-        return user.avator or user.logo_url
-    return None
+    return _absolute_upload_url(pub.avatar) if pub.avatar else None
 
 
 def _normalize_publication_dict(publication_dict, pub=None):
@@ -70,11 +69,7 @@ def _normalize_publication_dict(publication_dict, pub=None):
             publication_dict.get('publication_poster_url')
         )
     if 'avatar' in publication_dict:
-        current_avatar = publication_dict.get('avatar')
-        if not current_avatar and pub is not None:
-            publication_dict['avatar'] = _resolve_publication_avatar(pub)
-        else:
-            publication_dict['avatar'] = _absolute_upload_url(current_avatar)
+        publication_dict['avatar'] = _absolute_upload_url(publication_dict.get('avatar'))
     return publication_dict
 
 # from flasgger import Swagger
