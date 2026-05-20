@@ -14,9 +14,68 @@ from app.service_identifiers import IdentifierService
 from sqlalchemy import desc, func, or_
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from urllib.parse import urlsplit
 import re
 import json
 from config import Config
+
+
+def _absolute_upload_url(value):
+    """Normalize a /uploads URL to point at this server's UPLOADS_BASE_URL.
+
+    - relative `/uploads/...` → prefixed with UPLOADS_BASE_URL
+    - absolute URLs whose path is `/uploads/...` → host rewritten to UPLOADS_BASE_URL
+    - everything else (external images, e.g. shutterstock) → returned unchanged
+
+    UPLOADS_BASE_URL falls back to APPLICATION_BASE_URL when unset, so single-host
+    deployments need no extra config. The dockerized deployment overrides
+    UPLOADS_BASE_URL to point at KENET (where the upload files physically live).
+    """
+    if not value:
+        return value
+    base = (Config.UPLOADS_BASE_URL or Config.APPLICATION_BASE_URL or '').rstrip('/')
+    if value.startswith(('http://', 'https://')):
+        try:
+            parts = urlsplit(value)
+            if parts.path.startswith('/uploads/'):
+                return f"{base}{parts.path}"
+        except Exception:
+            pass
+        return value
+    return f"{base}{value if value.startswith('/') else '/' + value}"
+
+
+def _resolve_publication_avatar(pub):
+    """Avatar fallback chain: publication.avatar → user_account.avator → logo_url.
+
+    Used by every list/detail endpoint so individual manually-uploaded DOCiDs
+    (whose form sends user.picture undefined) still display the owner's avatar.
+    """
+    if pub.avatar:
+        return _absolute_upload_url(pub.avatar)
+    user = getattr(pub, 'user_account', None)
+    if user:
+        return user.avator or user.logo_url
+    return None
+
+
+def _normalize_publication_dict(publication_dict, pub=None):
+    """In-place rewrite of poster/avatar URLs on a detail-endpoint response dict.
+
+    Idempotent: relative paths get expanded, absolute /uploads URLs get the host
+    swapped to UPLOADS_BASE_URL, external images pass through unchanged.
+    """
+    if 'publication_poster_url' in publication_dict:
+        publication_dict['publication_poster_url'] = _absolute_upload_url(
+            publication_dict.get('publication_poster_url')
+        )
+    if 'avatar' in publication_dict:
+        current_avatar = publication_dict.get('avatar')
+        if not current_avatar and pub is not None:
+            publication_dict['avatar'] = _resolve_publication_avatar(pub)
+        else:
+            publication_dict['avatar'] = _absolute_upload_url(current_avatar)
+    return publication_dict
 
 # from flasgger import Swagger
 
@@ -565,43 +624,8 @@ def get_all_publications():
             .all()
         )
 
-        # Prepare the response data.
-        # avatar falls back to the owning user_account's avator (or logo_url) when the
-        # publication itself has none — needed for individual manually-uploaded DOCiDs
-        # where the upload form doesn't set publications.avatar.
-        # _absolute_upload_url normalises stored poster URLs to the host that is
-        # currently serving the request:
-        #   - relative paths (/uploads/...) → prefix with this server's APPLICATION_BASE_URL
-        #   - absolute URLs whose path is /uploads/... → rewrite host to this server
-        # This is what lets KENET and the dockerized deployment each serve their own
-        # /uploads folder from the same DB without data migration: legacy rows store
-        # `https://<old-host>/uploads/X.jpg` and the response rewrites the host to
-        # whichever backend (KENET or docker) is answering.
-        upload_base_url = (Config.UPLOADS_BASE_URL or Config.APPLICATION_BASE_URL or '').rstrip('/')
-
-        def _absolute_upload_url(value):
-            if not value:
-                return value
-            if value.startswith('http://') or value.startswith('https://'):
-                # If it's an /uploads/... URL on some other host, rewrite to ours.
-                # Otherwise leave it alone (it's an external image, e.g. shutterstock).
-                try:
-                    from urllib.parse import urlsplit
-                    parts = urlsplit(value)
-                    if parts.path.startswith('/uploads/'):
-                        return f"{upload_base_url}{parts.path}"
-                except Exception:
-                    pass
-                return value
-            return f"{upload_base_url}{value if value.startswith('/') else '/' + value}"
-
-        def _resolve_avatar(pub):
-            if pub.avatar:
-                return _absolute_upload_url(pub.avatar)
-            if pub.user_account:
-                return pub.user_account.avator or pub.user_account.logo_url
-            return None
-
+        # See module-level _absolute_upload_url / _resolve_publication_avatar for
+        # the URL normalization rules and per-host UPLOADS_BASE_URL override.
         data_list = [
             {
                 'id': pub.id,
@@ -613,7 +637,7 @@ def get_all_publications():
                 'docid': pub.document_docid,
                 'doi': pub.doi,
                 'owner': pub.owner,
-                'avatar': _resolve_avatar(pub),
+                'avatar': _resolve_publication_avatar(pub),
                 'published_isoformat': pub.published.isoformat() if pub.published else None,
                 'published': int(pub.published.timestamp()) if pub.published else None,  # Converted to Unix timestamp
                 'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None
@@ -890,6 +914,10 @@ def get_publication(publication_id):
             } for project in data.publication_projects
         ]
 
+        # Normalize /uploads URLs to this server's UPLOADS_BASE_URL
+        # (see module-level _normalize_publication_dict for the rules).
+        _normalize_publication_dict(publication_dict, pub=data)
+
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
 
@@ -1074,6 +1102,9 @@ def get_publication_by_docid_prefix():
                 'description': project.description
             } for project in data.publication_projects
         ]
+
+        # Normalize /uploads URLs (see module-level _normalize_publication_dict).
+        _normalize_publication_dict(publication_dict, pub=data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -1266,6 +1297,9 @@ def get_publication_by_docid_simple(document_docid):
                 'description': project.description
             } for project in data.publication_projects
         ]
+
+        # Normalize /uploads URLs (see module-level _normalize_publication_dict).
+        _normalize_publication_dict(publication_dict, pub=data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
