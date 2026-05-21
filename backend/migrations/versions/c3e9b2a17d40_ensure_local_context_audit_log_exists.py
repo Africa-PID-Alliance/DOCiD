@@ -20,7 +20,12 @@ import sqlalchemy as sa
 
 
 revision = 'c3e9b2a17d40'
-down_revision = 'b1d4e7f9a2c5'
+# Direct parent on `main` is the LC schema migration. (Locally this was
+# generated when an unrelated enrichment migration `b1d4e7f9a2c5` was applied
+# in-between; that migration is not on `main`, so we point straight at the
+# LC parent here. Existing local DBs already at `c3e9b2a17d40` are unaffected
+# because alembic only stores the head version, not the chain history.)
+down_revision = 'a9f2c1d4e7b8'
 branch_labels = None
 depends_on = None
 
