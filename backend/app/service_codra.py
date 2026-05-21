@@ -502,6 +502,18 @@ class CordraService:
             # Send the request
             response = requests.post(url, json=payload, headers=headers, params=querystring)
 
+            # If CORDRA rejected our cached token, force re-auth and retry once.
+            # CORDRA can invalidate tokens server-side before our local lifetime
+            # timer expires (e.g. service restart, password rotation, idle revoke).
+            if response.status_code == 401:
+                logger.warning(
+                    f"Request {request_id}: Got 401 from CORDRA — forcing re-auth and retrying once"
+                )
+                self.access_token = None
+                self.token_acquired_at = None
+                headers = self._headers()
+                response = requests.post(url, json=payload, headers=headers, params=querystring)
+
             duration = time.time() - start_time
 
             # Log response details
@@ -911,10 +923,17 @@ def build_openalex_external_metadata(publication):
     from datetime import datetime
     from app.models import PublicationEnrichment
 
+    # Only emit ACCEPTED enrichments to CORDRA. Pending/rejected candidates stay
+    # in DOCiD's internal review queue and must not pollute the public CORDRA object.
+    # NULL review_status is treated as accepted for backward-compat with Phase 1
+    # rows backfilled to 'accepted' by the b1d4e7f9a2c5 migration.
     row = PublicationEnrichment.query.filter_by(
         publication_id=publication.id,
         source_name='openalex',
         status='enriched',
+    ).filter(
+        (PublicationEnrichment.review_status == 'accepted')
+        | (PublicationEnrichment.review_status.is_(None))
     ).first()
     if not row:
         return None, []
@@ -940,11 +959,21 @@ def build_openalex_external_metadata(publication):
 
     retrieved_at = (row.enriched_at or datetime.utcnow()).isoformat() + 'Z'
 
+    # Read match metadata from stored provenance instead of hardcoding so that
+    # title-search matches accepted by a curator surface their true confidence.
+    stored_provenance = raw.get('provenance') if isinstance(raw, dict) else None
+    if isinstance(stored_provenance, list) and stored_provenance:
+        stored_provenance = stored_provenance[0]
+    match_method = stored_provenance.get('matchedBy') if isinstance(stored_provenance, dict) else None
+    confidence = stored_provenance.get('confidence') if isinstance(stored_provenance, dict) else None
+    match_method = match_method or 'doi'
+    confidence = confidence or 'high'
+
     external = {
         "source": "OpenAlex",
         "retrievedAt": retrieved_at,
-        "matchMethod": "doi",
-        "confidence": "high",
+        "matchMethod": match_method,
+        "confidence": confidence,
         "workId": work_id_url,
         "doi": publication.doi,
         "citedByCount": publication.citation_count,
@@ -967,8 +996,8 @@ def build_openalex_external_metadata(publication):
             "source": "OpenAlex",
             "sourceUrl": work_id_url,
             "retrievedAt": retrieved_at,
-            "matchedBy": "doi",
-            "confidence": "high",
+            "matchedBy": match_method,
+            "confidence": confidence,
             "performedBy": "system",
             "status": "accepted",
         }]

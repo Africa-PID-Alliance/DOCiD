@@ -13,6 +13,9 @@ import {
 import {
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -252,6 +255,9 @@ export default function EditDocidPage() {
   const [fetchError, setFetchError] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [openAlexBusy, setOpenAlexBusy] = useState(false);
+  const [openAlexResult, setOpenAlexResult] = useState(null); // { status, review_status, conflicts, enrichment, provenance, match_method, openalex_id, reason }
+  const [openAlexDialogOpen, setOpenAlexDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Top-level details
@@ -390,6 +396,82 @@ export default function EditDocidPage() {
   }, [isRehydrated, isAuthenticated, router]);
 
   useEffect(() => { loadPublication(); }, [loadPublication]);
+
+  // ---- OpenAlex enrichment (Phase 2/3) ----
+  // A "real" DOI is a CrossRef/DataCite-style 10.xxxx/yyyy identifier — NOT a
+  // DOCiD/Handle prefix (e.g. 20.500.14351/...). OpenAlex only indexes real DOIs,
+  // so we use this check to decide whether to offer the title-search fallback.
+  const hasRealDoi = (() => {
+    const raw = (publicationData?.doi || '').trim();
+    if (!raw) return false;
+    const bare = raw.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+    return /^10\./.test(bare);
+  })();
+
+  const runOpenAlexEnrichment = async ({ titleFallback = false } = {}) => {
+    setOpenAlexBusy(true);
+    try {
+      const query = titleFallback ? '?title_fallback=1' : '';
+      const response = await axios.post(
+        `/api/publications/${publicationId}/enrich/openalex${query}`
+      );
+      setOpenAlexResult(response.data);
+      setOpenAlexDialogOpen(true);
+      if (response.data?.review_status === 'accepted') {
+        setFeedbackMessage({ type: 'success', text: 'OpenAlex enrichment accepted and applied.' });
+        loadPublication();
+      } else if (response.data?.review_status === 'pending_review') {
+        setFeedbackMessage({ type: 'info', text: 'OpenAlex returned a match that needs your review.' });
+      } else if (response.data?.status === 'not_found') {
+        const hint = !hasRealDoi
+          ? ' This publication has no CrossRef DOI (only a DOCiD/Handle), so OpenAlex cannot match it by DOI. Try "Try title search" instead.'
+          : '';
+        setFeedbackMessage({ type: 'warning', text: `No OpenAlex match found.${hint}` });
+      } else if (response.data?.status === 'skipped') {
+        setFeedbackMessage({ type: 'warning', text: response.data?.message || 'OpenAlex enrichment skipped.' });
+      }
+    } catch (err) {
+      const status = err.response?.status;
+      const message = err.response?.data?.message || err.response?.data?.reason || 'OpenAlex enrichment failed.';
+      // 400 no_valid_doi -- offer title fallback automatically next click; just surface a hint here.
+      if (status === 400 && err.response?.data?.reason === 'no_valid_doi') {
+        setFeedbackMessage({ type: 'info', text: 'No DOI on this publication. Use "Try title search" to attempt title-based match.' });
+      } else {
+        setFeedbackMessage({ type: 'error', text: message });
+      }
+    } finally {
+      setOpenAlexBusy(false);
+    }
+  };
+
+  const acceptOpenAlexCandidate = async () => {
+    setOpenAlexBusy(true);
+    try {
+      const response = await axios.post(
+        `/api/publications/${publicationId}/enrich/openalex/accept`
+      );
+      setFeedbackMessage({ type: 'success', text: 'OpenAlex candidate accepted.' });
+      setOpenAlexResult((prev) => prev ? { ...prev, review_status: 'accepted', openalex_id: response.data?.openalex_id } : prev);
+      loadPublication();
+    } catch (err) {
+      setFeedbackMessage({ type: 'error', text: err.response?.data?.message || 'Accept failed.' });
+    } finally {
+      setOpenAlexBusy(false);
+    }
+  };
+
+  const rejectOpenAlexCandidate = async () => {
+    setOpenAlexBusy(true);
+    try {
+      await axios.post(`/api/publications/${publicationId}/enrich/openalex/reject`);
+      setFeedbackMessage({ type: 'success', text: 'OpenAlex candidate rejected.' });
+      setOpenAlexResult((prev) => prev ? { ...prev, review_status: 'rejected' } : prev);
+    } catch (err) {
+      setFeedbackMessage({ type: 'error', text: err.response?.data?.message || 'Reject failed.' });
+    } finally {
+      setOpenAlexBusy(false);
+    }
+  };
 
   // ---- Top-level save ----
   const handleSaveTopLevel = async () => {
@@ -836,16 +918,150 @@ export default function EditDocidPage() {
       </Button>
 
       <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
-        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2 }}>
+          <Box>
+            <Typography variant="h5" fontWeight={600} gutterBottom>Edit DOCiD</Typography>
+            <Typography variant="body2" color="text.secondary">
+              DOCiD: <strong>{publicationData.document_docid}</strong> (handle will not change)
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => runOpenAlexEnrichment({ titleFallback: false })}
+              disabled={openAlexBusy}
+            >
+              {openAlexBusy ? 'Enriching…' : 'Enrich from OpenAlex'}
+            </Button>
+            {!hasRealDoi && (
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => runOpenAlexEnrichment({ titleFallback: true })}
+                disabled={openAlexBusy}
+                title={publicationData?.doi
+                  ? 'This publication has a DOCiD/Handle but no CrossRef DOI. OpenAlex needs a real DOI or a title.'
+                  : 'No DOI on this publication — search OpenAlex by title instead.'}
+              >
+                Try title search
+              </Button>
+            )}
+          </Stack>
+        </Stack>
         {feedbackMessage && (
           <Alert severity={feedbackMessage.type} onClose={() => setFeedbackMessage(null)} sx={{ mt: 1 }}>
             {feedbackMessage.text}
           </Alert>
         )}
       </Paper>
+
+      <Dialog
+        open={openAlexDialogOpen}
+        onClose={() => setOpenAlexDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>OpenAlex enrichment {openAlexResult?.review_status === 'accepted' && '(applied)'}</DialogTitle>
+        <DialogContent dividers>
+          {!openAlexResult && <Typography>No result.</Typography>}
+          {openAlexResult?.status === 'not_found' && (
+            <Alert severity="warning">No matching OpenAlex work was found for this publication.</Alert>
+          )}
+          {openAlexResult?.status === 'skipped' && (
+            <Alert severity="info">{openAlexResult.message || 'Enrichment skipped.'}</Alert>
+          )}
+          {openAlexResult?.enrichment && (
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Match</Typography>
+                <Typography variant="body2">
+                  Method: <strong>{openAlexResult.match_method || openAlexResult.provenance?.matchedBy}</strong>
+                  {' · '}
+                  Confidence: <strong>{openAlexResult.provenance?.confidence}</strong>
+                  {' · '}
+                  Status: <strong>{openAlexResult.review_status || openAlexResult.provenance?.status}</strong>
+                </Typography>
+                {openAlexResult.enrichment.openalex_id && (
+                  <Typography variant="body2">
+                    OpenAlex Work:{' '}
+                    <a href={`https://openalex.org/${openAlexResult.enrichment.openalex_id}`} target="_blank" rel="noopener noreferrer">
+                      {openAlexResult.enrichment.openalex_id}
+                    </a>
+                  </Typography>
+                )}
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Citation count</Typography>
+                <Typography>{openAlexResult.enrichment.citation_count ?? '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Open access</Typography>
+                <Typography>
+                  {openAlexResult.enrichment.open_access_status || '—'}
+                  {openAlexResult.enrichment.open_access_url && (
+                    <>
+                      {' · '}
+                      <a href={openAlexResult.enrichment.open_access_url} target="_blank" rel="noopener noreferrer">
+                        OA link
+                      </a>
+                    </>
+                  )}
+                </Typography>
+              </Box>
+              {openAlexResult.enrichment.topics?.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">Topics</Typography>
+                  <Typography variant="body2">
+                    {openAlexResult.enrichment.topics.map((t) => t.name).filter(Boolean).join(' · ')}
+                  </Typography>
+                </Box>
+              )}
+              {openAlexResult.conflicts?.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">Conflicts with current DOCiD data</Typography>
+                  <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                    {openAlexResult.conflicts.map((c, i) => (
+                      <Alert
+                        key={i}
+                        severity={c.severity === 'high' ? 'error' : c.severity === 'medium' ? 'warning' : 'info'}
+                        sx={{ py: 0 }}
+                      >
+                        <strong>{c.field}:</strong>{' '}
+                        DOCiD={String(c.docidValue ?? '—')} · OpenAlex={String(c.openAlexValue ?? '—')}
+                      </Alert>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAlexDialogOpen(false)}>Close</Button>
+          {openAlexResult?.review_status === 'pending_review' && (
+            <>
+              <Button
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={rejectOpenAlexCandidate}
+                disabled={openAlexBusy}
+              >
+                Reject
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={acceptOpenAlexCandidate}
+                disabled={openAlexBusy}
+              >
+                Accept &amp; Apply
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <Paper elevation={2} sx={{ mb: 3, borderRadius: 2, p: 2 }}>
         <Stepper

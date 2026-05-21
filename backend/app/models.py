@@ -1715,6 +1715,10 @@ class PublicationEnrichment(db.Model):
     raw_response = db.Column(JSONB, nullable=True)
     error_message = db.Column(db.Text, nullable=True)
     retry_count = db.Column(db.Integer, default=0)
+    review_status = db.Column(db.String(20), nullable=True, index=True)  # accepted|pending_review|rejected|NULL
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('user_accounts.user_id', ondelete='SET NULL'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_note = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -834,8 +834,67 @@ const DocIDPage = ({ params }) => {
     setFeatureModal(false);
   };
 
+  // Build schema.org/ScholarlyArticle JSON-LD for SEO + Google Scholar / DataCite crawlers.
+  // The backend also exposes /api/v1/publications/<id>/jsonld for direct consumers.
+  const buildJsonLd = () => {
+    if (!docData) return null;
+    const sameAs = [];
+    if (docData.doi) {
+      sameAs.push(docData.doi.startsWith('http') ? docData.doi : `https://doi.org/${docData.doi}`);
+    }
+    if (docData.openalex_id) {
+      const oid = docData.openalex_id;
+      sameAs.push(oid.startsWith('http') ? oid : `https://openalex.org/${oid}`);
+    }
+    const authors = (docData.publication_creators || [])
+      .map((c) => {
+        const name = c.family_name || c.given_name || c.creator_name;
+        if (!name) return null;
+        const author = { '@type': 'Person', name };
+        if (c.identifier) author.sameAs = c.identifier;
+        return author;
+      })
+      .filter(Boolean);
+    const keywords = (docData.openalex_topics || [])
+      .map((t) => t?.name)
+      .filter(Boolean)
+      .join(', ');
+    const jsonld = {
+      '@context': 'https://schema.org',
+      '@type': 'ScholarlyArticle',
+      name: docData.document_title,
+      headline: docData.document_title,
+      identifier: docData.doi || undefined,
+      sameAs: sameAs.length ? sameAs : undefined,
+      author: authors.length ? authors : undefined,
+      datePublished: docData.published || undefined,
+      abstract: docData.abstract_text || undefined,
+      keywords: keywords || undefined,
+      citation: docData.citation_count ?? undefined,
+      isAccessibleForFree: docData.open_access_status
+        ? docData.open_access_status !== 'closed'
+        : undefined,
+    };
+    Object.keys(jsonld).forEach((k) => jsonld[k] === undefined && delete jsonld[k]);
+    return jsonld;
+  };
+  const jsonLdData = buildJsonLd();
+  // Escape any "</" so a malicious title containing "</script>" cannot break out
+  // of the embedded JSON-LD <script> element. JSON.stringify escapes quotes but
+  // not the closing tag sequence — this is the standard mitigation.
+  const jsonLdSerialised = jsonLdData
+    ? JSON.stringify(jsonLdData).replace(/<\//g, '<\\/')
+    : null;
+
   return (
     <Box sx={{  minHeight: '100vh', backgroundColor: 'background.content' }}>
+      {jsonLdSerialised && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: jsonLdSerialised }}
+        />
+      )}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Grid container spacing={3}>
           {/* Main Content */}

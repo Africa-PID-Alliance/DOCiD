@@ -817,7 +817,9 @@ def get_publication(publication_id):
                           'publication_poster_url', 'doi', 'published', 'handle_url',
                           'citation_count', 'influential_citation_count',
                           'open_access_status', 'open_access_url',
-                          'openalex_topics', 'abstract_text']
+                          'openalex_id', 'openalex_topics',
+                          'semantic_scholar_id', 'openaire_id',
+                          'abstract_text']
 
         # Log publication details
         logger.info(f"Fetching publication details for ID: {publication_id}, User ID: {getattr(data, 'user_id', 'unknown')}")
@@ -1009,7 +1011,9 @@ def get_publication_by_docid_prefix():
                           'publication_poster_url', 'doi', 'published', 'handle_url',
                           'citation_count', 'influential_citation_count',
                           'open_access_status', 'open_access_url',
-                          'openalex_topics', 'abstract_text']
+                          'openalex_id', 'openalex_topics',
+                          'semantic_scholar_id', 'openaire_id',
+                          'abstract_text']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:
@@ -1204,7 +1208,9 @@ def get_publication_by_docid_simple(document_docid):
                           'publication_poster_url', 'doi', 'published', 'handle_url',
                           'citation_count', 'influential_citation_count',
                           'open_access_status', 'open_access_url',
-                          'openalex_topics', 'abstract_text']
+                          'openalex_id', 'openalex_topics',
+                          'semantic_scholar_id', 'openaire_id',
+                          'abstract_text']
 
         # Update main publication data with Unix timestamp for `published`
         for field in desired_fields:

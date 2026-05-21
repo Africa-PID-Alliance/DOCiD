@@ -155,6 +155,25 @@ class OpenAlexClient:
 
         return self._make_request(f"/works/doi:{normalized_doi}")
 
+    def search_work_by_title(self, title: str, per_page: int = 5) -> List[Dict]:
+        """
+        Search OpenAlex Works by title (fallback when no DOI is available).
+
+        Returns up to `per_page` candidates ordered by OpenAlex relevance score.
+        Caller MUST treat results as low-confidence — title matches require curator
+        review per integration guide section 11.3.
+        """
+        if not title or not title.strip():
+            return []
+
+        response = self._make_request('/works', params={
+            'search': title.strip(),
+            'per-page': per_page,
+        })
+        if not response:
+            return []
+        return response.get('results', []) or []
+
     # ==================== Author Endpoints ====================
 
     def get_author_by_orcid(self, orcid_id: str) -> Optional[Dict]:
@@ -372,28 +391,91 @@ class OpenAlexEnrichmentMapper:
         return reconstructed_text if reconstructed_text else None
 
 
-def enrich_publication_openalex(publication, client, mapper, performed_by: str = "system") -> Tuple[str, Optional[str], Optional[Dict]]:
+def fetch_openalex_candidate(
+    publication,
+    client,
+    mapper,
+    performed_by: str = "system",
+    allow_title_fallback: bool = False,
+) -> Tuple[str, Optional[str], Optional[Dict]]:
     """
-    Run OpenAlex enrichment for a single Publication.
+    Look up OpenAlex metadata for a publication without mutating it.
 
-    Mutates publication columns (citation_count, open_access_status, open_access_url,
-    openalex_topics, openalex_id, abstract_text). Does NOT touch PublicationEnrichment —
-    the caller decides whether to insert (CLI) or upsert (route).
+    Tries DOI first; if no DOI hit and ``allow_title_fallback`` is set, falls
+    back to a title-search lookup tagged confidence='review_required'.
+
+    Does NOT mutate the Publications row and does NOT touch PublicationEnrichment.
+    The caller decides whether to apply the candidate (auto-accept) or store it
+    for curator review.
 
     Returns:
         (status, error_message, payload)
-        payload on success: {"work": <raw>, "enrichment": <mapper output>, "provenance": <dict>}
+        payload on success: {
+            "work": <raw OpenAlex work>,
+            "enrichment": <mapper.extract_work_enrichment output>,
+            "provenance": <dict per guide section 6>,
+            "match_method": "doi" | "title_search",
+        }
     """
     normalized_doi = normalize_doi(publication.doi)
-    if not normalized_doi:
-        return 'skipped', 'no_valid_doi', None
+    work_data = None
+    match_method = None
 
-    work_data = client.get_work_by_doi(normalized_doi)
+    if normalized_doi:
+        work_data = client.get_work_by_doi(normalized_doi)
+        if work_data:
+            match_method = 'doi'
+
+    if not work_data and allow_title_fallback and getattr(publication, 'document_title', None):
+        candidates = client.search_work_by_title(publication.document_title, per_page=1)
+        if candidates:
+            work_data = candidates[0]
+            match_method = 'title_search'
+
     if not work_data:
+        if not normalized_doi and not allow_title_fallback:
+            return 'skipped', 'no_valid_doi', None
         return 'not_found', None, None
 
     enrichment_data = mapper.extract_work_enrichment(work_data)
 
+    retrieved_at = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    confidence = 'high' if match_method == 'doi' else 'review_required'
+    # Initial provenance status mirrors confidence; callers may downgrade
+    # ('accepted' → 'pending_review') on high-severity conflict.
+    initial_status = 'accepted' if confidence == 'high' else 'pending_review'
+    provenance = {
+        "eventType": "external_metadata_enrichment",
+        "source": "OpenAlex",
+        "sourceUrl": work_data.get("id"),
+        "retrievedAt": retrieved_at,
+        "matchedBy": match_method,
+        "confidence": confidence,
+        "performedBy": performed_by,
+        "status": initial_status,
+    }
+
+    payload = {
+        "work": work_data,
+        "enrichment": enrichment_data,
+        "provenance": provenance,
+        "match_method": match_method,
+    }
+
+    return 'enriched', None, payload
+
+
+def apply_openalex_enrichment_to_publication(publication, payload) -> None:
+    """
+    Apply a previously fetched OpenAlex candidate to the Publication columns.
+
+    Caller must have already decided this candidate is safe to apply (DOI match
+    with no high-severity conflicts, OR a curator has clicked accept).
+    Idempotent: re-applying the same payload is a no-op.
+    """
+    if not payload:
+        return
+    enrichment_data = payload.get("enrichment") or {}
     if enrichment_data.get('citation_count') is not None:
         publication.citation_count = enrichment_data['citation_count']
     if enrichment_data.get('open_access_status'):
@@ -407,22 +489,27 @@ def enrich_publication_openalex(publication, client, mapper, performed_by: str =
     if enrichment_data.get('abstract') and not publication.abstract_text:
         publication.abstract_text = enrichment_data['abstract']
 
-    retrieved_at = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
-    provenance = {
-        "eventType": "external_metadata_enrichment",
-        "source": "OpenAlex",
-        "sourceUrl": work_data.get("id"),
-        "retrievedAt": retrieved_at,
-        "matchedBy": "doi",
-        "confidence": "high",
-        "performedBy": performed_by,
-        "status": "accepted",
-    }
 
-    payload = {
-        "work": work_data,
-        "enrichment": enrichment_data,
-        "provenance": provenance,
-    }
+# Backward-compat shim: Phase 1 CLI imports enrich_publication_openalex and
+# expects DOI-match auto-apply behavior. Preserve that for the CLI path.
+def enrich_publication_openalex(
+    publication,
+    client,
+    mapper,
+    performed_by: str = "system",
+    allow_title_fallback: bool = False,
+) -> Tuple[str, Optional[str], Optional[Dict]]:
+    """
+    CLI-friendly wrapper: fetch + auto-apply (no curator gating).
 
-    return 'enriched', None, payload
+    Use ``fetch_openalex_candidate`` + ``apply_openalex_enrichment_to_publication``
+    directly when you need the route-level review gating.
+    """
+    status, error_message, payload = fetch_openalex_candidate(
+        publication, client, mapper,
+        performed_by=performed_by,
+        allow_title_fallback=allow_title_fallback,
+    )
+    if status == 'enriched' and payload:
+        apply_openalex_enrichment_to_publication(publication, payload)
+    return status, error_message, payload
