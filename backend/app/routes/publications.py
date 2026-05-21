@@ -126,6 +126,34 @@ def clean_undefined_string(value):
     return value
 
 
+_REAL_DOI_RE = re.compile(r'^10\.\d+/')
+
+
+def coerce_real_doi(raw):
+    """
+    Accept a real CrossRef/DataCite DOI (`10.xxxx/...`); reject DOCiD Handles
+    (`20.500.14351/...`) and other non-DOI strings.
+
+    Returns the bare-DOI form (URL prefix stripped) or None. Logs a warning when
+    a Handle-shaped value is submitted in the doi field — that indicates a
+    legacy caller still confusing the two columns.
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return None
+    bare = re.sub(r'^https?://(dx\.)?doi\.org/', '', stripped, flags=re.IGNORECASE)
+    if _REAL_DOI_RE.match(bare):
+        return bare
+    if bare.startswith('20.'):
+        logger.warning(
+            "Rejected DOCiD Handle submitted in 'doi' field — Publications.doi is reserved for real CrossRef/DataCite DOIs. Value=%r",
+            stripped[:80],
+        )
+    return None
+
+
 def _build_rrid_cache(rrid_values):
     """Return a {rrid_string: metadata_dict} lookup built in a single bulk query.
 
@@ -1488,7 +1516,7 @@ def create_publication():
             user_id = int(get_jwt_identity())
         except (TypeError, ValueError):
             return jsonify({'message': 'Authentication required'}), 401
-        doi = clean_undefined_string(request.form.get('doi'))
+        doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
         owner = request.form.get('owner')
         publication_poster = request.files.get('publicationPoster')
         avatar = clean_undefined_string(request.form.get('avatar'))  # Assuming it's a URL
@@ -2825,8 +2853,9 @@ def update_publication(publication_id):
             except ValueError:
                 return jsonify({'message': f'Invalid resource type format: {new_resource_type}'}), 400
         
-        # Update DOI if provided
-        new_doi = clean_undefined_string(request.form.get('doi'))
+        # Update DOI if provided. Only accept real CrossRef/DataCite DOIs;
+        # silently drop DOCiD Handles or other malformed inputs.
+        new_doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
         if new_doi and new_doi != publication.doi:
             old_value = publication.doi
             publication.doi = new_doi
@@ -3435,7 +3464,7 @@ def create_version():
         document_description = request.form.get('documentDescription')
         resource_type = request.form.get('resourceType')
         user_id = request.form.get('user_id')
-        doi = clean_undefined_string(request.form.get('doi'))
+        doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
         owner = request.form.get('owner')
         publication_poster = request.files.get('publicationPoster')
         avatar = clean_undefined_string(request.form.get('avatar'))

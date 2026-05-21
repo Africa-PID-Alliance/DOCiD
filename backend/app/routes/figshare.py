@@ -628,7 +628,13 @@ def _apply_figshare_data_to_publication(publication, pub_data, resource_type_id,
     figshare_doi = (pub_data.get('doi') or '').strip()
 
     if figshare_doi:
-        # DOI exists: use it as primary identifier, skip Cordra minting
+        # DOI exists: use it as primary identifier, skip Cordra minting.
+        # Intentional conflation: Figshare items reuse their existing CrossRef-issued
+        # DOI as the CORDRA persistent identifier instead of minting a new 20.500.*
+        # Handle. document_docid carries the same value as doi here — push_to_cordra
+        # reads document_docid as the CORDRA target_id, so this keeps the push working
+        # without a separate Handle mint. The b1d4e7f9a2c5 / cleanup migration's
+        # `doi LIKE '20.%'` filter explicitly excludes these rows.
         publication.doi = figshare_doi
         publication.document_docid = figshare_doi
         publication.cordra_synced = True

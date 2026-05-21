@@ -80,8 +80,8 @@ def fix_file_url(url):
 def push_publication_to_cordra(publication):
     """Push main publication metadata to CORDRA"""
     try:
-        if not publication.doi:
-            logger.warning(f"Publication {publication.id} has no DOI, skipping CORDRA push")
+        if not publication.document_docid:
+            logger.warning(f"Publication {publication.id} has no DOCiD handle, skipping CORDRA push")
             return False
             
         cordra_description = (publication.document_description or "")[:2048]
@@ -90,6 +90,8 @@ def push_publication_to_cordra(publication):
             "docid": f"{APPLICATION_DOMAIN}/docid/{publication.document_docid}",
             "title": publication.document_title,
             "description": cordra_description,
+            # content.doi reflects the real CrossRef/DataCite DOI when present (NULL
+            # otherwise). The CORDRA *object identifier* is document_docid, not this.
             "doi": publication.doi,
             "owner": publication.owner,
             "user_id": publication.user_id,
@@ -112,13 +114,13 @@ def push_publication_to_cordra(publication):
             }
         }
         
-        logger.info(f"Pushing Publication {publication.id} to CORDRA with DOI: {publication.doi}")
-        response = update_object(publication.doi, object_data)
+        logger.info(f"Pushing Publication {publication.id} to CORDRA with DOI: {publication.document_docid}")
+        response = update_object(publication.document_docid, object_data)
         
         # If object doesn't exist (404), try to create it
         if isinstance(response, dict) and response.get('status_code') == 404:
-            logger.info(f"Publication {publication.doi} not found in CORDRA, attempting to create it")
-            response = create_or_update_semantic_object("Container iD", publication.doi, metadata)
+            logger.info(f"Publication {publication.document_docid} not found in CORDRA, attempting to create it")
+            response = create_or_update_semantic_object("Container iD", publication.document_docid, metadata)
             logger.info(f"CORDRA create response for Publication {publication.id}: {response}")
         else:
             logger.info(f"CORDRA response for Publication {publication.id}: {response}")
@@ -151,7 +153,7 @@ def push_publication_files_to_cordra(publication):
                 "fileType": file.file_type,
                 "fileName": file.file_name,
                 "publicationType": pub_type_name,
-                "parentId": publication.doi,
+                "parentId": publication.document_docid,
                 "createdOn": int(datetime.now().timestamp())
             }
             
@@ -226,7 +228,7 @@ def push_publication_documents_to_cordra(publication):
                 "identifierType": identifier_type_name,
                 "identifierCstr": identifier_cstr_url,  # Full resolvable CSTR URL
                 "rrid": doc.rrid,
-                "parentId": publication.doi,
+                "parentId": publication.document_docid,
                 "createdOn": int(datetime.now().timestamp())
             }
 
@@ -285,7 +287,7 @@ def push_publication_creators_to_cordra(publication):
                 "identifier": creator.identifier,  # This now contains the full resolvable URL
                 "identifierType": creator.identifier_type,  # e.g., 'orcid', 'isni', 'viaf'
                 "role": role_name,
-                "parentId": publication.doi
+                "parentId": publication.document_docid
             }
             
             # Add specific identifier field for easier access
@@ -300,10 +302,10 @@ def push_publication_creators_to_cordra(publication):
         }
         
         # Create a synthetic handle for creators collection
-        creators_handle = f"{publication.doi}/creators"
+        creators_handle = f"{publication.document_docid}/creators"
         
         content_data = {
-            "parentId": publication.doi,
+            "parentId": publication.document_docid,
             "publicationId": str(publication.id),
             "creators": creators_list,
             "createdOn": int(datetime.now().timestamp())
@@ -337,7 +339,7 @@ def push_publication_organizations_to_cordra(publication):
                 "type": org.type,
                 "otherName": org.other_name,
                 "country": org.country,
-                "parentId": publication.doi
+                "parentId": publication.document_docid
             }
             
             # Add identifier fields (now that organization identifiers are supported)
@@ -349,10 +351,10 @@ def push_publication_organizations_to_cordra(publication):
             orgs_list.append(org_data)
         
         # Create a synthetic handle for organizations collection
-        orgs_handle = f"{publication.doi}/organizations"
+        orgs_handle = f"{publication.document_docid}/organizations"
         
         content_data = {
-            "parentId": publication.doi,
+            "parentId": publication.document_docid,
             "publicationId": str(publication.id),
             "organizations": orgs_list,
             "organizationsCount": len(orgs_list),
@@ -394,7 +396,7 @@ def push_publication_funders_to_cordra(publication):
                 "country": funder.country,
                 "identifier": funder.identifier,  # This now contains the full resolvable URL (e.g., https://ror.org/01bj3aw27)
                 "identifierType": funder.identifier_type,  # e.g., 'ror', 'fundref', 'isni'
-                "parentId": publication.doi
+                "parentId": publication.document_docid
             }
             
             # Add specific identifier field for easier access
@@ -403,10 +405,10 @@ def push_publication_funders_to_cordra(publication):
             funders_list.append(funder_data)
         
         # Create a synthetic handle for funders collection
-        funders_handle = f"{publication.doi}/funders"
+        funders_handle = f"{publication.document_docid}/funders"
         
         content_data = {
-            "parentId": publication.doi,
+            "parentId": publication.document_docid,
             "publicationId": str(publication.id),
             "funders": funders_list,
             "fundersCount": len(funders_list),
@@ -442,7 +444,7 @@ def push_publication_projects_to_cordra(publication):
                 "description": project.description,
                 "identifier": project.identifier,  # Full resolvable URL (e.g., https://app.demo.raid.org.au/raids/10.80368/b1adfb3a)
                 "identifierType": project.identifier_type,  # Will be 'raid'
-                "parentId": publication.doi
+                "parentId": publication.document_docid
             }
             
             # Add dynamic field for easier access
@@ -451,10 +453,10 @@ def push_publication_projects_to_cordra(publication):
             projects_list.append(project_data)
         
         # Create a synthetic handle for projects collection
-        projects_handle = f"{publication.doi}/projects"
+        projects_handle = f"{publication.document_docid}/projects"
         
         content_data = {
-            "parentId": publication.doi,
+            "parentId": publication.document_docid,
             "publicationId": str(publication.id),
             "projects": projects_list,
             "projectsCount": len(projects_list),
@@ -528,7 +530,7 @@ def main():
             failed_count = 0
             
             for idx, publication in enumerate(publications, 1):
-                logger.info(f"\nProcessing Publication {idx}/{total_publications}: ID={publication.id}, DOI={publication.doi}")
+                logger.info(f"\nProcessing Publication {idx}/{total_publications}: ID={publication.id}, DOI={publication.document_docid}")
                 
                 try:
                     # Push main publication

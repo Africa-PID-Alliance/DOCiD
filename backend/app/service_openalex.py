@@ -465,6 +465,39 @@ def fetch_openalex_candidate(
     return 'enriched', None, payload
 
 
+# Columns mutated by apply_openalex_enrichment_to_publication. Centralised so
+# snapshot/undo, reject-after-accept, and tests stay in lockstep with the apply
+# code path. Add new columns here whenever apply_* gains a new write target.
+OPENALEX_APPLIED_COLUMNS = (
+    'citation_count',
+    'open_access_status',
+    'open_access_url',
+    'openalex_topics',
+    'openalex_id',
+    'abstract_text',
+)
+
+
+def snapshot_publication_openalex_fields(publication) -> Dict:
+    """
+    Return a dict of the current values of every column apply_* may overwrite.
+
+    Stored inside PublicationEnrichment.raw_response['pre_apply_snapshot'] so the
+    /undo endpoint can roll back an accepted-then-regretted candidate without
+    needing a separate publication-snapshot table.
+    """
+    return {column: getattr(publication, column, None) for column in OPENALEX_APPLIED_COLUMNS}
+
+
+def restore_publication_from_snapshot(publication, snapshot) -> None:
+    """Inverse of apply_*: restore Publication columns from a prior snapshot dict."""
+    if not isinstance(snapshot, dict):
+        return
+    for column in OPENALEX_APPLIED_COLUMNS:
+        if column in snapshot:
+            setattr(publication, column, snapshot[column])
+
+
 def apply_openalex_enrichment_to_publication(publication, payload) -> None:
     """
     Apply a previously fetched OpenAlex candidate to the Publication columns.

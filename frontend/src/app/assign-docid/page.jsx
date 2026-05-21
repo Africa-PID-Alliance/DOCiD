@@ -649,7 +649,10 @@ const AssignDocID = () => {
       submitData.append("user_id", Number(parseInt(user.id))); // Changed to snake_case and ensure it's a string
       submitData.append("owner", String(user?.name || user?.username || ''));
       submitData.append("avatar",String(user?.picture));
-      submitData.append("doi", formData.docId.generatedId);
+      // doi is intentionally NOT submitted here. The Publications.doi column is
+      // reserved for real CrossRef/DataCite DOIs (10.xxxx/...). The generated
+      // DOCiD Handle (20.500.14351/...) lives in document_docid alone. A user
+      // can add a real DOI later via the edit-docid form.
 
       // 1b. Local Contexts attachments — only sent for IK / Cultural Heritage.
       // Backend ignores the field if absent; explicit guard mirrors the UI.

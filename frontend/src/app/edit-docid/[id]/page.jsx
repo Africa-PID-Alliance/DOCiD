@@ -473,6 +473,26 @@ export default function EditDocidPage() {
     }
   };
 
+  const undoOpenAlexCandidate = async () => {
+    setOpenAlexBusy(true);
+    try {
+      const response = await axios.post(`/api/publications/${publicationId}/enrich/openalex/undo`);
+      const restored = response.data?.restored_fields?.join(', ');
+      setFeedbackMessage({
+        type: 'success',
+        text: restored
+          ? `OpenAlex enrichment undone. Restored: ${restored}.`
+          : 'OpenAlex enrichment undone.',
+      });
+      setOpenAlexResult((prev) => prev ? { ...prev, review_status: 'rejected' } : prev);
+      loadPublication();
+    } catch (err) {
+      setFeedbackMessage({ type: 'error', text: err.response?.data?.message || 'Undo failed.' });
+    } finally {
+      setOpenAlexBusy(false);
+    }
+  };
+
   // ---- Top-level save ----
   const handleSaveTopLevel = async () => {
     setIsSaving(true);
@@ -1059,6 +1079,17 @@ export default function EditDocidPage() {
                 Accept &amp; Apply
               </Button>
             </>
+          )}
+          {openAlexResult?.review_status === 'accepted' && (
+            <Button
+              color="warning"
+              startIcon={<CancelIcon />}
+              onClick={undoOpenAlexCandidate}
+              disabled={openAlexBusy}
+              title="Revert the OpenAlex fields on this publication back to their values before this enrichment was applied."
+            >
+              Undo
+            </Button>
           )}
         </DialogActions>
       </Dialog>

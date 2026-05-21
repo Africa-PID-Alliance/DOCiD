@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm.attributes import flag_modified
 
 from app import db
 from app.models import Publications, PublicationEnrichment, UserAccount
@@ -26,6 +27,8 @@ from app.service_openalex import (
     OpenAlexEnrichmentMapper,
     fetch_openalex_candidate,
     apply_openalex_enrichment_to_publication,
+    snapshot_publication_openalex_fields,
+    restore_publication_from_snapshot,
     normalize_doi,
 )
 
@@ -183,9 +186,13 @@ def run_openalex_enrichment(publication_id):
         match_method = payload.get('match_method')
         if match_method == 'doi' and not _has_high_severity_conflict(conflicts):
             review_status = 'accepted'
-            # Stamp provenance status to match
+            # Snapshot Publication fields BEFORE apply so /undo can restore them.
+            payload['pre_apply_snapshot'] = snapshot_publication_openalex_fields(publication)
             payload['provenance']['status'] = 'accepted'
             apply_openalex_enrichment_to_publication(publication, payload)
+            # Bump updated_at so push_recent_to_cordra (30-min cron) and the
+            # default 12h push_to_cordra window will pick this record up.
+            publication.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         else:
             review_status = 'pending_review'
             payload['provenance']['status'] = 'pending_review'
@@ -255,6 +262,10 @@ def accept_openalex_enrichment(publication_id):
         return jsonify({'message': 'Candidate was rejected — re-run POST /enrich/openalex first'}), 409
 
     payload = row.raw_response or {}
+    # Snapshot BEFORE apply so /undo can restore. Preserve any existing snapshot
+    # (e.g. from an earlier auto-attempt) — never overwrite a populated one.
+    if isinstance(payload, dict) and not payload.get('pre_apply_snapshot'):
+        payload['pre_apply_snapshot'] = snapshot_publication_openalex_fields(publication)
     apply_openalex_enrichment_to_publication(publication, payload)
 
     note = (request.get_json(silent=True) or {}).get('review_note') if request.is_json else None
@@ -267,6 +278,10 @@ def accept_openalex_enrichment(publication_id):
         payload['provenance']['status'] = 'accepted'
         payload['provenance']['reviewedBy'] = f'user:{user_id}'
         row.raw_response = payload
+        # SQLAlchemy does NOT track in-place JSONB mutations — flag explicitly.
+        flag_modified(row, 'raw_response')
+    # Bump publication.updated_at so CORDRA push picks up the new enrichment.
+    publication.updated_at = row.reviewed_at
 
     try:
         db.session.commit()
@@ -310,6 +325,7 @@ def reject_openalex_enrichment(publication_id):
         payload['provenance']['status'] = 'rejected'
         payload['provenance']['reviewedBy'] = f'user:{user_id}'
         row.raw_response = payload
+        flag_modified(row, 'raw_response')
 
     try:
         db.session.commit()
@@ -321,6 +337,70 @@ def reject_openalex_enrichment(publication_id):
     return jsonify({
         'status': 'rejected',
         'publication_id': publication.id,
+        'reviewed_by': user_id,
+        'reviewed_at': row.reviewed_at.isoformat() + 'Z',
+    }), 200
+
+
+@enrichment_bp.route('/<int:publication_id>/enrich/openalex/undo', methods=['POST'])
+@jwt_required()
+def undo_openalex_enrichment(publication_id):
+    """
+    Roll back an accepted OpenAlex enrichment.
+
+    Restores the Publication's OpenAlex-derived fields from the pre-apply
+    snapshot captured at accept time, then flips review_status to 'rejected'.
+    No-op if there is no snapshot (e.g. legacy rows from before this feature).
+    """
+    publication, user_id, _is_admin_flag, error_response = _authorise(publication_id)
+    if error_response:
+        return error_response
+
+    row = PublicationEnrichment.query.filter_by(
+        publication_id=publication.id, source_name='openalex'
+    ).first()
+    if not row:
+        return jsonify({'message': 'No enrichment row to undo'}), 404
+    if row.review_status != 'accepted':
+        return jsonify({
+            'message': f'Cannot undo enrichment in review_status={row.review_status!r}; only accepted rows are reversible.',
+        }), 409
+
+    payload = row.raw_response or {}
+    snapshot = payload.get('pre_apply_snapshot') if isinstance(payload, dict) else None
+    if not isinstance(snapshot, dict):
+        return jsonify({
+            'message': 'No pre-apply snapshot stored for this enrichment — cannot safely undo. (Legacy row predates Phase 2 snapshot support.)',
+        }), 409
+
+    restore_publication_from_snapshot(publication, snapshot)
+
+    note = (request.get_json(silent=True) or {}).get('review_note') if request.is_json else None
+    row.review_status = 'rejected'
+    row.reviewed_by = user_id
+    row.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    row.review_note = note or 'undone'
+    if isinstance(payload, dict) and isinstance(payload.get('provenance'), dict):
+        payload['provenance']['status'] = 'rejected'
+        payload['provenance']['reviewedBy'] = f'user:{user_id}'
+        payload['provenance']['undone'] = True
+        row.raw_response = payload
+        flag_modified(row, 'raw_response')
+    # Bump updated_at so CORDRA push re-syncs the rolled-back state.
+    publication.updated_at = row.reviewed_at
+
+    try:
+        db.session.commit()
+    except Exception as commit_error:
+        db.session.rollback()
+        logger.exception('Failed to commit undo for publication %s', publication_id)
+        return jsonify({'message': str(commit_error)}), 500
+
+    return jsonify({
+        'status': 'undone',
+        'review_status': 'rejected',
+        'publication_id': publication.id,
+        'restored_fields': list(snapshot.keys()),
         'reviewed_by': user_id,
         'reviewed_at': row.reviewed_at.isoformat() + 'Z',
     }), 200
