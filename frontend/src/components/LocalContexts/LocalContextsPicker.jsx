@@ -154,10 +154,12 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
                   >
                     <ListItemText
                       primary={r.title}
+                      // Override the default <p> wrapper so we can nest <Chip> (div) without invalid DOM.
+                      secondaryTypographyProps={{ component: 'div' }}
                       secondary={
                         <Stack direction="row" spacing={1} sx={{ mt: 0.25, alignItems: 'center', flexWrap: 'wrap' }}>
                           {institutionLine && (
-                            <Typography variant="caption" color="text.secondary">{institutionLine}</Typography>
+                            <Typography variant="caption" color="text.secondary" component="span">{institutionLine}</Typography>
                           )}
                           <Chip label={r.project_type || 'Other'} size="small" variant="outlined" />
                           {alreadySelected && (
@@ -192,7 +194,7 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
                     <Typography variant="body2" fontWeight={600} noWrap>{p.title}</Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
                       {(p.contributing_institutions || []).length > 0 && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" component="span">
                           {(p.contributing_institutions || []).join(', ')}
                         </Typography>
                       )}
