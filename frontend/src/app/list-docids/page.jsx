@@ -553,31 +553,29 @@ const ListDocIds = () => {
                 {t('docid.description')}
                 </Typography>
               </Box>
-              {isAuthenticated && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => router.push('/assign-docid')}
-                  sx={{
-                    bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
-                    color: 'white',
-                    px: { xs: 3, md: 4 },
-                    py: 1.75,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === 'dark' ? '#1e2756' : '#1976d2',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                    }
-                  }}
-                >
-                  {t('docid.button')}
-                </Button>
-              )}
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/assign-docid')}
+                sx={{
+                  bgcolor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
+                  color: 'white',
+                  px: { xs: 3, md: 4 },
+                  py: 1.75,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: theme.palette.mode === 'dark' ? '#1e2756' : '#1976d2',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }
+                }}
+              >
+                {t('docid.button')}
+              </Button>
             </Box>
 
             {/* Search and Filter Section */}

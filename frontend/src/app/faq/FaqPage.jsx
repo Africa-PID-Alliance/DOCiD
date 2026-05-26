@@ -548,15 +548,547 @@ const faqs = [
     ),
     category: 'General',
   },
+  {
+    question: 'How can I verify and access a DOCiD record through the Handle System?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          You can verify DOCiD records directly through the Handle System Resolver. Simply append the DOCiD handle to the resolver URL to access the corresponding record through automatic redirection:
+        </Typography>
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 1.5, py: 0.75, borderRadius: 1, mb: 0.5 }}>
+          {'https://hdl.handle.net/{DOCiD}'}
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 1, mt: 1 }}>For example:</Typography>
+        <Typography
+          variant="body2"
+          component="a"
+          href="https://hdl.handle.net/20.500.14351/1ad229ce7aed487e2b4e"
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 1.5, py: 0.75, borderRadius: 1, display: 'block', mb: 1.5, wordBreak: 'break-all' }}
+        >
+          https://hdl.handle.net/20.500.14351/1ad229ce7aed487e2b4e
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          If you would like to view the underlying Handle record metadata without being redirected, you can append <code>?noredirect</code> to the URL:
+        </Typography>
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 1.5, py: 0.75, borderRadius: 1, mb: 0.5 }}>
+          {'https://hdl.handle.net/{DOCiD}?noredirect'}
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 1, mt: 1 }}>For example:</Typography>
+        <Typography
+          variant="body2"
+          component="a"
+          href="https://hdl.handle.net/20.500.14351/1ad229ce7aed487e2b4e?noredirect"
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 1.5, py: 0.75, borderRadius: 1, display: 'block', mb: 1.5, wordBreak: 'break-all' }}
+        >
+          https://hdl.handle.net/20.500.14351/1ad229ce7aed487e2b4e?noredirect
+        </Typography>
+        <Typography variant="body2">
+          In most use cases, the automatic redirection option will be the most practical and user-friendly approach, particularly for resolving and accessing linked digital objects directly.
+        </Typography>
+      </>
+    ),
+    category: 'Technical',
+  },
+  {
+    question: 'Where is DOCiD™ metadata stored?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          DOCiD™ metadata is designed to be stored within distributed, interoperable digital repository infrastructures that support persistent identifiers, machine-actionable metadata, and FAIR Digital Object principles.
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 1 }}>The current DOCiD™ architecture supports:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'CORDRA-based metadata storage',
+            'Distributed Handle infrastructure',
+            'UbuntuNet Alliance–aligned regional data infrastructure',
+            'JSON-based metadata objects',
+            'RESTful APIs for metadata exchange and interoperability',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'What is CORDRA and why is it important for DOCiD™?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          CORDRA (Corporation for Digital Repository Advancement) is a digital object repository platform that supports:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Handle generation',
+            'Object persistence',
+            'Metadata management',
+            'Distributed repositories',
+            'Version control',
+            'Machine-actionable digital objects',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>DOCiD™ uses CORDRA because it enables:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Structured digital object storage',
+            'Persistent identifier management',
+            'Interoperable metadata handling',
+            'FAIR Digital Object implementation',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2">
+          CORDRA acts as one of the foundational metadata repository layers for DOCiD™ containers.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'What kind of metadata does CORDRA store for DOCiD™?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>CORDRA stores:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'JSON-based metadata objects',
+            'Object relationships',
+            'Handle identifiers',
+            'Payload references',
+            'Governance metadata',
+            'Linked research object information',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2">
+          The architecture allows metadata to be structured as interoperable machine-readable objects rather than static records.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Does DOCiD™ support JSON metadata?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Yes. DOCiD™ metadata is designed to be accessible and exchangeable as structured JSON objects. This enables:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Machine readability',
+            'API interoperability',
+            'Metadata harvesting',
+            'System integrations',
+            'FAIR-compliant metadata exchange',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>JSON-based metadata structures also make it easier for:</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {['Repositories', 'CRIS/RIMS platforms', 'Institutional repositories', 'Libraries', 'Museums', 'Software systems'].map((id) => (
+            <Chip key={id} label={id} size="small" variant="outlined" />
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mt: 1 }}>to integrate with DOCiD™.</Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Can DOCiD™ metadata be accessed through APIs?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Yes. DOCiD™ supports RESTful API integration and machine-accessible metadata exchange. The platform references:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'REST APIs',
+            'Metadata query interfaces',
+            'Identifier resolution services',
+            'External service integrations',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>This allows institutions and developers to:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'Retrieve metadata',
+            'Push metadata',
+            'Synchronize records',
+            'Build interoperable applications around DOCiD™ infrastructure',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'What types of APIs does DOCiD™ support?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>DOCiD™ supports APIs for:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Metadata retrieval',
+            'Object creation',
+            'Identifier resolution',
+            'Metadata updates',
+            'Repository synchronization',
+            'External PID integrations',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>The ecosystem is designed to integrate with:</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {['Crossref APIs', 'DataCite APIs', 'Handle APIs', 'ORCID integrations', 'Distributed repository infrastructures'].map((id) => (
+            <Chip key={id} label={id} size="small" variant="outlined" />
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'How does UbuntuNet Alliance support DOCiD™ infrastructure?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          UbuntuNet Alliance plays an important role in strengthening African open infrastructure ecosystems through:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Regional network infrastructure',
+            'Repository hosting',
+            'Metadata aggregation',
+            'Distributed scholarly communication systems',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>DOCiD™ aligns with UbuntuNet Alliance's broader vision of:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'African-owned infrastructure',
+            'Regional interoperability',
+            'Distributed metadata stewardship',
+            'Open Science infrastructure sustainability',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'What are UbuntuNet Alliance Data Centers in the context of DOCiD™?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          UbuntuNet Alliance Data Centers refer to regionally connected digital infrastructure environments that can support:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Metadata hosting',
+            'Repository services',
+            'Distributed digital preservation',
+            'African-controlled scholarly infrastructure',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>Within the DOCiD™ ecosystem, UbuntuNet Alliance infrastructure can support:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Distributed metadata hosting',
+            'Regional redundancy',
+            'Low-latency African access',
+            'Data sovereignty objectives',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2">
+          This reduces overdependence on externally controlled infrastructure systems.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Why is distributed metadata storage important for DOCiD™?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>Distributed metadata storage improves:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Infrastructure resilience',
+            'Long-term preservation',
+            'Regional ownership',
+            'Interoperability',
+            'Disaster recovery',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>For African scholarly infrastructure, distributed storage also supports:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'Digital sovereignty',
+            'Local governance',
+            'Reduced dependency on centralized Global North infrastructure systems',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Can institutions host their own DOCiD™ metadata infrastructure?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Yes. The DOCiD™ architecture is designed to support federated and distributed implementation models. Institutions can potentially:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Host local metadata repositories',
+            'Connect to regional infrastructure',
+            'Synchronize metadata through APIs',
+            'Maintain governance control over their digital objects',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2">
+          This supports institutional autonomy while preserving interoperability.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Does DOCiD™ support machine-actionable metadata?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Yes. DOCiD™ is designed around machine-actionable metadata principles aligned with FAIR Digital Object (FDO) approaches. This means:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'Systems can automatically interpret metadata',
+            'Relationships between objects are computable',
+            'Identifiers are resolvable',
+            'Metadata can be exchanged programmatically across infrastructures',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Can DOCiD™ integrate with institutional repositories and CRIS/RIMS systems?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>Yes. DOCiD™ is designed to integrate with:</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+          {['Institutional repositories', 'CRIS systems', 'RIMS platforms', 'Digital libraries', 'Museum systems', 'Open Science infrastructures'].map((id) => (
+            <Chip key={id} label={id} size="small" variant="outlined" />
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>Integration is enabled through:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'APIs',
+            'Structured JSON metadata',
+            'PID interoperability',
+            'Repository synchronization workflows',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'How does DOCiD™ support interoperability across systems?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>DOCiD™ supports interoperability through:</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+          {['JSON metadata standards', 'Persistent identifiers', 'REST APIs', 'Handle infrastructure', 'CORDRA repositories', 'Metadata exchange protocols'].map((id) => (
+            <Chip key={id} label={id} size="small" variant="outlined" />
+          ))}
+        </Box>
+        <Typography variant="body2">
+          This allows multiple infrastructures to exchange and interpret metadata consistently.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Can developers build applications using DOCiD™ metadata?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Yes. Because DOCiD™ metadata is API-accessible and JSON-based, developers can build:
+        </Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Dashboards',
+            'Discovery systems',
+            'Analytics tools',
+            'Repository integrations',
+            'Institutional reporting systems',
+            'AI-driven scholarly tools',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2">
+          The architecture supports extensibility and integration into broader research ecosystems.
+        </Typography>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Does DOCiD™ support metadata versioning?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>Yes. Through CORDRA integration, DOCiD™ supports:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Object versioning',
+            'Lifecycle management',
+            'Metadata updates',
+            'Provenance tracking',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>This is important for:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'Evolving research objects',
+            'Cultural heritage records',
+            'Datasets',
+            'Long-term scholarly preservation',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
+  {
+    question: 'Why are APIs and JSON important for Open Science?',
+    answer: (
+      <>
+        <Typography variant="body2" sx={{ mb: 1 }}>APIs and JSON support:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0, mb: 1.5 }}>
+          {[
+            'Automation',
+            'Interoperability',
+            'Scalability',
+            'Metadata harvesting',
+            'Machine readability',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Typography variant="body2" sx={{ mb: 1 }}>This enables Open Science ecosystems to:</Typography>
+        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+          {[
+            'Share metadata globally',
+            'Integrate systems seamlessly',
+            'Improve discoverability and reuse of research outputs',
+          ].map((item) => (
+            <Box component="li" key={item} sx={{ mb: 0.5 }}>
+              <Typography variant="body2">{item}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
+    ),
+    category: 'Infrastructure',
+  },
 ];
 
-const CATEGORIES = ['All', 'General', 'Technical', 'Use Cases', 'Africa & Sovereignty'];
+const CATEGORIES = ['All', 'General', 'Technical', 'Use Cases', 'Africa & Sovereignty', 'Infrastructure'];
 
 const categoryColors = {
   General: 'primary',
   Technical: 'secondary',
   'Use Cases': 'success',
   'Africa & Sovereignty': 'warning',
+  Infrastructure: 'info',
 };
 
 const FaqPage = () => {
