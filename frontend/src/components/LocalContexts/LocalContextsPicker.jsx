@@ -25,6 +25,9 @@ import axios from 'axios';
 
 const MIN_SEARCH_CHARS = 3;
 const SEARCH_DEBOUNCE_MS = 300;
+// Canonical UUID — if the user pastes one of these, resolve the project
+// directly via /projects/<uuid> instead of asking the Hub's title-search.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * LocalContextsPicker — researcher-facing autocomplete for attaching LC
@@ -51,6 +54,43 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
     setIsSearching(true);
     setSearchError(null);
     try {
+      // If the user pasted a canonical UUID, resolve it directly via the
+      // single-project endpoint — the title-search Hub call would return 0
+      // since the UUID isn't part of any project title.
+      if (UUID_RE.test(q)) {
+        const uuid = q.toLowerCase();
+        try {
+          const resp = await axios.get(`/api/localcontexts/projects/${uuid}`);
+          const p = resp.data || {};
+          if (p.unique_id || p.title) {
+            const institutions = (p.created_by || [])
+              .map((cb) => (cb.institution || {}).name)
+              .filter(Boolean);
+            setResults([
+              {
+                unique_id: p.unique_id || uuid,
+                title: p.title || '(untitled project)',
+                project_type: p.project_type || 'Other',
+                project_page: p.project_page,
+                contributing_institutions: institutions,
+              },
+            ]);
+            return;
+          }
+          setResults([]);
+          setSearchError('No project found with that UUID.');
+          return;
+        } catch (uuidErr) {
+          if (uuidErr.response?.status === 404) {
+            setSearchError('No project found with that UUID.');
+          } else {
+            setSearchError('Could not resolve that UUID. Please try again.');
+          }
+          setResults([]);
+          return;
+        }
+      }
+      // Title search via the proxy.
       const resp = await axios.get(
         `/api/localcontexts/projects/search?q=${encodeURIComponent(q)}&limit=8`
       );
@@ -115,7 +155,7 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
           size="small"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Local Contexts Hub by project title"
+          placeholder="Search Local Contexts Hub by project title or paste a project UUID"
           disabled={disabled}
           InputProps={{
             startAdornment: (
