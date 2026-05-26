@@ -220,26 +220,32 @@ const ProjectPanel = ({ project, selectedLang, setSelectedLang }) => {
 const ItemCard = ({ project, item, category, color, selectedLang, setSelectedLang }) => {
   const key = `${project.project_external_id}::${item.unique_id}`;
   const defaultLangTag = item.language_tag || 'en';
+  // Labels carry their body text in `label_text`; Notices use `default_text`.
+  // Normalize once so chip + displayText cannot drift.
+  const baseText = item.label_text || item.default_text || '';
   const translations = Array.isArray(item.translations) ? item.translations : [];
   const seenTags = new Set();
   // Build a chip list: default first, then de-duplicated translations.
+  // Translations with empty `translated_text` are dropped (no useless chips).
   const langChips = [
-    { language_tag: defaultLangTag, language: item.language || 'Default', text: item.default_text, is_default: true },
+    { language_tag: defaultLangTag, language: item.language || 'Default', text: baseText, is_default: true },
   ];
   seenTags.add(defaultLangTag);
   for (const tr of translations) {
     if (!tr || !tr.language_tag || seenTags.has(tr.language_tag)) continue;
+    const text = tr.translated_text || '';
+    if (!text) continue;
     seenTags.add(tr.language_tag);
     langChips.push({
       language_tag: tr.language_tag,
       language: tr.language || tr.language_tag,
-      text: tr.translated_text || '',
+      text,
       is_default: false,
     });
   }
   const activeTag = selectedLang[key] || defaultLangTag;
   const activeChip = langChips.find((c) => c.language_tag === activeTag) || langChips[0];
-  const displayText = activeChip?.text || item.default_text || '';
+  const displayText = activeChip?.text || baseText;
 
   return (
     <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
@@ -271,7 +277,6 @@ const ItemCard = ({ project, item, category, color, selectedLang, setSelectedLan
                 size="small"
                 variant={c.language_tag === activeTag ? 'filled' : 'outlined'}
                 onClick={() => setSelectedLang((prev) => ({ ...prev, [key]: c.language_tag }))}
-                disabled={!c.text}
               />
             ))}
           </Stack>

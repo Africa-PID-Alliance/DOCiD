@@ -123,7 +123,15 @@ def _resync_stale_cache(cached: 'LocalContext', timeout: int = RESYNC_TIMEOUT_SE
         if resp.status_code == 200:
             hub_data = resp.json()
             cached.title = hub_data.get('title') or hub_data.get('name') or cached.title
-            cached.summary = hub_data.get('description') or hub_data.get('summary') or cached.summary
+            # Labels carry their body text in `label_text`; Notices use `default_text`.
+            # Coalesce so Label resyncs don't blank out summary back to None.
+            cached.summary = (
+                hub_data.get('label_text')
+                or hub_data.get('default_text')
+                or hub_data.get('description')
+                or hub_data.get('summary')
+                or cached.summary
+            )
             cached.community_name = (
                 hub_data.get('community', {}).get('name')
                 if isinstance(hub_data.get('community'), dict)
@@ -294,10 +302,19 @@ def _cache_context_from_hub(external_id: str, context_type: str, hub_data: dict)
     """
     context = LocalContext.get_by_external_id(external_id)
 
+    # Labels carry their body text in `label_text`; Notices use `default_text`.
+    # Coalesce all known shapes so Label payloads don't land with summary=None.
+    _summary = (
+        hub_data.get('label_text')
+        or hub_data.get('default_text')
+        or hub_data.get('description')
+        or hub_data.get('summary')
+    )
+
     if context:
         # Update existing cache
         context.title = hub_data.get('title') or hub_data.get('name')
-        context.summary = hub_data.get('description') or hub_data.get('summary')
+        context.summary = _summary
         context.community_name = hub_data.get('community', {}).get('name') if isinstance(hub_data.get('community'), dict) else hub_data.get('community_name')
         context.source_url = hub_data.get('source_url') or hub_data.get('url')
         context.image_url = hub_data.get('image_url') or hub_data.get('img_url')
@@ -311,7 +328,7 @@ def _cache_context_from_hub(external_id: str, context_type: str, hub_data: dict)
             external_id=external_id,
             context_type=context_type,
             title=hub_data.get('title') or hub_data.get('name'),
-            summary=hub_data.get('description') or hub_data.get('summary'),
+            summary=_summary,
             community_name=hub_data.get('community', {}).get('name') if isinstance(hub_data.get('community'), dict) else hub_data.get('community_name'),
             source_url=hub_data.get('source_url') or hub_data.get('url'),
             image_url=hub_data.get('image_url') or hub_data.get('img_url'),
@@ -1161,12 +1178,19 @@ def attach_lc_project_to_publication(pub_id: int, external_id: str, user_id: int
     try:
         with db.session.begin_nested():
             for unique_id, context_type, item in items:
+                # Labels carry their body text in `label_text`; Notices use `default_text`.
+                # Coalesce so TK/BC labels don't land with summary=None.
+                item_summary = (
+                    item.get('label_text')
+                    or item.get('default_text')
+                    or item.get('description')
+                )
                 # Upsert LocalContext using PostgreSQL ON CONFLICT to avoid SELECT-then-INSERT races.
                 lc_stmt = pg_insert(LocalContext.__table__).values(
                     external_id=unique_id,
                     context_type=context_type,
                     title=item.get('name') or item.get('title'),
-                    summary=item.get('default_text') or item.get('description'),
+                    summary=item_summary,
                     community_name=(item.get('community') or {}).get('name') if isinstance(item.get('community'), dict) else None,
                     image_url=item.get('img_url') or item.get('image_url'),
                     source_url=item.get('notice_page') or item.get('label_page'),
@@ -1355,10 +1379,15 @@ def _project_shape_from_cache(uuid: str, attachments: List[PublicationLocalConte
         lc = a.local_context
         if not lc:
             continue
+        is_label = lc.context_type in (LocalContextType.TK_LABEL, LocalContextType.BC_LABEL)
         row = {
             "unique_id": lc.external_id,
             "name": lc.title,
-            "default_text": lc.summary,
+            # Labels and Notices use different text-field names on the Hub.
+            # Set both for symmetry so the frontend's `label_text || default_text`
+            # works regardless of which client reads the synthetic row first.
+            "default_text": lc.summary if not is_label else None,
+            "label_text": lc.summary if is_label else None,
             "img_url": lc.image_url,
             "language": "en",
             "language_tag": "en",
