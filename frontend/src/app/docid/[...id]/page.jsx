@@ -13,6 +13,7 @@ import {
   formatHighwireDate,
   pickPdfUrl,
   listPdfs,
+  safeHref,
   safeJsonLd,
   stripHtml,
 } from '@/lib/highwire';
@@ -187,18 +188,18 @@ export default async function DocIDLandingPage({ params }) {
                 </a>
               </li>
             )}
-            {publication.openalex_id && (
+            {publication.openalex_id && safeHref(publication.openalex_id) && (
               <li>
                 OpenAlex:{' '}
-                <a href={publication.openalex_id} rel="noopener" itemProp="sameAs">
+                <a href={safeHref(publication.openalex_id)} rel="noopener" itemProp="sameAs">
                   {publication.openalex_id}
                 </a>
               </li>
             )}
-            {publication.handle_url && (
+            {publication.handle_url && safeHref(publication.handle_url) && (
               <li>
                 Handle:{' '}
-                <a href={publication.handle_url} rel="noopener">
+                <a href={safeHref(publication.handle_url)} rel="noopener">
                   {publication.handle_url}
                 </a>
               </li>
@@ -214,20 +215,26 @@ export default async function DocIDLandingPage({ params }) {
           </p>
         )}
 
-        {/* Surface every additional PDF as a crawlable anchor so Googlebot
-            discovers supplementary materials. citation_pdf_url remains
-            singular (the canonical full text); these are extras. */}
+        {/* Crawlable anchors for every additional PDF. This lives inside the
+            visually-hidden <article>, so it's not user-visible — its sole
+            purpose is to give Googlebot a link path to supplementary
+            materials. citation_pdf_url remains singular (canonical full
+            text); these are extras. */}
         {allPdfs.length > 1 && (
           <section style={{ marginTop: 8 }}>
             <h2 style={{ fontSize: '1.1rem', margin: '12px 0 6px' }}>All PDFs</h2>
             <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
-              {allPdfs.map((f, i) => (
-                <li key={f.id ?? f.file_url ?? i}>
-                  <a href={f.file_url} rel="noopener">
-                    {f.title || f.file_name || `PDF ${i + 1}`}
-                  </a>
-                </li>
-              ))}
+              {allPdfs.map((f, i) => {
+                const href = safeHref(f.file_url);
+                if (!href) return null;
+                return (
+                  <li key={f.id ?? f.file_url ?? i}>
+                    <a href={href} rel="noopener">
+                      {f.title || f.file_name || `PDF ${i + 1}`}
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

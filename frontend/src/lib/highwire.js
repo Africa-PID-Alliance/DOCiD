@@ -12,6 +12,22 @@ export function absolutize(url) {
   return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
+// Return a safe href for an `<a>` element: absolutize relative paths and
+// reject schemes that aren't http(s). Backend-supplied URLs flow through
+// here before reaching the DOM so a record with `javascript:` or `data:`
+// in a file_url can't produce a clickable XSS sink. Returns null if the
+// input is unusable.
+export function safeHref(url) {
+  if (!url) return null;
+  const trimmed = String(url).trim();
+  if (!trimmed) return null;
+  // Site-relative path
+  if (trimmed.startsWith('/')) return absolutize(trimmed);
+  // Absolute http(s) only
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return null;
+}
+
 // Strip HTML tags and collapse whitespace. document_description is stored as
 // HTML markup (`<p>...</p>`); meta tags and JSON-LD need plain text.
 export function stripHtml(value) {
@@ -93,7 +109,11 @@ export function listPdfs(publication) {
   if (pdfs.length === 0) return [];
 
   const docTitle = (publication.document_title || '').trim().toLowerCase();
-  const fulltextRe = /\b(manuscript|paper|fulltext|full-text|preprint|article|main)\b/i;
+  // Use explicit non-alphanum boundaries instead of \b — \b treats `_` as a
+  // word char, so files like `manuscript_v2.pdf`, `full_text.pdf`,
+  // `main_article.pdf` would otherwise fall through. Also normalises any
+  // `full[-_ ]text` spelling to one rule.
+  const fulltextRe = /(^|[^a-z0-9])(manuscript|paper|full[-_\s]?text|preprint|article|main)([^a-z0-9]|$)/i;
 
   const score = (f) => {
     if (f.is_primary || (f.kind && String(f.kind).toLowerCase() === 'manuscript')) return 0;
