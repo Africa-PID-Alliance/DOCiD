@@ -1,15 +1,23 @@
 /**
- * Formats a DOCiD identifier for proper use in URLs
- * Ensures all forward slashes are properly encoded as %2F
- * 
- * @param {string} docid - The DOCiD identifier to format
- * @returns {string} - Properly formatted DOCiD for URL use
+ * Formats a DOCiD identifier for proper use in path segments of internal URLs.
+ *
+ * As of the Google Scholar canonicalization work, DOCiD landing pages live at
+ * the slash-form URL `/docid/<prefix>/<suffix>` (see frontend/src/middleware.js
+ * which 301-redirects the legacy `%2F` form to this canonical form). For
+ * internal `<Link>` / `router.push` calls into the landing page, pass the
+ * DOCiD through unchanged — embed a literal `/` between prefix and suffix.
+ *
+ * This helper now returns the unencoded value so callers that previously
+ * did `/docid/${formatDocIdForUrl(d)}` continue to produce the canonical URL
+ * without code changes.
+ *
+ * @param {string} docid - The DOCiD identifier (e.g. `20.500.14351/<suffix>`)
+ * @returns {string} - The DOCiD as-is, suitable for inlining into the slash-form path
  */
 export const formatDocIdForUrl = (docid) => {
   if (!docid) return '';
-  
-  // Replace any unencoded forward slashes with %2F
-  return docid.replace(/\//g, '%2F');
+  // Decode any pre-encoded slashes back to literal `/` so URL is canonical.
+  return docid.replace(/%2F/gi, '/');
 };
 
 /**

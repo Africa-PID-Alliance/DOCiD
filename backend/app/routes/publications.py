@@ -3825,3 +3825,88 @@ def create_version():
         logger.error(f"Error: {str(e)}", exc_info=True)
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+# ----------------------------------------------------------------------------
+# Sitemap feed endpoints (Google Scholar discoverability)
+# ----------------------------------------------------------------------------
+#
+# Lightweight, cacheable endpoints consumed by the Next.js sitemap route
+# handlers (frontend/src/app/sitemap.xml/route.js and
+# frontend/src/app/sitemaps/[slug]/route.js). They avoid paginating through
+# the full /publications list to build sitemap XML.
+
+@publications_bp.route('/sitemap/months', methods=['GET'])
+def sitemap_months():
+    """Return [{year, month, count}] for every year+month that has at least
+    one published DOCiD. Used to build the sitemap index."""
+    try:
+        rows = (
+            db.session.query(
+                func.extract('year', Publications.published).label('year'),
+                func.extract('month', Publications.published).label('month'),
+                func.count(Publications.id).label('count'),
+            )
+            .filter(Publications.published.isnot(None))
+            .filter(Publications.document_docid.isnot(None))
+            .group_by('year', 'month')
+            .order_by(desc('year'), desc('month'))
+            .all()
+        )
+        data = [
+            {'year': int(r.year), 'month': int(r.month), 'count': int(r.count)}
+            for r in rows
+        ]
+        resp = jsonify(data)
+        resp.headers['Cache-Control'] = 'public, max-age=3600'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@publications_bp.route('/sitemap', methods=['GET'])
+def sitemap_feed():
+    """Return [{docid, updated_at}] for one year+month. Used to build the
+    per-month <urlset> sitemap. Caps results at 10k per call."""
+    try:
+        year = request.args.get('year', type=int)
+        month = request.args.get('month', type=int)
+        if not year or not month or month < 1 or month > 12:
+            return jsonify({'error': 'year and month query params are required'}), 400
+
+        rows = (
+            db.session.query(
+                Publications.document_docid,
+                Publications.document_title,
+                Publications.updated_at,
+                Publications.published,
+            )
+            .filter(Publications.document_docid.isnot(None))
+            .filter(func.extract('year', Publications.published) == year)
+            .filter(func.extract('month', Publications.published) == month)
+            .order_by(desc(Publications.published))
+            .limit(10000)
+            .all()
+        )
+
+        def _iso(dt):
+            if not dt:
+                return None
+            try:
+                return dt.isoformat()
+            except Exception:
+                return None
+
+        data = [
+            {
+                'docid': r.document_docid,
+                'title': r.document_title,
+                'updated_at': _iso(r.updated_at) or _iso(r.published),
+            }
+            for r in rows
+        ]
+        resp = jsonify(data)
+        resp.headers['Cache-Control'] = 'public, max-age=3600'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

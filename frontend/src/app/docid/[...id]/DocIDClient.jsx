@@ -73,12 +73,12 @@ const IDENTIFIER_TYPE_LABELS = {
   viaf: 'VIAF',
 };
 
-const DocIDPage = ({ params }) => {
+const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const searchParams = useSearchParams();
   const lcDemoProjectId = searchParams?.get('lc_demo') || null;
   const [comment, setComment] = useState('');
-  const [docData, setDocData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [docData, setDocData] = useState(initialPublication);
+  const [loading, setLoading] = useState(!initialPublication);
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
@@ -93,7 +93,7 @@ const DocIDPage = ({ params }) => {
   const [replyText, setReplyText] = useState('');
   const [expandedReplies, setExpandedReplies] = useState(new Set());
   const [commentsModalOpen, setCommentsModalOpen] = useState(false);
-  const [publicationId, setPublicationId] = useState(null);
+  const [publicationId, setPublicationId] = useState(initialPublication?.id || null);
   const [commentError, setCommentError] = useState('');
   const [commentSuccess, setCommentSuccess] = useState('');
   const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
@@ -107,9 +107,12 @@ const DocIDPage = ({ params }) => {
   // Redux state
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   
-  // Use React.use() to unwrap params
-  const unwrappedParams = React.use(params);
-  const docId = unwrappedParams.id;
+  // Server component provides docId as a prop. Fallback to current URL path
+  // segments if for some reason it wasn't passed (defensive).
+  const docId = propDocId
+    || (typeof window !== 'undefined'
+      ? decodeURIComponent(window.location.pathname.replace(/^\/docid\//, ''))
+      : '');
   
   const theme = useTheme();
   const { t } = useTranslation();
@@ -152,6 +155,23 @@ const DocIDPage = ({ params }) => {
   };
 
   useEffect(() => {
+    // Skip the client-side fetch when the Server Component already supplied
+    // the publication payload — keeps Scholar/SEO crawl identical to user view
+    // and avoids a redundant network round-trip on first paint.
+    if (initialPublication) {
+      // Still need to fetch version history in the background.
+      (async () => {
+        try {
+          const versionsResponse = await axios.get(`/api/publications/versions/${initialPublication.id}`);
+          if (versionsResponse.data && versionsResponse.data.total_versions > 1) {
+            setVersionHistory(versionsResponse.data);
+          }
+        } catch (versionError) {
+          console.error('Error fetching version history:', versionError);
+        }
+      })();
+      return;
+    }
     const fetchDocData = async () => {
       try {
         setLoading(true);
