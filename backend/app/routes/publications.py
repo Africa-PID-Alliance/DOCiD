@@ -570,7 +570,8 @@ def get_all_publications():
             return jsonify({'message': f'Invalid search_field (must be one of {valid_search_fields})'}), 400
 
         # Build the query using the Publications model
-        query = Publications.query
+        # Soft-delete: exclude retired (tombstoned) records from every list response.
+        query = Publications.query.filter(Publications.deleted_at.is_(None))
         if current_user_id is not None:
             query = query.filter(Publications.user_id == current_user_id)
         needs_distinct = False
@@ -809,7 +810,12 @@ def get_publication(publication_id):
         if not publication:
             logger.warning(f"Publication not found with ID: {publication_id}")
             return jsonify({'message': 'Publication not found'}), 404
-            
+
+        # Retired DOCiDs: return the tombstone DTO (200) so the minted handle
+        # keeps resolving. No metadata, no children.
+        if publication.deleted_at is not None:
+            return jsonify(_tombstone_dto(publication)), 200
+
         # Apply user_id filter if provided
         if user_id is not None:
             if publication.user_id != user_id:
@@ -1032,6 +1038,11 @@ def get_publication_by_docid_prefix():
         if not data:
             return jsonify({'message': 'No matching records found'}), 404
 
+        # Retired DOCiDs: return the tombstone DTO (200) so the minted handle
+        # keeps resolving via the SSR landing page.
+        if data.deleted_at is not None:
+            return jsonify(_tombstone_dto(data)), 200
+
         # Create a dictionary for the main publication data
         publication_dict = {}
         desired_fields = ['id', 'document_title', 'document_description', 'document_docid',
@@ -1228,6 +1239,11 @@ def get_publication_by_docid_simple(document_docid):
         if not data:
             logger.warning(f"No publication found with DocID: {document_docid}")
             return jsonify({'message': 'No matching records found'}), 404
+
+        # Retired DOCiDs: return the tombstone DTO (200) so the minted handle
+        # keeps resolving.
+        if data.deleted_at is not None:
+            return jsonify(_tombstone_dto(data)), 200
 
         # Create a dictionary for the main publication data
         publication_dict = {}
@@ -3329,6 +3345,21 @@ def restore_publication(publication_id):
         'message': 'Publication restored successfully',
         'publication_id': publication_id,
     }), 200
+
+
+def _tombstone_dto(pub):
+    """
+    Minimal response shape for a retired (soft-deleted) publication.
+    No title/description/children — those would leak the retired metadata
+    to crawlers and feed indexers something to keep indexing.
+    """
+    return {
+        'deleted': True,
+        'id': pub.id,
+        'document_docid': pub.document_docid,
+        'deleted_at': pub.deleted_at.isoformat() + 'Z' if pub.deleted_at else None,
+        'deletion_reason': pub.deletion_reason,
+    }
 
 
 def get_active_publication_or_410(pub_id):

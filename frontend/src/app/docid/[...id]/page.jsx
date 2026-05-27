@@ -31,12 +31,12 @@ async function fetchPublication(docid) {
   const base = getBackendApiV1BaseUrl();
   const url = `${base}/publications/docid?docid=${encodeURIComponent(docid)}`;
   try {
-    // Use next.revalidate so the page renders as a (revalidating) static
-    // RSC. Dynamic (`cache: 'no-store'`) pages stream metadata via React
-    // Flight — Highwire citation tags then land in the head only after
-    // client-side hydration, which Google Scholar may not perform.
+    // `no-store` is required so a soft-delete in Flask shows the tombstone
+    // immediately on next page load. The 60s revalidate cache would otherwise
+    // keep serving the pre-deletion HTML (with full metadata) to crawlers.
+    // Trade-off accepted: this route is low-volume relative to the API.
     const res = await fetch(url, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
     });
     if (!res.ok) return null;
@@ -63,6 +63,31 @@ export async function generateMetadata({ params }) {
       robots: { index: false, follow: false },
     };
   }
+
+  // Retired DOCiDs: emit a tombstone <head> so handles still resolve to a
+  // 200 page but the record ages out of Scholar/Bing and isn't preserved in
+  // their cache snapshots. No Highwire citation_*, no JSON-LD, no OG image,
+  // no old description.
+  if (publication.deleted) {
+    const canonical = canonicalDocidUrl(publication.document_docid || docid);
+    return {
+      title: 'DOCiD [retired]',
+      description: 'This DOCiD has been retired by the original creator.',
+      alternates: { canonical },
+      robots: { index: false, follow: false, noarchive: true, nosnippet: true },
+      openGraph: {
+        type: 'article',
+        url: canonical,
+        title: 'DOCiD [retired]',
+        siteName: 'DOCiD',
+      },
+      twitter: {
+        card: 'summary',
+        title: 'DOCiD [retired]',
+      },
+    };
+  }
+
   const title = publication.document_title || `DOCiD ${docid}`;
   const description =
     stripHtml(publication.abstract_text || publication.document_description) ||
@@ -94,6 +119,69 @@ export default async function DocIDLandingPage({ params }) {
   const docid = joinDocidSegments(awaited);
   const publication = await fetchPublication(docid);
   if (!publication) notFound();
+
+  // Tombstone branch — render a minimal "retired" panel so the handle keeps
+  // resolving without leaking the old metadata. No client island, no Highwire
+  // block, no JSON-LD.
+  if (publication.deleted) {
+    const canonical = canonicalDocidUrl(publication.document_docid || docid);
+    const deletedAt = publication.deleted_at
+      ? new Date(publication.deleted_at).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : null;
+    return (
+      <main
+        style={{
+          maxWidth: 720,
+          margin: '64px auto',
+          padding: '32px 24px',
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          color: '#333',
+        }}
+      >
+        <div
+          style={{
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            padding: '32px 28px',
+            background: '#fafafa',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 14, color: '#888', letterSpacing: 1, marginBottom: 12 }}>
+            DOCiD · RETIRED
+          </div>
+          <h1 style={{ fontSize: '1.4rem', margin: '0 0 12px', color: '#444' }}>
+            This DOCiD has been retired
+          </h1>
+          <p style={{ margin: '0 0 16px', lineHeight: 1.6 }}>
+            This Digital Object Container Identifier has been retired by the original creator. The
+            handle continues to resolve to this page so existing citations don&apos;t break.
+          </p>
+          {publication.deletion_reason && (
+            <p style={{ margin: '0 0 16px', fontStyle: 'italic', color: '#666' }}>
+              Reason: {publication.deletion_reason}
+            </p>
+          )}
+          <p style={{ margin: '16px 0 0', fontSize: 14, color: '#666' }}>
+            <strong>Identifier:</strong>{' '}
+            <a href={canonical} rel="canonical" style={{ color: '#0066cc' }}>
+              {publication.document_docid || docid}
+            </a>
+          </p>
+          {deletedAt && (
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>
+              <strong>Retired on:</strong> {deletedAt}
+            </p>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   const authors = (publication.publication_creators || [])
     .map(formatAuthorName)
