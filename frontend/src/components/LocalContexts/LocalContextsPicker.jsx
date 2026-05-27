@@ -169,7 +169,8 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
         {searchError && (
           <Alert severity="warning" sx={{ mt: 1 }}>{searchError}</Alert>
         )}
-        {results.length > 0 && (
+        {/* Dropdown — open when we have results OR when a non-trivial search just finished with zero hits. */}
+        {(results.length > 0 || (query.trim().length >= MIN_SEARCH_CHARS && !isSearching && !searchError)) && (
           <Paper
             elevation={3}
             sx={{
@@ -182,6 +183,21 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
               overflowY: 'auto',
             }}
           >
+            {results.length === 0 ? (
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  No Local Contexts projects found for "{query.trim()}".
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  The Hub matches on project title only. Try a different phrase from the title,
+                  paste the project UUID, or browse{' '}
+                  <MuiLink href="https://localcontextshub.org/projects" target="_blank" rel="noopener noreferrer">
+                    localcontextshub.org/projects
+                  </MuiLink>
+                  {' '}to find one.
+                </Typography>
+              </Box>
+            ) : (
             <List dense disablePadding>
               {results.map((r) => {
                 const alreadySelected = selectedIds.has(r.unique_id);
@@ -212,6 +228,7 @@ export default function LocalContextsPicker({ value = [], onChange, disabled = f
                 );
               })}
             </List>
+            )}
           </Paper>
         )}
       </Box>
