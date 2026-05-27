@@ -3147,11 +3147,89 @@ def get_publication_for_edit(publication_id):
         return jsonify({'error': 'Internal server error'}), 500
 
 
+def _soft_delete_publication(publication_id):
+    """
+    Soft-delete (retire) a publication. Keeps the minted DOCiD handle resolving
+    by leaving the row in place; the public view renders a tombstone.
+
+    Owner-only. Idempotent: a second call by the owner returns 200 with the
+    existing deleted_at and does not double-write.
+    """
+    current_user_id = get_jwt_identity()
+    try:
+        current_user_id_int = int(current_user_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid user identity'}), 401
+
+    publication = Publications.query.get(publication_id)
+    if not publication:
+        logger.warning(f"Publication not found: ID={publication_id}")
+        return jsonify({'error': 'Publication not found'}), 404
+
+    # Ownership check FIRST — must not leak existence/timing across users.
+    if publication.user_id != current_user_id_int:
+        logger.warning(
+            f"User {current_user_id_int} attempted to retire publication {publication_id} "
+            f"owned by user {publication.user_id}"
+        )
+        return jsonify({'error': 'You do not have permission to retire this publication'}), 403
+
+    # Idempotent on already-deleted (after auth)
+    if publication.deleted_at is not None:
+        return jsonify({
+            'message': 'Already retired',
+            'publication_id': publication_id,
+            'deleted_at': publication.deleted_at.isoformat() + 'Z',
+        }), 200
+
+    body = request.get_json(silent=True) or {}
+    reason = (body.get('reason') or '').strip()[:500] or None
+
+    now = datetime.utcnow()
+    publication.deleted_at = now
+    publication.deleted_by = current_user_id_int
+    publication.deletion_reason = reason
+    db.session.add(publication)
+
+    try:
+        PublicationAuditTrail.log_change(
+            publication_id=publication.id,
+            user_id=current_user_id_int,
+            action='SOFT_DELETE',
+            field_name='deleted_at',
+            old_value=None,
+            new_value=json.dumps({
+                'deleted_at': now.isoformat() + 'Z',
+                'reason': reason,
+            }),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+        )
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error retiring publication {publication_id}: {e}")
+        return jsonify({'error': 'Failed to retire publication'}), 500
+
+    logger.info(
+        f"Publication retired: ID={publication_id}, DOCiD={publication.document_docid}, "
+        f"user={current_user_id_int}, reason={reason!r}"
+    )
+    return jsonify({
+        'message': 'Publication retired successfully',
+        'publication_id': publication_id,
+        'deleted_at': now.isoformat() + 'Z',
+    }), 200
+
+
 @publications_bp.route('/<int:publication_id>', methods=['DELETE'])
 @jwt_required()
 def delete_publication(publication_id):
     """
-    Delete a publication by ID (requires authentication)
+    Retire (soft-delete) a publication by ID. Owner-only.
+
+    Keeps the minted DOCiD handle resolving; the public route renders a
+    tombstone instead of the full record. Restore via POST /<id>/restore.
     ---
     tags:
       - Publications
@@ -3162,127 +3240,109 @@ def delete_publication(publication_id):
         in: path
         type: integer
         required: true
-        description: The ID of the publication to delete
     responses:
       200:
-        description: Publication deleted successfully
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: Publication deleted successfully
+        description: Publication retired
       401:
-        description: Unauthorized - Authentication required
+        description: Authentication required
       403:
-        description: Forbidden - Cannot delete published documents or user not authorized
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: Cannot delete published documents. Please contact support.
+        description: Not the owner
       404:
         description: Publication not found
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: Publication not found
-      500:
-        description: Internal server error
     """
+    return _soft_delete_publication(publication_id)
+
+
+@publications_bp.route('/<int:publication_id>/delete', methods=['POST'])
+@jwt_required()
+def soft_delete_publication_post(publication_id):
+    """
+    POST variant of retire/soft-delete — preferred for new clients because it
+    reliably carries a JSON body ({"reason": "..."}).
+    ---
+    tags:
+      - Publications
+    security:
+      - Bearer: []
+    """
+    return _soft_delete_publication(publication_id)
+
+
+@publications_bp.route('/<int:publication_id>/restore', methods=['POST'])
+@jwt_required()
+def restore_publication(publication_id):
+    """
+    Restore a previously retired publication. Owner-only. Idempotent: a call
+    against an already-active record returns 200 without writes.
+    ---
+    tags:
+      - Publications
+    security:
+      - Bearer: []
+    """
+    current_user_id = get_jwt_identity()
     try:
-        from flask_jwt_extended import get_jwt_identity
+        current_user_id_int = int(current_user_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid user identity'}), 401
 
-        # Get the current user from JWT token
-        current_user_id = get_jwt_identity()
-        logger.info(f"User {current_user_id} attempting to delete publication with ID: {publication_id}")
+    publication = Publications.query.get(publication_id)
+    if not publication:
+        return jsonify({'error': 'Publication not found'}), 404
 
-        # Find the publication
-        publication = Publications.query.get(publication_id)
+    if publication.user_id != current_user_id_int:
+        return jsonify({'error': 'You do not have permission to restore this publication'}), 403
 
-        if not publication:
-            logger.warning(f"Publication not found: ID={publication_id}")
-            return jsonify({'error': 'Publication not found'}), 404
+    if publication.deleted_at is None:
+        return jsonify({
+            'message': 'Already active',
+            'publication_id': publication_id,
+        }), 200
 
-        # Check if the current user owns this publication
-        if publication.user_id != current_user_id:
-            logger.warning(f"User {current_user_id} attempted to delete publication {publication_id} owned by user {publication.user_id}")
-            return jsonify({
-                'error': 'You do not have permission to delete this publication'
-            }), 403
+    publication.deleted_at = None
+    publication.deleted_by = None
+    publication.deletion_reason = None
+    db.session.add(publication)
 
-        # Check if publication is published (has a DOCiD assigned)
-        if publication.document_docid:
-            logger.warning(f"Attempt to delete published publication: ID={publication_id}, DOCiD={publication.document_docid}")
-            return jsonify({
-                'error': 'Cannot delete published documents at this time. Please contact support if you need to remove this publication.'
-            }), 403
-
-        # Store info for logging before deletion
-        publication_title = publication.document_title
-        user_id = publication.user_id
-
-        # Delete related records first (cascading delete)
-        try:
-            # Delete publication creators
-            PublicationCreators.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete attached RRIDs for this publication
-            DocidRrid.query.filter_by(entity_type='publication', entity_id=publication_id).delete()
-
-            # Delete attached RRIDs for this publication's organizations
-            publication_organization_ids = [
-                org.id for org in PublicationOrganization.query.filter_by(
-                    publication_id=publication_id
-                ).all()
-            ]
-            if publication_organization_ids:
-                DocidRrid.query.filter(
-                    DocidRrid.entity_type == 'organization',
-                    DocidRrid.entity_id.in_(publication_organization_ids)
-                ).delete(synchronize_session='fetch')
-
-            # Delete publication organizations
-            PublicationOrganization.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete publication funders
-            PublicationFunders.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete publication projects
-            PublicationProjects.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete publication files
-            PublicationFiles.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete publication documents
-            PublicationDocuments.query.filter_by(publication_id=publication_id).delete()
-
-            # Delete audit trail entries
-            PublicationAuditTrail.query.filter_by(publication_id=publication_id).delete()
-
-            # Finally delete the publication itself
-            db.session.delete(publication)
-            db.session.commit()
-
-            logger.info(f"Publication deleted successfully: ID={publication_id}, Title='{publication_title}', User={user_id}")
-
-            return jsonify({
-                'message': 'Publication deleted successfully',
-                'publication_id': publication_id
-            }), 200
-
-        except Exception as delete_error:
-            db.session.rollback()
-            logger.error(f"Error during cascade deletion for publication {publication_id}: {str(delete_error)}")
-            raise delete_error
-
+    try:
+        PublicationAuditTrail.log_change(
+            publication_id=publication.id,
+            user_id=current_user_id_int,
+            action='RESTORE',
+            field_name='deleted_at',
+            old_value=None,
+            new_value=json.dumps({'restored_at': datetime.utcnow().isoformat() + 'Z'}),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+        )
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error deleting publication {publication_id}: {str(e)}")
-        return jsonify({'error': 'Failed to delete publication'}), 500
+        logger.error(f"Error restoring publication {publication_id}: {e}")
+        return jsonify({'error': 'Failed to restore publication'}), 500
+
+    logger.info(
+        f"Publication restored: ID={publication_id}, DOCiD={publication.document_docid}, "
+        f"user={current_user_id_int}"
+    )
+    return jsonify({
+        'message': 'Publication restored successfully',
+        'publication_id': publication_id,
+    }), 200
+
+
+def get_active_publication_or_410(pub_id):
+    """
+    Helper for write/mutate endpoints: fetch a publication or 410 Gone if it
+    has been retired. Use in place of Publications.query.get_or_404 wherever
+    the route mutates publication state or returns child content.
+    """
+    pub = Publications.query.get(pub_id)
+    if pub is None:
+        abort(404, description='Publication not found')
+    if pub.deleted_at is not None:
+        abort(410, description='Publication has been retired')
+    return pub
 
 
 # ===== VERSIONING ENDPOINTS =====

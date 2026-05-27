@@ -510,6 +510,15 @@ class Publications(db.Model):
     abstract_text = Column(Text, nullable=True)
     openaire_id = Column(String(100), nullable=True)
 
+    # Soft-delete (tombstone) — keep handle resolving after retirement
+    deleted_at = Column(DateTime, nullable=True, index=True)
+    deleted_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True)
+    deletion_reason = Column(Text, nullable=True)
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
+
     # Relationships
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
