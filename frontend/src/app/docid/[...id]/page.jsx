@@ -45,15 +45,12 @@ async function fetchPublication(docid) {
   }
 }
 
-// NOTE: `generateMetadata` is intentionally NOT used for Highwire citation_*
-// tags. In Next 15.2.6 the metadata API streams its output via React Flight
-// (RSC payload) — the <meta> elements are not present in the initial HTML
-// response that Google Scholar reads. Instead we emit <meta>, <title>, and
-// <link rel="canonical"> as plain JSX children of the Server Component
-// below; React 19 hoists them to <head> synchronously because they're not
-// inside a Suspense boundary, so they land in the first byte of the HTML.
-// We keep a minimal generateMetadata only for the `notFound()` fallback so
-// crawl errors don't leak a usable page title.
+// All `<head>` metadata is emitted via generateMetadata(). With Next 15.4's
+// `htmlLimitedBots` regex (see next.config.js), this output renders into the
+// initial HTML <head> as blocking content for crawlers (Googlebot, Scholar,
+// Bingbot, social bots) and as streamed RSC for real browsers. JSON-LD is
+// the only metadata that can't go through this API — it stays as an inline
+// <script> in the JSX body below.
 export async function generateMetadata({ params }) {
   const awaited = typeof params?.then === 'function' ? await params : params;
   const docid = joinDocidSegments(awaited);
@@ -64,9 +61,30 @@ export async function generateMetadata({ params }) {
       robots: { index: false, follow: false },
     };
   }
-  // Return only the title here so the browser tab is correct even before
-  // streaming completes. Other metadata is emitted as JSX below.
-  return { title: publication.document_title || `DOCiD ${docid}` };
+  const title = publication.document_title || `DOCiD ${docid}`;
+  const description =
+    stripHtml(publication.abstract_text || publication.document_description) ||
+    `Scholarly record on the Africa PID Alliance DOCiD platform.`;
+  const canonical = canonicalDocidUrl(publication.document_docid || docid);
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: 'article',
+      url: canonical,
+      title,
+      description,
+      siteName: 'DOCiD',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+    other: buildHighwireMetaOther(publication),
+  };
 }
 
 export default async function DocIDLandingPage({ params }) {
@@ -88,43 +106,8 @@ export default async function DocIDLandingPage({ params }) {
   // safeJsonLd() in src/lib/highwire.js.
   const jsonLdSerialized = jsonLd ? safeJsonLd(jsonLd) : null;
 
-  // Build the Highwire `citation_*` (and DC.*) tag set as a flat list React 19
-  // will hoist into <head> when rendered as JSX children of the Server
-  // Component. Repeated keys produce one <meta> tag per array element.
-  const metaTags = [];
-  const metaEntries = buildHighwireMetaOther(publication);
-  for (const [name, value] of Object.entries(metaEntries)) {
-    if (Array.isArray(value)) {
-      for (let i = 0; i < value.length; i += 1) {
-        metaTags.push(<meta key={`${name}-${i}`} name={name} content={value[i]} />);
-      }
-    } else {
-      metaTags.push(<meta key={name} name={name} content={value} />);
-    }
-  }
-  const description =
-    stripHtml(publication.abstract_text || publication.document_description) ||
-    `Scholarly record on the Africa PID Alliance DOCiD platform.`;
-  const titleText = publication.document_title || `DOCiD ${docid}`;
-
   return (
     <>
-      {/* Metadata emitted as JSX. React 19 (used by Next 15) auto-hoists
-          <title>, <meta>, and <link> elements to <head>. Because these are
-          NOT inside a Suspense boundary they land in the initial HTML byte
-          — required for Google Scholar, which does not run client JS. */}
-      <title>{titleText}</title>
-      <meta name="description" content={description} />
-      <link rel="canonical" href={canonical} />
-      <meta property="og:type" content="article" />
-      <meta property="og:title" content={titleText} />
-      <meta property="og:description" content={description} />
-      <meta property="og:url" content={canonical} />
-      <meta property="og:site_name" content="DOCiD" />
-      <meta name="twitter:card" content="summary" />
-      <meta name="twitter:title" content={titleText} />
-      <meta name="twitter:description" content={description} />
-      {metaTags}
       {/*
         Crawl-only scholarly metadata block. Kept in the SSR DOM (so Google
         Scholar / Googlebot read title, authors, date, abstract, and JSON-LD
