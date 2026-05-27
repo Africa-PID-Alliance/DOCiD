@@ -12,6 +12,7 @@ import {
   formatAuthorName,
   formatHighwireDate,
   pickPdfUrl,
+  listPdfs,
   safeJsonLd,
   stripHtml,
 } from '@/lib/highwire';
@@ -99,6 +100,7 @@ export default async function DocIDLandingPage({ params }) {
   const date = formatHighwireDate(publication.published);
   const abstract = stripHtml(publication.abstract_text || publication.document_description);
   const pdfUrl = pickPdfUrl(publication);
+  const allPdfs = listPdfs(publication); // for the supplementary list below
   const canonical = canonicalDocidUrl(publication.document_docid || docid);
   const jsonLd = buildJsonLd(publication);
   // Pre-serialize with Unicode-escape of <, >, &, U+2028, U+2029 so the value
@@ -210,6 +212,24 @@ export default async function DocIDLandingPage({ params }) {
               Download full text PDF
             </a>
           </p>
+        )}
+
+        {/* Surface every additional PDF as a crawlable anchor so Googlebot
+            discovers supplementary materials. citation_pdf_url remains
+            singular (the canonical full text); these are extras. */}
+        {allPdfs.length > 1 && (
+          <section style={{ marginTop: 8 }}>
+            <h2 style={{ fontSize: '1.1rem', margin: '12px 0 6px' }}>All PDFs</h2>
+            <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
+              {allPdfs.map((f, i) => (
+                <li key={f.id ?? f.file_url ?? i}>
+                  <a href={f.file_url} rel="noopener">
+                    {f.title || f.file_name || `PDF ${i + 1}`}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </article>
 

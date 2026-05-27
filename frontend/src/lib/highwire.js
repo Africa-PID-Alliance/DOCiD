@@ -72,18 +72,61 @@ export function canonicalDocidUrl(docid) {
   return `${SITE_ORIGIN.replace(/\/+$/, '')}/docid/${clean}`;
 }
 
-// Pick the first downloadable PDF from publications_files (if any) and
-// return its absolute URL.
-export function pickPdfUrl(publication) {
-  if (!publication) return null;
+// Return every PDF file attached to the publication, in canonical order:
+// 1. files explicitly marked primary (`is_primary` truthy / `kind === 'manuscript'`)
+// 2. files whose title matches the publication's document_title
+// 3. files whose name hints at being the full text ("manuscript", "paper",
+//    "fulltext", "full-text", "preprint", "article", "main")
+// 4. remaining PDFs in their original order
+// Used by both `pickPdfUrl` (the singular Highwire `citation_pdf_url`) and
+// JSON-LD `encoding[]` (which lists every PDF so non-Scholar crawlers and
+// discovery tools see supplementary materials too).
+export function listPdfs(publication) {
+  if (!publication) return [];
   const files = publication.publications_files || [];
-  const pdf = files.find((f) => {
+  const isPdf = (f) => {
     const type = (f.file_type || '').toLowerCase();
     const name = (f.file_name || f.file_url || '').toLowerCase();
     return type.includes('pdf') || name.endsWith('.pdf');
-  });
-  const url = pdf?.file_url || null;
+  };
+  const pdfs = files.filter(isPdf);
+  if (pdfs.length === 0) return [];
+
+  const docTitle = (publication.document_title || '').trim().toLowerCase();
+  const fulltextRe = /\b(manuscript|paper|fulltext|full-text|preprint|article|main)\b/i;
+
+  const score = (f) => {
+    if (f.is_primary || (f.kind && String(f.kind).toLowerCase() === 'manuscript')) return 0;
+    const title = (f.title || '').trim().toLowerCase();
+    if (docTitle && title && title === docTitle) return 1;
+    const name = `${f.title || ''} ${f.file_name || ''} ${f.file_url || ''}`;
+    if (fulltextRe.test(name)) return 2;
+    return 3;
+  };
+
+  // Stable sort by score, preserving original order within a bucket.
+  return pdfs
+    .map((f, i) => ({ f, i, s: score(f) }))
+    .sort((a, b) => a.s - b.s || a.i - b.i)
+    .map(({ f }) => f);
+}
+
+// Pick the canonical full-text PDF for the singular `citation_pdf_url` meta
+// tag. Highwire / Google Scholar treat this tag as singular — supplementary
+// PDFs go into the JSON-LD encoding[] list and the visible body instead.
+export function pickPdfUrl(publication) {
+  const pdfs = listPdfs(publication);
+  const url = pdfs[0]?.file_url || null;
   return url ? absolutize(url) : null;
+}
+
+// Return absolute URLs of every PDF, in canonical order. Used to populate
+// JSON-LD `encoding[]` so the supplementary materials are still discoverable
+// by non-Scholar crawlers.
+export function listPdfUrls(publication) {
+  return listPdfs(publication)
+    .map((f) => absolutize(f.file_url))
+    .filter(Boolean);
 }
 
 // Escape `<`, `>`, `&`, ` `, ` ` inside a JSON.stringify result so
@@ -234,9 +277,23 @@ export function buildJsonLd(publication) {
     },
   };
 
-  const pdfUrl = pickPdfUrl(publication);
-  if (pdfUrl) {
-    doc.encoding = { '@type': 'MediaObject', contentUrl: pdfUrl, encodingFormat: 'application/pdf' };
+  // List every attached PDF in schema.org `encoding[]`. The first entry is
+  // the canonical full text (same URL as the singular citation_pdf_url meta
+  // tag); subsequent entries are supplementary materials. Single object vs.
+  // array per schema.org spec — a single MediaObject when only one PDF.
+  const pdfUrls = listPdfUrls(publication);
+  if (pdfUrls.length === 1) {
+    doc.encoding = {
+      '@type': 'MediaObject',
+      contentUrl: pdfUrls[0],
+      encodingFormat: 'application/pdf',
+    };
+  } else if (pdfUrls.length > 1) {
+    doc.encoding = pdfUrls.map((url) => ({
+      '@type': 'MediaObject',
+      contentUrl: url,
+      encodingFormat: 'application/pdf',
+    }));
   }
 
   return doc;
