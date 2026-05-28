@@ -551,7 +551,7 @@ const resources = {
           "projects": "Project(s)",
           "view": "VIEW",
           "number_of": "Number of {{label}}: {{count}}",
-          "related_docids": "Related Docids"
+          "related_docids": "Related DOCiDs"
         },
         "modal": {
           "title_field": "Title",
