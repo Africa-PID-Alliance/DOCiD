@@ -49,26 +49,33 @@ TENANT_FIELDS = (
     "is_active",
 )
 
+# Stellenbosch University brand (from official logo):
+#   Maroon wordmark  → primary / navbar
+#   Dark maroon      → footer, hover, dark text
+#   Crest gold       → highlights (UI uses a light gold tint for surfaces)
+_STELLENBOSCH_BRANDING = {
+    "display_name": "Stellenbosch University",
+    "logo_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
+    "logo_dark_url": None,
+    "favicon_url": "/favicon.ico",
+    "og_image_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
+    "primary_color": "#7F1734",
+    "primary_color_dark": "#4D0F20",
+    "accent_color": "#E8DCC8",
+    "page_title": "Stellenbosch DOCiD",
+    "page_description": None,
+    "hero_tagline": None,
+    "footer_copyright": "Stellenbosch University",
+    "contact_email": "info@sun.ac.za",
+    "email_from_name": "Stellenbosch University",
+    "feature_flags": None,
+    "is_active": True,
+}
+
 TENANTS = [
-    {
-        "slug": "stellenbosch",
-        "display_name": "Stellenbosch University",
-        "logo_url": "/assets/images/stellenbosch-logo.png",
-        "logo_dark_url": None,
-        "favicon_url": "/favicon.ico",
-        "og_image_url": "/assets/images/stellenbosch-logo.png",
-        "primary_color": "#780000",
-        "primary_color_dark": "#4a0000",
-        "accent_color": "#f5e6e6",
-        "page_title": "Stellenbosch DOCiD",
-        "page_description": None,
-        "hero_tagline": None,
-        "footer_copyright": "Stellenbosch University",
-        "contact_email": "info@sun.ac.za",
-        "email_from_name": "Stellenbosch University",
-        "feature_flags": None,
-        "is_active": True,
-    },
+    {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch"},
+    # Demo/test host: stellenbosch-test.africapidalliance.org
+    {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch-test"},
 ]
 
 
