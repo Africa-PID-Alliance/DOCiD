@@ -128,7 +128,8 @@ const Navbar = () => {
     { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
     { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
     { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-    { code: 'de', name: 'German', flag: '🇩🇪' }
+    { code: 'de', name: 'German', flag: '🇩🇪' },
+    { code: 'ms', name: 'Malay', flag: '🇲🇾' }
   ];
 
   const handleLanguageChange = (langCode) => {
