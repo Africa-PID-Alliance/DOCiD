@@ -21,13 +21,16 @@ import {
   ListItem,
   ListItemButton,
   useMediaQuery,
-  Collapse
+  Collapse,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   Person as PersonIcon,
   Language as LanguageIcon,
   Home as HomeIcon,
   Description as DescriptionIcon,
+  Search as SearchIcon,
   Info as InfoIcon,
   Login as LoginIcon,
   PersonAdd as PersonAddIcon,
@@ -55,6 +58,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileLanguageOpen, setMobileLanguageOpen] = useState(false);
   const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false);
+  const [languageSearch, setLanguageSearch] = useState('');
   const router = useRouter();
   const pathname = usePathname();
   const defaultLogoSrc = '/assets/images/logo2.png';
@@ -114,23 +118,62 @@ const Navbar = () => {
   const handleUserMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
   const handleLanguageMenuOpen = (event) => setLanguageMenu(event.currentTarget);
-  const handleLanguageMenuClose = () => setLanguageMenu(null);
+  const handleLanguageMenuClose = () => {
+    setLanguageMenu(null);
+    setLanguageSearch('');
+  };
   const handleMobileMenuToggle = () => setMobileMenuOpen(!mobileMenuOpen);
   const handleMobileMenuClose = () => {
     setMobileMenuOpen(false);
     setMobileLanguageOpen(false);
     setMobileUserMenuOpen(false);
+    setLanguageSearch('');
   };
 
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'fr', name: 'French', flag: '🇫🇷' },
-    { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
-    { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-    { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-    { code: 'de', name: 'German', flag: '🇩🇪' },
-    { code: 'ms', name: 'Malay', flag: '🇲🇾' }
-  ];
+  const languagesByRegion = {
+    'Global': [
+      { code: 'en', name: 'English', flag: '🇬🇧' }
+    ],
+    'Europe': [
+      { code: 'fr', name: 'French', flag: '🇫🇷' },
+      { code: 'de', name: 'German', flag: '��' },
+      { code: 'pt', name: 'Portuguese', flag: '🇵🇹' }
+    ],
+    'Africa': [
+      { code: 'sw', name: 'Swahili', flag: '🇰🇪' }
+    ],
+    'Middle East': [
+      { code: 'ar', name: 'Arabic', flag: '🇸🇦' }
+    ],
+    'Asia-Pacific': [
+      { code: 'ms', name: 'Malay', flag: '🇲🇾', regions: 'Malaysia, Singapore, Brunei, Indonesia' },
+      { code: 'km', name: 'Khmer', flag: '🇰🇭', regions: 'Cambodia' }
+    ]
+  };
+
+  const languages = Object.values(languagesByRegion).flat();
+
+  const getFilteredLanguagesByRegion = () => {
+    if (!languageSearch.trim()) {
+      return languagesByRegion;
+    }
+    
+    const searchLower = languageSearch.toLowerCase();
+    const filtered = {};
+    
+    Object.entries(languagesByRegion).forEach(([region, langs]) => {
+      const matchedLangs = langs.filter(lang => 
+        lang.name.toLowerCase().includes(searchLower) ||
+        (lang.regions && lang.regions.toLowerCase().includes(searchLower))
+      );
+      
+      if (matchedLangs.length > 0) {
+        filtered[region] = matchedLangs;
+      }
+    });
+    
+    return filtered;
+  };
 
   const handleLanguageChange = (langCode) => {
     i18n.changeLanguage(langCode).then(() => {
@@ -308,22 +351,75 @@ const Navbar = () => {
 
       <Collapse in={mobileLanguageOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding sx={{ pl: 2 }}>
-          {languages.map((lang) => (
-            <ListItem key={lang.code} disablePadding>
-              <ListItemButton 
-                onClick={() => handleLanguageChange(lang.code)}
-                sx={{ borderRadius: 1, mx: 1, py: 1 }}
-              >
-                <Typography sx={{ fontSize: '1.2rem', mr: 2 }}>
-                  {lang.flag}
+          <Box sx={{ px: 2, py: 1 }}>
+            <TextField
+              size="small"
+              placeholder="Search languages..."
+              value={languageSearch}
+              onChange={(e) => setLanguageSearch(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '0.875rem'
+                }
+              }}
+            />
+          </Box>
+          {Object.keys(getFilteredLanguagesByRegion()).length === 0 ? (
+            <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                No languages found
+              </Typography>
+            </Box>
+          ) : (
+            Object.entries(getFilteredLanguagesByRegion()).map(([region, langs], index) => (
+            <Box key={region}>
+              {index > 0 && <Divider sx={{ my: 1 }} />}
+              <Box sx={{ px: 2, py: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: '0.7rem',
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  {region}
                 </Typography>
-                <ListItemText primary={lang.name} />
-                {i18n.language === lang.code && (
-                  <CheckIcon sx={{ color: theme.palette.primary.main, ml: 1 }} />
-                )}
-              </ListItemButton>
-            </ListItem>
-          ))}
+              </Box>
+              {langs.map((lang) => (
+                <ListItem key={lang.code} disablePadding>
+                  <ListItemButton 
+                    onClick={() => handleLanguageChange(lang.code)}
+                    sx={{ borderRadius: 1, mx: 1, py: 1 }}
+                  >
+                    <Typography sx={{ fontSize: '1.2rem', mr: 2, flexShrink: 0 }}>
+                      {lang.flag}
+                    </Typography>
+                    <ListItemText 
+                      primary={lang.name}
+                      secondary={lang.regions || ''}
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                      secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                    />
+                    {i18n.language === lang.code && (
+                      <CheckIcon sx={{ color: theme.palette.primary.main, ml: 1, flexShrink: 0 }} />
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </Box>
+            ))
+          )}
         </List>
       </Collapse>
 
@@ -613,6 +709,29 @@ const Navbar = () => {
             </Tooltip>
           )}
 
+          {/* Desktop Language Selector */}
+          {!isMobile && (
+            <Button
+              onClick={handleLanguageMenuOpen}
+              startIcon={<LanguageIcon />}
+              sx={{
+                color: theme.palette.text.light,
+                fontSize: '0.9rem',
+                fontWeight: 400,
+                textTransform: 'none',
+                padding: '6px 16px',
+                mr: 1,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
+              {languages.find(lang => lang.code === i18n.language)?.name || 'English'}
+            </Button>
+          )}
+
           {/* Desktop User Menu */}
           {!isMobile && (
             <>
@@ -704,24 +823,6 @@ const Navbar = () => {
                         />
                       </MenuItem>
                     </Link>
-                    <MenuItem 
-                      onClick={handleLanguageMenuOpen}
-                      sx={{ 
-                        py: 1.5,
-                        '&:hover': {
-                          backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.light
-                        }
-                      }}
-                    >
-                      <ListItemIcon>
-                        <LanguageIcon fontSize="small" color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={t('user_menu.language')}
-                        secondary={languages.find(lang => lang.code === i18n.language)?.name || 'English'}
-                        primaryTypographyProps={{ fontWeight: 500 }}
-                      />
-                    </MenuItem>
                     <Divider />
                     <MenuItem 
                       onClick={handleLogout}
@@ -794,25 +895,6 @@ const Navbar = () => {
                         primaryTypographyProps={{ fontWeight: 500 }}
                       />
                     </MenuItem>
-                    <Divider />
-                    <MenuItem 
-                      onClick={handleLanguageMenuOpen}
-                      sx={{ 
-                        py: 1.5,
-                        '&:hover': {
-                          backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.light
-                        }
-                      }}
-                    >
-                      <ListItemIcon>
-                        <LanguageIcon fontSize="small" color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={t('user_menu.language')}
-                        secondary={languages.find(lang => lang.code === i18n.language)?.name || 'English'}
-                        primaryTypographyProps={{ fontWeight: 500 }}
-                      />
-                    </MenuItem>
                   </Box>
                 )}
               </Menu>
@@ -848,44 +930,108 @@ const Navbar = () => {
                   }
                 }}
               >
-                <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {t('user_menu.select_language')}
-                  </Typography>
-                </Box>
-                {languages.map((lang) => (
-                  <MenuItem 
-                    key={lang.code} 
-                    onClick={() => handleLanguageChange(lang.code)}
+                <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                  <Typography 
+                    variant="overline" 
                     sx={{ 
-                      py: 1.5,
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.light
-                      }
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      letterSpacing: '0.5px',
+                      color: 'text.secondary',
+                      mb: 1,
+                      display: 'block'
                     }}
                   >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      width: '100%',
-                      position: 'relative'
-                    }}>
-                      <Typography sx={{ fontSize: '1.2rem', mr: 2 }}>
-                        {lang.flag}
+                    {t('user_menu.select_language') || 'SELECT LANGUAGE'}
+                  </Typography>
+                  <TextField
+                    size="small"
+                    placeholder="Search languages..."
+                    value={languageSearch}
+                    onChange={(e) => setLanguageSearch(e.target.value)}
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" />
+                        </InputAdornment>
+                      )
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '0.875rem'
+                      }
+                    }}
+                  />
+                </Box>
+                {Object.keys(getFilteredLanguagesByRegion()).length === 0 ? (
+                  <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No languages found
+                    </Typography>
+                  </Box>
+                ) : (
+                  Object.entries(getFilteredLanguagesByRegion()).map(([region, langs], index) => (
+                  <Box key={region}>
+                    {index > 0 && <Divider />}
+                    <Box sx={{ px: 2, py: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          color: 'text.secondary',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      >
+                        {region}
                       </Typography>
-                      <Typography>{lang.name}</Typography>
-                      {i18n.language === lang.code && (
-                        <CheckIcon 
-                          sx={{ 
-                            position: 'absolute',
-                            right: 0,
-                            color: theme.palette.primary.main
-                          }} 
-                        />
-                      )}
                     </Box>
-                  </MenuItem>
-                ))}
+                    {langs.map((lang) => (
+                      <MenuItem 
+                        key={lang.code} 
+                        onClick={() => handleLanguageChange(lang.code)}
+                        sx={{ 
+                          py: 1.5,
+                          '&:hover': {
+                            backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : theme.palette.primary.light
+                          }
+                        }}
+                      >
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          width: '100%',
+                          position: 'relative'
+                        }}>
+                          <Typography sx={{ fontSize: '1.2rem', mr: 2, flexShrink: 0 }}>
+                            {lang.flag}
+                          </Typography>
+                          <Box sx={{ flex: 1, pr: 3 }}>
+                            <Typography sx={{ fontWeight: 500 }}>{lang.name}</Typography>
+                            {lang.regions && (
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                {lang.regions}
+                              </Typography>
+                            )}
+                          </Box>
+                          {i18n.language === lang.code && (
+                            <CheckIcon 
+                              sx={{ 
+                                position: 'absolute',
+                                right: 0,
+                                color: theme.palette.primary.main,
+                                fontSize: '1.2rem'
+                              }} 
+                            />
+                          )}
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Box>
+                  ))
+                )}
               </Menu>
             </>
           )}
