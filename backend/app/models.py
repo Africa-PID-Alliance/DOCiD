@@ -509,6 +509,8 @@ class Publications(db.Model):
     semantic_scholar_id = Column(String(100), nullable=True)
     abstract_text = Column(Text, nullable=True)
     openaire_id = Column(String(100), nullable=True)
+    lens_patent_id = Column(String(50), nullable=True, index=True)
+    lens_scholar_id = Column(String(50), nullable=True, index=True)
 
     # Soft-delete (tombstone) — keep handle resolving after retirement
     deleted_at = Column(DateTime, nullable=True, index=True)
@@ -1900,3 +1902,162 @@ class HarvestSourceFieldMapping(db.Model):
 
     def __repr__(self):
         return f"<FieldMapping(source_id={self.harvest_source_id}, {self.docid_field} <- {self.source_field}, pri={self.priority})>"
+
+
+class PublicationExternalEdge(db.Model):
+    """
+    A typed edge from a DOCiD publication to an external identifier.
+    Covers citations (cites / cited_by), patent family membership, and
+    scholar-to-patent links via a single unified table.
+    relation values: 'cites' | 'cited_by' | 'patent_family_member'
+                     | 'patent_cites_paper' | 'paper_cited_by_patent'
+    object_id_kind:  'doi' | 'patent_number' | 'lens_patent_id'
+                     | 'oclc' | 'isbn' | 'arxiv_id'
+    source_name:     'opencitations' | 'semantic_scholar' | 'lens_org'
+    """
+    __tablename__ = 'publication_external_edges'
+    __table_args__ = (
+        db.UniqueConstraint(
+            'publication_id', 'relation', 'object_id_kind', 'object_id', 'source_name',
+            name='uq_publication_external_edge',
+        ),
+        db.Index('ix_publication_external_edges_object', 'object_id_kind', 'object_id'),
+        db.Index('ix_publication_external_edges_relation', 'publication_id', 'relation'),
+    )
+
+    id             = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    publication_id = db.Column(
+        db.Integer,
+        db.ForeignKey('publications.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+    object_id_kind = db.Column(db.String(20), nullable=False)
+    object_id      = db.Column(db.String(255), nullable=False)
+    object_label   = db.Column(db.String(500), nullable=True)
+    relation       = db.Column(db.String(40), nullable=False)
+    source_name    = db.Column(db.String(50), nullable=False)
+    confidence     = db.Column(db.String(20), nullable=True)
+    raw_metadata   = db.Column(JSONB, nullable=True)
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at     = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    publication = db.relationship('Publications', backref=db.backref('external_edges', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f"<PublicationExternalEdge(pub={self.publication_id}, {self.relation}, {self.object_id_kind}:{self.object_id}, src={self.source_name})>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'publication_id': self.publication_id,
+            'object_id_kind': self.object_id_kind,
+            'object_id': self.object_id,
+            'object_label': self.object_label,
+            'relation': self.relation,
+            'source_name': self.source_name,
+            'confidence': self.confidence,
+            'raw_metadata': self.raw_metadata,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class HarvestState(db.Model):
+    """
+    Per-endpoint OAI-PMH harvest state. Tracks checkpoints and concurrency.
+    The COALESCE-based unique index (endpoint, metadata_prefix, COALESCE(set_spec,''))
+    is created in the alembic migration because SQLAlchemy declarative does not
+    support expression-based unique indexes.
+    in_progress is set atomically via a conditional UPDATE so parallel workers
+    cannot both claim the lock.
+    """
+    __tablename__ = 'harvest_state'
+    __table_args__ = (
+        db.Index('ix_harvest_state_endpoint', 'endpoint'),
+    )
+
+    id                    = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    endpoint              = db.Column(db.String(500), nullable=False)
+    metadata_prefix       = db.Column(db.String(50), nullable=False)
+    set_spec              = db.Column(db.String(255), nullable=True)
+    granularity           = db.Column(db.String(40), nullable=True)
+    last_success_from     = db.Column(db.DateTime, nullable=True)
+    last_success_until    = db.Column(db.DateTime, nullable=True)
+    last_resumption_token = db.Column(db.String(500), nullable=True)
+    in_progress           = db.Column(db.Boolean, default=False, nullable=False)
+    in_progress_since     = db.Column(db.DateTime, nullable=True)
+    last_run_at           = db.Column(db.DateTime, nullable=True)
+    last_run_status       = db.Column(db.String(20), nullable=True)
+    last_error_message    = db.Column(db.Text, nullable=True)
+    consecutive_failures  = db.Column(db.Integer, default=0)
+    created_at            = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at            = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<HarvestState(id={self.id}, endpoint='{self.endpoint}', prefix='{self.metadata_prefix}', in_progress={self.in_progress})>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'endpoint': self.endpoint,
+            'metadata_prefix': self.metadata_prefix,
+            'set_spec': self.set_spec,
+            'last_success_from': self.last_success_from.isoformat() if self.last_success_from else None,
+            'last_success_until': self.last_success_until.isoformat() if self.last_success_until else None,
+            'in_progress': self.in_progress,
+            'last_run_at': self.last_run_at.isoformat() if self.last_run_at else None,
+            'last_run_status': self.last_run_status,
+            'consecutive_failures': self.consecutive_failures,
+        }
+
+
+class HarvestStagingRecord(db.Model):
+    """
+    Staging table for OAI-PMH harvested records awaiting DOCiD matching.
+    Unmatched records sit in status='unmatched' until a curator reviews them.
+    The (endpoint, oai_identifier) unique constraint makes replays idempotent.
+    """
+    __tablename__ = 'harvest_staging_records'
+    __table_args__ = (
+        db.UniqueConstraint('endpoint', 'oai_identifier', name='uq_harvest_staging_endpoint_id'),
+        db.Index('ix_harvest_staging_status', 'status'),
+        db.Index('ix_harvest_staging_oai_datestamp', 'oai_datestamp'),
+    )
+
+    id                     = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    endpoint               = db.Column(db.String(500), nullable=False)
+    oai_identifier         = db.Column(db.String(255), nullable=False)
+    oai_datestamp          = db.Column(db.DateTime, nullable=False)
+    is_deleted             = db.Column(db.Boolean, default=False, nullable=False)
+    raw_xml                = db.Column(db.Text, nullable=True)
+    normalised             = db.Column(JSONB, nullable=True)
+    matched_publication_id = db.Column(
+        db.Integer,
+        db.ForeignKey('publications.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True,
+    )
+    match_method           = db.Column(db.String(50), nullable=True)
+    status                 = db.Column(db.String(20), default='new', nullable=False)
+    retry_count            = db.Column(db.Integer, default=0)
+    last_error_message     = db.Column(db.Text, nullable=True)
+    created_at             = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at             = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    matched_publication = db.relationship('Publications', foreign_keys=[matched_publication_id])
+
+    def __repr__(self):
+        return f"<HarvestStagingRecord(id={self.id}, oai='{self.oai_identifier}', status='{self.status}')>"
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'endpoint': self.endpoint,
+            'oai_identifier': self.oai_identifier,
+            'oai_datestamp': self.oai_datestamp.isoformat() if self.oai_datestamp else None,
+            'is_deleted': self.is_deleted,
+            'matched_publication_id': self.matched_publication_id,
+            'match_method': self.match_method,
+            'status': self.status,
+            'retry_count': self.retry_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

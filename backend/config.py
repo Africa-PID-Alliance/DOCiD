@@ -8,6 +8,31 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     CROSSREF_API_URL = os.getenv('CROSSREF_API_URL')
     CROSSREF_API_KEY = os.getenv('CROSSREF_API_KEY')
+
+    # CrossRef DEPOSIT config (separate from the read-API above).
+    # Default points at the CrossRef TEST server so a misconfigured prod can't
+    # accidentally mint real DOIs. Flip CROSSREF_DEPOSIT_URL to
+    # https://doi.crossref.org/servlet/deposit only after a real member account
+    # is provisioned and CROSSREF_DOI_PREFIX is set.
+    CROSSREF_DEPOSIT_URL = os.getenv(
+        'CROSSREF_DEPOSIT_URL', 'https://test.crossref.org/servlet/deposit'
+    )
+    CROSSREF_DEPOSIT_LOGIN = os.getenv('CROSSREF_DEPOSIT_LOGIN')
+    CROSSREF_DEPOSIT_PASSWORD = os.getenv('CROSSREF_DEPOSIT_PASSWORD')
+    CROSSREF_DEPOSITOR_NAME = os.getenv('CROSSREF_DEPOSITOR_NAME', 'Africa PID Alliance')
+    CROSSREF_DEPOSITOR_EMAIL = os.getenv('CROSSREF_DEPOSITOR_EMAIL', 'info@africapidalliance.org')
+    # No default: missing CROSSREF_DOI_PREFIX makes build_crossref_xml_for_publication
+    # return skipped/'missing_prefix' so the system never tries to deposit DOIs we
+    # don't own.
+    CROSSREF_DOI_PREFIX = os.getenv('CROSSREF_DOI_PREFIX')
+    CROSSREF_DEPOSIT_ENABLED = os.getenv('CROSSREF_DEPOSIT_ENABLED', 'false').lower() == 'true'
+    # Submission-status download URL (CrossRef polls). For test server it's
+    # https://test.crossref.org/servlet/submissionDownload; for prod
+    # https://doi.crossref.org/servlet/submissionDownload.
+    CROSSREF_SUBMISSION_DOWNLOAD_URL = os.getenv(
+        'CROSSREF_SUBMISSION_DOWNLOAD_URL',
+        'https://test.crossref.org/servlet/submissionDownload',
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv('SECRET_KEY')
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024
@@ -53,6 +78,31 @@ class Config:
     OPENALEX_CONTACT_EMAIL = os.getenv('OPENALEX_CONTACT_EMAIL', 'admin@docid.africapidalliance.org')
     UNPAYWALL_CONTACT_EMAIL = os.getenv('UNPAYWALL_CONTACT_EMAIL', 'admin@docid.africapidalliance.org')
     SEMANTIC_SCHOLAR_API_KEY = os.getenv('SEMANTIC_SCHOLAR_API_KEY', '')
+    CORE_API_KEY = os.getenv('CORE_API_KEY', '')
+    CORE_API_BASE_URL = os.getenv('CORE_API_BASE_URL', 'https://api.core.ac.uk/v3')
+    OPENAIRE_API_BASE_URL = os.getenv('OPENAIRE_API_BASE_URL', 'https://graph.openaire.eu/api')
+    OPENCITATIONS_ACCESS_TOKEN = os.getenv('OPENCITATIONS_ACCESS_TOKEN', '')
+    LENS_SCHOLAR_API_KEY = os.getenv('LENS_SCHOLAR_API_KEY', '')
+    LENS_PATENT_API_KEY = os.getenv('LENS_PATENT_API_KEY', '')
+    LENS_API_BASE_URL = os.getenv('LENS_API_BASE_URL', 'https://api.lens.org')
+
+    # Canonical list of active enrichment providers.
+    # Routes and CLI both read from this list — no per-provider boolean flags needed.
+    # Override via ENRICHMENT_SOURCES env var (comma-separated) to add/remove providers.
+    ENRICHMENT_SOURCES = [
+        s.strip()
+        for s in os.getenv('ENRICHMENT_SOURCES', 'openalex,unpaywall').split(',')
+        if s.strip()
+    ]
+
+    # Per-provider emergency kill switches (take precedence over ENRICHMENT_SOURCES).
+    # Set <PROVIDER>_KILL_SWITCH=true to block a provider even if it is in ENRICHMENT_SOURCES.
+    OPENALEX_KILL_SWITCH = os.getenv('OPENALEX_KILL_SWITCH', 'false').lower() == 'true'
+    SEMANTIC_SCHOLAR_KILL_SWITCH = os.getenv('SEMANTIC_SCHOLAR_KILL_SWITCH', 'false').lower() == 'true'
+    CORE_KILL_SWITCH = os.getenv('CORE_KILL_SWITCH', 'false').lower() == 'true'
+    OPENAIRE_KILL_SWITCH = os.getenv('OPENAIRE_KILL_SWITCH', 'false').lower() == 'true'
+    OPENCITATIONS_KILL_SWITCH = os.getenv('OPENCITATIONS_KILL_SWITCH', 'false').lower() == 'true'
+    LENS_ORG_KILL_SWITCH = os.getenv('LENS_ORG_KILL_SWITCH', 'false').lower() == 'true'
 
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
