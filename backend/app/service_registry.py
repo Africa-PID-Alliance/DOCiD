@@ -17,16 +17,13 @@ REGISTRY = {
     'core':             {'module': 'app.service_core',             'status': 'available'},
     'openaire':         {'module': 'app.service_openaire',         'status': 'available'},
     'opencitations':    {'module': 'app.service_opencitations',    'status': 'available'},
-    'lens_org':         {'module': 'app.service_lens',             'status': 'not_implemented',
-                         'reason': 'Lens.org API keys not yet acquired; see meeting-notes/lens-org/NOTES.md'},
+    'lens_org':         {'module': 'app.service_lens',             'status': 'available'},
     'base':             {'module': None,                           'status': 'not_implemented',
                          'reason': 'BASE API key not yet acquired; see meeting-notes/base/NOTES.md'},
     'worldcat':         {'module': None,                           'status': 'not_implemented',
                          'reason': 'OCLC contract pending; see meeting-notes/worldcat/NOTES.md'},
-    'scienceopen':      {'module': 'app.service_scienceopen',      'status': 'not_implemented',
-                         'reason': 'OAI-PMH harvester not yet built (Wave 3)'},
-    'citeseerx':        {'module': 'app.service_citeseerx',        'status': 'not_implemented',
-                         'reason': 'OAI-PMH harvester not yet built (Wave 3)'},
+    'scienceopen':      {'module': 'app.service_scienceopen',      'status': 'available'},
+    'citeseerx':        {'module': 'app.service_citeseerx',        'status': 'available'},
 }
 
 
