@@ -89,9 +89,18 @@ class OAIPMHClient:
             logger.error("Network error calling OAI-PMH: %s", exc)
             return None
 
+    # Hardened parser: no entity resolution, no network access, no DTD loading,
+    # no huge-tree expansion. OAI-PMH responses are untrusted external XML.
+    _XML_PARSER = etree.XMLParser(
+        resolve_entities=False,
+        no_network=True,
+        load_dtd=False,
+        huge_tree=False,
+    )
+
     def _parse_xml(self, raw: bytes) -> Optional[etree._Element]:
         try:
-            return etree.fromstring(raw)
+            return etree.fromstring(raw, self._XML_PARSER)
         except etree.XMLSyntaxError as exc:
             logger.error("XML parse error from OAI-PMH: %s", exc)
             return None
