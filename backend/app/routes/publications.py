@@ -701,7 +701,7 @@ def get_all_publications():
             UserAccount, Publications.user_id == UserAccount.user_id
         ).outerjoin(
             AccountTypes, UserAccount.account_type_id == AccountTypes.id
-        )
+        ).filter(Publications.deleted_at.is_(None))  # exclude soft-deleted/retired
         if current_user_id is not None:
             account_type_count_query = account_type_count_query.filter(Publications.user_id == current_user_id)
         # Apply same search filters for accurate counts

@@ -77,3 +77,6 @@ Flask-Migrate
 # Thumbnail generation (server-side, see app/service_thumbnails.py)
 pdf2image==1.17.0
 Pillow>=10.0.0
+
+# OAI-PMH XML parsing (service_oai_pmh.py)
+lxml>=4.9.0
