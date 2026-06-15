@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -47,6 +47,7 @@ import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/redux/slices/authSlice';
 import { useThemeContext } from '@/context/ThemeContext';
+import { useTenant } from '@/context/TenantContext';
 import Link from 'next/link';
 
 const Navbar = () => {
@@ -57,59 +58,25 @@ const Navbar = () => {
   const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const tenant = useTenant();
+  // Always show the DOCiD default logo. When the request is on a
+  // tenant subdomain (not the default), ALSO show the tenant logo
+  // alongside it as a co-branded header.
   const defaultLogoSrc = '/assets/images/logo2.png';
   const defaultLogoAlt = 'DOCiD™ Logo';
+  const tenantLogoSrc = tenant?.logo_url;
+  const tenantLogoAlt = `${tenant?.display_name || 'DOCiD™'} Logo`;
+  const showTenantLogo =
+    Boolean(tenantLogoSrc) &&
+    tenant?.slug &&
+    tenant.slug !== 'default' &&
+    tenantLogoSrc !== defaultLogoSrc;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { t, i18n } = useTranslation('common');
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const userLogoSrc = typeof user?.logo_url === 'string' ? user.logo_url.trim() : '';
-  const [resolvedUserLogoSrc, setResolvedUserLogoSrc] = useState(userLogoSrc);
-  const userLogoAlt = `${user?.name || 'User'} Logo`;
   const { mode, toggleTheme } = useThemeContext();
-
-  useEffect(() => {
-    let isActive = true;
-
-    const loadUserLogo = async () => {
-      if (!isAuthenticated || !user?.id) {
-        if (isActive) setResolvedUserLogoSrc('');
-        return;
-      }
-
-      // Prefer auth payload when already present to avoid extra requests.
-      if (userLogoSrc) {
-        if (isActive) setResolvedUserLogoSrc(userLogoSrc);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/user-profile/${user.id}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (!response.ok) return;
-
-        const profile = await response.json();
-        const fetchedLogo = typeof profile?.logo_url === 'string' ? profile.logo_url.trim() : '';
-        if (isActive) setResolvedUserLogoSrc(fetchedLogo);
-      } catch (error) {
-        // Non-blocking enhancement; navbar remains usable if profile fetch fails.
-        console.warn('Failed to resolve user logo from profile:', error);
-      }
-    };
-
-    loadUserLogo();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isAuthenticated, user?.id, userLogoSrc]);
-
-  const effectiveUserLogoSrc = resolvedUserLogoSrc || userLogoSrc;
-  const showUserLogo = Boolean(effectiveUserLogoSrc);
 
   const handleUserMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
@@ -191,7 +158,7 @@ const Navbar = () => {
               priority
             />
           </Box>
-          {showUserLogo && (
+          {showTenantLogo && (
             <>
               <Box
                 sx={{
@@ -202,6 +169,10 @@ const Navbar = () => {
               />
               <Box
                 sx={{
+                  // Mobile drawer: same white-card pattern as desktop
+                  // navbar (see comment in desktop logo box). Slightly
+                  // smaller dimensions because the mobile drawer header
+                  // is tighter than the desktop AppBar.
                   height: '46px',
                   width: '128px',
                   position: 'relative',
@@ -214,16 +185,13 @@ const Navbar = () => {
                   boxShadow: '0 1px 4px rgba(0, 0, 0, 0.12)',
                 }}
               >
-                <Box
-                  component="img"
-                  src={effectiveUserLogoSrc}
-                  alt={userLogoAlt}
-                  sx={{
-                    display: 'block',
-                    objectFit: 'contain',
-                    width: '100%',
-                    height: '100%',
-                  }}
+                <Image
+                  src={tenantLogoSrc}
+                  alt={tenantLogoAlt}
+                  width={128}
+                  height={46}
+                  style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+                  priority
                 />
               </Box>
             </>
@@ -472,7 +440,10 @@ const Navbar = () => {
             </IconButton>
           )}
 
-          {/* Logo container: DOCiD default + optional user account logo */}
+          {/* Co-branded logo container: DOCiD default + tenant logo
+              side-by-side with a vertical divider between them. When
+              the request is on the default hostname (no tenant), only
+              the DOCiD logo renders. */}
           <Box
             component="div"
             sx={{
@@ -508,7 +479,7 @@ const Navbar = () => {
                 priority
               />
             </Box>
-            {showUserLogo && (
+            {showTenantLogo && (
               <>
                 <Box
                   sx={{
@@ -520,6 +491,12 @@ const Navbar = () => {
                 />
                 <Box
                   sx={{
+                    // Tenant logo container with a white background pad.
+                    // Required because tenant logos have transparent
+                    // backgrounds and may share colors with the tenant
+                    // navbar (e.g., a green logo on a green navbar
+                    // becomes invisible). The white card guarantees
+                    // contrast for any tenant logo regardless of palette.
                     height: '60px',
                     width: { xs: '140px', sm: '200px' },
                     position: 'relative',
@@ -533,16 +510,17 @@ const Navbar = () => {
                     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={effectiveUserLogoSrc}
-                    alt={userLogoAlt}
-                    sx={{
-                      display: 'block',
+                  <Image
+                    src={tenantLogoSrc}
+                    alt={tenantLogoAlt}
+                    width={200}
+                    height={60}
+                    style={{
                       objectFit: 'contain',
                       width: '100%',
                       height: '100%',
                     }}
+                    priority
                   />
                 </Box>
               </>

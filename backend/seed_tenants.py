@@ -49,19 +49,19 @@ TENANT_FIELDS = (
     "is_active",
 )
 
-# Stellenbosch University brand (from official logo):
-#   Maroon wordmark  → primary / navbar
-#   Dark maroon      → footer, hover, dark text
-#   Crest gold       → highlights (UI uses a light gold tint for surfaces)
+# Stellenbosch University brand (sun.ac.za landing page + logo):
+#   primary_color       → #5B1C2E  secondary maroon (bottom nav / action bar)
+#   primary_color_dark  → #330C1C  deep hero / page background maroon
+#   accent_color        → #C19F61  crest & link gold (logo icon matches)
 _STELLENBOSCH_BRANDING = {
     "display_name": "Stellenbosch University",
     "logo_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
     "logo_dark_url": None,
     "favicon_url": "/favicon.ico",
     "og_image_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
-    "primary_color": "#7F1734",
-    "primary_color_dark": "#4D0F20",
-    "accent_color": "#E8DCC8",
+    "primary_color": "#5B1C2E",
+    "primary_color_dark": "#330C1C",
+    "accent_color": "#C19F61",
     "page_title": "Stellenbosch DOCiD",
     "page_description": None,
     "hero_tagline": None,
@@ -72,10 +72,34 @@ _STELLENBOSCH_BRANDING = {
     "is_active": True,
 }
 
+# University of Lagos brand (unilag.edu.ng landing page + official crest):
+#   primary_color       → #660000  maroon (search button, modal, academic robes)
+#   primary_color_dark  → #000000  black (header bar, mission blocks)
+#   accent_color        → #D4AF37  gold (modal strip, motto stars, crest sun)
+_UNILAG_BRANDING = {
+    "display_name": "University of Lagos",
+    "logo_url": "https://africapidalliance.org/institutions/unilag.jpeg",
+    "logo_dark_url": None,
+    "favicon_url": "/favicon.ico",
+    "og_image_url": "https://africapidalliance.org/institutions/unilag.jpeg",
+    "primary_color": "#660000",
+    "primary_color_dark": "#000000",
+    "accent_color": "#D4AF37",
+    "page_title": "University of Lagos DOCiD",
+    "page_description": "A domain of knowledge and excellence, producing global leaders.",
+    "hero_tagline": "In Deed and In Truth",
+    "footer_copyright": "University of Lagos",
+    "contact_email": "communicationunit@unilag.edu.ng",
+    "email_from_name": "University of Lagos",
+    "feature_flags": None,
+    "is_active": True,
+}
+
 TENANTS = [
     {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch"},
     # Demo/test host: stellenbosch-test.africapidalliance.org
     {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch-test"},
+    {**_UNILAG_BRANDING, "slug": "unilag"},
 ]
 
 
