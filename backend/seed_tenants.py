@@ -55,10 +55,10 @@ TENANT_FIELDS = (
 #   accent_color        → #C19F61  crest & link gold (logo icon matches)
 _STELLENBOSCH_BRANDING = {
     "display_name": "Stellenbosch University",
-    "logo_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
+    "logo_url": "/tenants/stellenbosch/logo.jpg",
     "logo_dark_url": None,
     "favicon_url": "/favicon.ico",
-    "og_image_url": "https://africapidalliance.org/institutions/stellenbosch.jpeg",
+    "og_image_url": "/tenants/stellenbosch/logo.jpg",
     "primary_color": "#5B1C2E",
     "primary_color_dark": "#330C1C",
     "accent_color": "#C19F61",
