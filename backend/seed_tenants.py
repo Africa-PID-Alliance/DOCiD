@@ -78,10 +78,10 @@ _STELLENBOSCH_BRANDING = {
 #   accent_color        → #D4AF37  gold (modal strip, motto stars, crest sun)
 _UNILAG_BRANDING = {
     "display_name": "University of Lagos",
-    "logo_url": "https://africapidalliance.org/institutions/unilag.jpeg",
+    "logo_url": "/tenants/unilag/logo.png",
     "logo_dark_url": None,
     "favicon_url": "/favicon.ico",
-    "og_image_url": "https://africapidalliance.org/institutions/unilag.jpeg",
+    "og_image_url": "/tenants/unilag/logo.png",
     "primary_color": "#660000",
     "primary_color_dark": "#000000",
     "accent_color": "#D4AF37",
@@ -100,6 +100,8 @@ TENANTS = [
     # Demo/test host: stellenbosch-test.africapidalliance.org
     {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch-test"},
     {**_UNILAG_BRANDING, "slug": "unilag"},
+    # Demo/test host: unilag-test.africapidalliance.org
+    {**_UNILAG_BRANDING, "slug": "unilag-test"},
 ]
 
 
