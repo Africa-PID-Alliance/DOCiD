@@ -61,9 +61,14 @@ def main():
                 )
                 # Drain oldest-first so a sudden burst of new docids can't
                 # permanently starve earlier unsynced rows that just happen
-                # to fall outside the per-tick LIMIT.
+                # to fall outside the per-tick LIMIT. Keep LIMIT small —
+                # each row makes multiple CORDRA HTTPS calls (creators,
+                # orgs, funders, files, projects) at 2-15s each, so a
+                # high LIMIT combined with a 1-minute cron schedule caused
+                # process pile-up that starved the docker host (see
+                # 2026-06-24 incident — 502s on prod, SSH banner timeout).
                 .order_by(Publications.id.asc())
-                .limit(100)
+                .limit(10)
                 .all()
             )
             
