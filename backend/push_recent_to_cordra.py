@@ -43,15 +43,19 @@ def main():
 
     with app.app_context():
         try:
-            # Only sync publications created in the last 30 minutes
-            # Skip publications without DOI (CORDRA requires DOI as object ID)
-            # Process newest first so fresh publications sync immediately
-            thirty_minutes_ago = datetime.utcnow() - timedelta(minutes=30)
+            # CORDRA object id is the docid handle, NOT the DOI — most DOCiD
+            # records are created without a DOI, so the previous doi-required
+            # filter caused them to skip CORDRA sync forever. Sync any unsynced
+            # publication with a document_docid that was created in the last
+            # 24 hours (broadened from 30 min so a cron blip or a publish-edit
+            # cycle doesn't strand records). Skip soft-deleted (retired) rows.
+            cutoff = datetime.utcnow() - timedelta(hours=24)
             recent_publications = Publications.query.filter(
                 (Publications.cordra_synced == False) | (Publications.cordra_synced == None),
-                Publications.doi != None,
-                Publications.doi != '',
-                Publications.published >= thirty_minutes_ago,
+                Publications.document_docid != None,
+                Publications.document_docid != '',
+                Publications.deleted_at == None,
+                Publications.published >= cutoff,
             ).order_by(Publications.id.desc()).all()
             
             if not recent_publications:
