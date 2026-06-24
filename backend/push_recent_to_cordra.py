@@ -8,7 +8,7 @@ import os
 import sys
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, func
 
 # Add the parent directory to system path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -44,19 +44,28 @@ def main():
     with app.app_context():
         try:
             # CORDRA object id is the docid handle, NOT the DOI — most DOCiD
-            # records are created without a DOI, so the previous doi-required
-            # filter caused them to skip CORDRA sync forever. Sync any unsynced
-            # publication with a document_docid that was created in the last
-            # 24 hours (broadened from 30 min so a cron blip or a publish-edit
-            # cycle doesn't strand records). Skip soft-deleted (retired) rows.
-            cutoff = datetime.utcnow() - timedelta(hours=24)
-            recent_publications = Publications.query.filter(
-                (Publications.cordra_synced == False) | (Publications.cordra_synced == None),
-                Publications.document_docid != None,
-                Publications.document_docid != '',
-                Publications.deleted_at == None,
-                Publications.published >= cutoff,
-            ).order_by(Publications.id.desc()).all()
+            # records are created without a DOI. Codex review: do NOT gate on
+            # `published`; that's often the source paper's original publication
+            # date (e.g. 2003 for a harvested record), so a freshness window on
+            # `published` strands every backfilled / harvested publication
+            # forever. Instead just pick up the newest unsynced rows by id
+            # DESC and cap the per-tick batch so a backlog can't overwhelm
+            # CORDRA. Retired (deleted_at) records are excluded — they should
+            # not be pushed to CORDRA per the soft-delete plan.
+            recent_publications = (
+                Publications.query.filter(
+                    (Publications.cordra_synced == False) | (Publications.cordra_synced == None),
+                    Publications.document_docid.isnot(None),
+                    func.trim(Publications.document_docid) != '',
+                    Publications.deleted_at.is_(None),
+                )
+                # Drain oldest-first so a sudden burst of new docids can't
+                # permanently starve earlier unsynced rows that just happen
+                # to fall outside the per-tick LIMIT.
+                .order_by(Publications.id.asc())
+                .limit(100)
+                .all()
+            )
             
             if not recent_publications:
                 logger.info("No recent publications found")
