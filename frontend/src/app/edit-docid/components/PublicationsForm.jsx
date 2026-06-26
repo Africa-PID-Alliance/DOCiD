@@ -68,11 +68,15 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   console.log('PublicationsForm - user:', user);
   console.log('PublicationsForm - accountTypeName:', accountTypeName);
 
-  // Edit-docid fork: only APA Handle iD is usable.
-  // New files always mint a Cordra child handle server-side when saved.
-  // DataCite / CrossRef / DOI are hidden to avoid misleading "picked DOI, got handle" UX.
+  // Edit-docid: APA Handle iD is always minted server-side on save (the
+  // Cordra child handle is our internal resolvable id). CrossRef is exposed
+  // as a *tagging* mechanism for files that already have an external DOI —
+  // the user looks the DOI up via api.crossref.org and we store it on the
+  // row alongside the always-minted handle. DataCite / DOI remain hidden
+  // because we don't yet mint either.
   const identifiers = useMemo(() => [
     { label: 'APA Handle iD', value: 1 },
+    { label: 'CrossRef',      value: 3 },
   ], []);
 
   // Seed local state from parent at controlled moments only — namely each
@@ -188,20 +192,103 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
     });
   };
 
-  const handleIdentifierChange = (index, value) => {
-    // Edit-docid fork: only APA Handle iD (value=1) is offered in the
-    // dropdown. Dead DataCite/CrossRef branches removed per Codex v2 review.
-    // Backend mints the Cordra handle when the file is saved.
-    setSelectedIdentifier(value);
-    setFindingError(false);
-    setGeneratedIdentifier('pending');
-    handleMetadataChange(index, 'identifier', value);
-    handleMetadataChange(index, 'identifierType', value);
-    handleMetadataChange(index, 'generated_identifier', 'pending');
+  // Per-file map of in-flight CrossRef errors, keyed by file index. Per-file
+  // (not global) so two files' lookups can fail/succeed independently.
+  const [crossrefErrors, setCrossrefErrors] = useState({});
+
+  // Single in-place file-object replacement helper. Preserves every other
+  // field on the row so callers can't accidentally drop `id`, `existing`,
+  // `file`, `externalIdentifier`, etc. (See PublicationsForm.jsx:148-156 for
+  // the data-loss-fix the 2026-06-25 incident motivated — keep that pattern.)
+  const mutateFile = (index, patch) => {
+    const next = [...uploadedFiles];
+    next[index] = { ...next[index], ...patch };
+    if (patch.metadata) {
+      next[index].metadata = { ...next[index].metadata, ...patch.metadata };
+    }
+    setUploadedFiles(next);
+    updateFormData({ publicationType: selectedType, files: next });
   };
 
-  // CrossRef lookup / cancel helpers removed in edit-docid fork (L1): the
-  // identifier dropdown only offers APA Handle iD, so these were unreachable.
+  const handleIdentifierChange = (index, value) => {
+    setSelectedIdentifier(value);
+    setFindingError(false);
+    setCrossrefErrors((e) => ({ ...e, [index]: '' }));
+
+    if (value === 3) {
+      // CrossRef path — clear any minted-handle placeholder so the user is
+      // explicitly prompted to look up the external DOI. The DOI itself
+      // lives in `file.externalIdentifier` (string) once the lookup runs.
+      mutateFile(index, {
+        externalIdentifierType: 'DOI',
+        metadata: { identifier: 3, identifierType: 3, generated_identifier: '' },
+      });
+      return;
+    }
+
+    // value === 1 (APA Handle iD). Drop any previously-tagged external DOI
+    // — the backend will mint a fresh handle on save.
+    mutateFile(index, {
+      externalIdentifier: '',
+      externalIdentifierType: '',
+      metadata: { identifier: 1, identifierType: 1, generated_identifier: 'pending' },
+    });
+  };
+
+  // Per-file Crossref title-search. Stores the search query in
+  // `file.metadata.crossrefTitle` so multiple files have independent inputs.
+  const generateCrossref = async (index) => {
+    const file = uploadedFiles[index];
+    const query = (file?.metadata?.crossrefTitle || '').trim();
+    if (!query) return;
+    setLoadingIdentifiers((prev) => ({ ...prev, [index]: true }));
+    setCrossrefErrors((e) => ({ ...e, [index]: '' }));
+    try {
+      const response = await axios.get(
+        `/api/crossref/search/?query=${encodeURIComponent(query)}`
+      );
+      const hitRaw = response?.data?.data?.[0]?.DOI;
+      if (!hitRaw) {
+        setCrossrefErrors((e) => ({ ...e, [index]: 'No DOI found for that title.' }));
+        return;
+      }
+      // Client-side shape check before storing — same rule the backend
+      // applies (`^10\.\d+/.+`). Defends against an upstream API returning
+      // a malformed DOI; without this we'd succeed in the UI but get a
+      // 400 mid-save which is the worse UX.
+      const hit = String(hitRaw).trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+      if (!/^10\.\d+\/.+/.test(hit)) {
+        setCrossrefErrors((e) => ({
+          ...e,
+          [index]:
+            `CrossRef returned an unexpected identifier ("${hitRaw}"). ` +
+            `Try a different title or paste the DOI manually.`,
+        }));
+        return;
+      }
+      mutateFile(index, {
+        externalIdentifier: hit,
+        externalIdentifierType: 'DOI',
+      });
+    } catch (err) {
+      console.error('CrossRef search failed:', err);
+      setCrossrefErrors((e) => ({
+        ...e,
+        [index]: 'CrossRef lookup failed — try again or switch back to APA Handle iD.',
+      }));
+    } finally {
+      setLoadingIdentifiers((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+
+  const cancelCrossref = (index) => {
+    mutateFile(index, {
+      externalIdentifier: '',
+      externalIdentifierType: '',
+      metadata: { crossrefTitle: '' },
+    });
+    setCrossrefErrors((e) => ({ ...e, [index]: '' }));
+  };
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -363,6 +450,19 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
                   <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                     {formatFileSize(file.size)}
                   </Typography>
+                  {file.externalIdentifier && file.externalIdentifierType === 'DOI' && (
+                    <Typography variant="caption" sx={{ display: 'block', color: theme.palette.text.secondary }}>
+                      DOI:&nbsp;
+                      <a
+                        href={`https://doi.org/${file.externalIdentifier}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: theme.palette.primary.main, textDecoration: 'none' }}
+                      >
+                        {file.externalIdentifier}
+                      </a>
+                    </Typography>
+                  )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button
@@ -477,13 +577,62 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
                   )}
                 </Grid>
                 <Grid item xs={6}>
-                  {/* Edit-docid fork: only APA Handle iD is offered; no CrossRef UI. */}
-                  <TextField
-                    fullWidth
-                    label={t('assign_docid.publications_form.generated_identifier')}
-                    value={file.metadata.generated_identifier || ''}
-                    InputProps={{ readOnly: true }}
-                  />
+                  {file.metadata.identifierType === 3 ? (
+                    <Box>
+                      {!file.externalIdentifier ? (
+                        <>
+                          <TextField
+                            fullWidth
+                            label={t('assign_docid.publications_form.crossref_title_search')}
+                            value={file.metadata.crossrefTitle || ''}
+                            onChange={(e) =>
+                              handleMetadataChange(index, 'crossrefTitle', e.target.value)
+                            }
+                            sx={{ mb: 1 }}
+                          />
+                          <Button
+                            variant="contained"
+                            onClick={() => generateCrossref(index)}
+                            fullWidth
+                            disabled={
+                              !(file.metadata.crossrefTitle || '').trim() ||
+                              !!loadingIdentifiers[index]
+                            }
+                          >
+                            {t('assign_docid.publications_form.search_crossref')}
+                          </Button>
+                        </>
+                      ) : (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            fullWidth
+                            value={file.externalIdentifier}
+                            label={t('assign_docid.publications_form.generated_crossref_doi')}
+                            InputProps={{ readOnly: true }}
+                          />
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => cancelCrossref(index)}
+                          >
+                            <CancelIcon />
+                          </Button>
+                        </Box>
+                      )}
+                      {crossrefErrors[index] && (
+                        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                          {crossrefErrors[index]}
+                        </Typography>
+                      )}
+                    </Box>
+                  ) : (
+                    <TextField
+                      fullWidth
+                      label={t('assign_docid.publications_form.generated_identifier')}
+                      value={file.metadata.generated_identifier || ''}
+                      InputProps={{ readOnly: true }}
+                    />
+                  )}
                 </Grid>
               </Grid>
             </Paper>

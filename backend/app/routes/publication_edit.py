@@ -20,6 +20,7 @@ Upload constraints:
 """
 import logging
 import os
+import re
 import uuid
 from urllib.parse import quote as url_quote, urlparse
 
@@ -48,6 +49,25 @@ edit_bp = Blueprint('publication_edit', __name__, url_prefix='/api/v1/publicatio
 
 UPLOAD_DIR = 'uploads'
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
+# Local copy of `app.routes.publications.coerce_real_doi` and its `_REAL_DOI_RE`
+# regex, kept here to avoid a cross-blueprint import. Accepts a CrossRef /
+# DataCite DOI (`10.xxxx/...`); strips a `https://doi.org/` /
+# `http://dx.doi.org/` prefix; rejects DOCiD Handles (`20.500.14351/...`) and
+# any other non-DOI string. Returns the bare-DOI form or None.
+_REAL_DOI_RE = re.compile(r'^10\.\d+/.+')
+
+
+def _coerce_real_doi(raw):
+    if not raw or not isinstance(raw, str):
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return None
+    bare = re.sub(r'^https?://(dx\.)?doi\.org/', '', stripped, flags=re.IGNORECASE)
+    if _REAL_DOI_RE.match(bare):
+        return bare
+    return None
 
 # Extensions we refuse outright (scripts, executables, web content that nginx might serve).
 BLOCKED_EXTENSIONS = {
@@ -505,6 +525,41 @@ def add_file(publication_id):
     video_url_raw = (request.form.get('video_url') or '').strip()
     uploaded = request.files.get('file')
 
+    # Optional external identifier (e.g. an existing CrossRef DOI the
+    # researcher wants to record against this file). Stored as 'DOI' to match
+    # the assign-docid flow — the UI labels the dropdown option "CrossRef".
+    ext_id_type_raw = (request.form.get('external_identifier_type') or '').strip()
+    ext_id_value_raw = (request.form.get('external_identifier_value') or '').strip()
+    ext_identifier = None
+    ext_identifier_type = None
+    if ext_id_type_raw or ext_id_value_raw:
+        if not ext_id_type_raw:
+            return jsonify({
+                'error': "external_identifier_type is required when "
+                         "external_identifier_value is supplied."
+            }), 400
+        if ext_id_type_raw != 'DOI':
+            return jsonify({
+                'error': "external_identifier_type must be 'DOI' (the only external "
+                         "identifier supported here today)."
+            }), 400
+        if not ext_id_value_raw:
+            return jsonify({
+                'error': "external_identifier_value is required when "
+                         "external_identifier_type='DOI' is supplied."
+            }), 400
+        coerced = _coerce_real_doi(ext_id_value_raw)
+        if coerced is None:
+            return jsonify({
+                'error': "Invalid DOI: must look like 10.xxxx/..."
+            }), 400
+        if len(coerced) > 100:
+            return jsonify({
+                'error': "DOI too long (max 100 characters after URL-prefix stripping)."
+            }), 400
+        ext_identifier = coerced
+        ext_identifier_type = 'DOI'
+
     if not title:
         return jsonify({'error': 'title is required'}), 400
 
@@ -532,11 +587,16 @@ def add_file(publication_id):
             identifier=minted[:100],
             generated_identifier=minted[:100],
             handle_identifier=minted[:100],
+            external_identifier=ext_identifier,
+            external_identifier_type=ext_identifier_type,
         )
         db.session.add(pub_file)
         db.session.flush()
+        audit_label = f"{title} (video) ({minted})"
+        if ext_identifier:
+            audit_label += f" doi={ext_identifier}"
         _audit(publication_id, user_id, 'CREATE_FILE',
-               field_name='publications_files', new_value=f"{title} (video) ({minted})")
+               field_name='publications_files', new_value=audit_label)
         db.session.commit()
         return jsonify({
             'message': 'Video link added',
@@ -568,11 +628,16 @@ def add_file(publication_id):
         identifier=minted[:100],
         generated_identifier=minted[:100],
         handle_identifier=minted[:100],
+        external_identifier=ext_identifier,
+        external_identifier_type=ext_identifier_type,
     )
     db.session.add(pub_file)
     db.session.flush()
+    audit_label = f"{title} ({minted})"
+    if ext_identifier:
+        audit_label += f" doi={ext_identifier}"
     _audit(publication_id, user_id, 'CREATE_FILE',
-           field_name='publications_files', new_value=f"{title} ({minted})")
+           field_name='publications_files', new_value=audit_label)
     db.session.commit()
     return jsonify({
         'message': 'File added',
@@ -587,9 +652,12 @@ def add_file(publication_id):
 def update_file(publication_id, file_id):
     """Update metadata on an existing file row.
 
-    Only title, description, and publication_type_id are mutable. file_url,
-    file_name, file_type, and handle_identifier are immutable — attempts to
-    change them are silently ignored to keep Cordra + disk state in sync.
+    Mutable: title, description, publication_type_id, plus the external
+    identifier pair (external_identifier_type + external_identifier_value).
+    file_url, file_name, file_type, and handle_identifier are immutable —
+    attempts to change them are silently ignored to keep Cordra + disk
+    state in sync. The external identifier pair has three-state semantics:
+    omitted fields = no change · empty string = clear · non-empty = set.
     """
     publication, user_id, err = _authorize(publication_id)
     if err:
@@ -615,6 +683,57 @@ def update_file(publication_id, file_id):
         if old_value != new_value:
             setattr(pub_file, field, new_value)
             changes[field] = (old_value, new_value)
+
+    # External identifier (Crossref DOI tagging). Three-state semantics:
+    #   - field omitted entirely from body  -> no change (leave column alone)
+    #   - field present and empty string    -> clear (set NULL)
+    #   - field present and non-empty       -> validate via _coerce_real_doi and write
+    # Type and value travel together — sending only one is a 400 to catch UI bugs.
+    has_ext_type = 'external_identifier_type' in data
+    has_ext_value = 'external_identifier_value' in data
+    if has_ext_type or has_ext_value:
+        if has_ext_type != has_ext_value:
+            return jsonify({
+                'error': "external_identifier_type and external_identifier_value must "
+                         "be sent together (or both omitted)."
+            }), 400
+        raw_type = data.get('external_identifier_type')
+        raw_value = data.get('external_identifier_value')
+        ext_type_str = (raw_type or '').strip() if isinstance(raw_type, str) else ''
+        ext_value_str = (raw_value or '').strip() if isinstance(raw_value, str) else ''
+        # Both empty -> clear the existing identifier.
+        if not ext_type_str and not ext_value_str:
+            new_ext_id = None
+            new_ext_type = None
+        else:
+            if ext_type_str != 'DOI':
+                return jsonify({
+                    'error': "external_identifier_type must be 'DOI' (the only external "
+                             "identifier supported here today)."
+                }), 400
+            if not ext_value_str:
+                return jsonify({
+                    'error': "external_identifier_value is required when "
+                             "external_identifier_type='DOI' is supplied."
+                }), 400
+            coerced = _coerce_real_doi(ext_value_str)
+            if coerced is None:
+                return jsonify({'error': 'Invalid DOI: must look like 10.xxxx/...'}), 400
+            if len(coerced) > 100:
+                return jsonify({
+                    'error': 'DOI too long (max 100 characters after URL-prefix stripping).'
+                }), 400
+            new_ext_id = coerced
+            new_ext_type = 'DOI'
+
+        old_ext_id = pub_file.external_identifier
+        old_ext_type = pub_file.external_identifier_type
+        if old_ext_id != new_ext_id:
+            pub_file.external_identifier = new_ext_id
+            changes['external_identifier'] = (old_ext_id, new_ext_id)
+        if old_ext_type != new_ext_type:
+            pub_file.external_identifier_type = new_ext_type
+            changes['external_identifier_type'] = (old_ext_type, new_ext_type)
 
     if changes:
         for field, (old, new) in changes.items():

@@ -144,6 +144,13 @@ function formToDbProject(p) {
 // Existing rows from the DB are flagged with `existing: true` so the form does not try to
 // re-upload them. New rows added by the form have no `id` and carry a real File blob.
 function dbToFormFile(f) {
+  // If the stored row already carries a Crossref DOI as external_identifier,
+  // round-trip it back through to the form. value=3 maps to the "CrossRef"
+  // option in the dropdown (same numeric convention as assign-docid).
+  const hasExternalDoi =
+    (f.external_identifier_type === 'DOI') &&
+    !!(f.external_identifier && String(f.external_identifier).trim());
+  const identifierType = hasExternalDoi ? 3 : 1;
   return {
     id: f.id,
     existing: true,
@@ -154,11 +161,13 @@ function dbToFormFile(f) {
     lastModified: 0,
     file: null,
     publicationType: f.publication_type_id != null ? String(f.publication_type_id) : '',
+    externalIdentifier: hasExternalDoi ? String(f.external_identifier).trim() : '',
+    externalIdentifierType: hasExternalDoi ? 'DOI' : '',
     metadata: {
       title: f.title || '',
       description: f.description || '',
-      identifier: 1,                 // APA Handle iD (only option shown in edit mode)
-      identifierType: 1,
+      identifier: identifierType,
+      identifierType,
       generated_identifier: f.generated_identifier || '',
     },
   };
@@ -767,6 +776,26 @@ export default function EditDocidPage() {
       }
     }
 
+    // Pre-save validation: every file that has CrossRef selected as its
+    // identifier type must have a DOI populated. Without this guard, the
+    // backend would reject the POST/PUT with a 400 mid-save and leave the
+    // file list in a confusing partial state.
+    const missingCrossrefIdx = files.findIndex(
+      (f) =>
+        f.metadata?.identifierType === 3 &&
+        !String(f.externalIdentifier || '').trim()
+    );
+    if (missingCrossrefIdx !== -1) {
+      const offending = files[missingCrossrefIdx];
+      setFeedbackMessage({
+        type: 'error',
+        text:
+          `Pick a DOI for "${offending.metadata?.title || offending.name || 'untitled file'}" ` +
+          `or switch its identifier type back to APA Handle iD.`,
+      });
+      return;
+    }
+
     setIsSaving(true);
     let uploaded = 0, updated = 0, deleted = 0, errors = 0;
     const defaultType = publicationsData.publicationType || '1';
@@ -792,17 +821,32 @@ export default function EditDocidPage() {
         const origMeta = orig.metadata || {};
         const newType = f.publicationType || defaultType;
         const origType = orig.publicationType || '';
+        const newExtId = String(f.externalIdentifier || '').trim();
+        const newExtType = f.externalIdentifierType === 'DOI' ? 'DOI' : '';
+        const origExtId = String(orig.externalIdentifier || '').trim();
+        const origExtType = orig.externalIdentifierType === 'DOI' ? 'DOI' : '';
+        const extIdentifierChanged =
+          newExtId !== origExtId || newExtType !== origExtType;
         const changed =
           (meta.title || '') !== (origMeta.title || '') ||
           (meta.description || '') !== (origMeta.description || '') ||
-          String(newType) !== String(origType);
+          String(newType) !== String(origType) ||
+          extIdentifierChanged;
         if (!changed) continue;
         try {
-          await axios.put(`${EDIT_BASE(publicationId)}/files/${f.id}`, {
+          const payload = {
             title: meta.title || '',
             description: meta.description || '',
             publication_type_id: newType,
-          });
+          };
+          if (extIdentifierChanged) {
+            // Three-state semantics on the backend:
+            //   omit fields = no change · empty = clear · non-empty = set.
+            // We always send the pair together so type/value can't drift.
+            payload.external_identifier_type = newExtId ? 'DOI' : '';
+            payload.external_identifier_value = newExtId;
+          }
+          await axios.put(`${EDIT_BASE(publicationId)}/files/${f.id}`, payload);
           updated++;
           successfullyPutById.set(f.id, f);
         } catch (err) { errors++; console.error('File update:', err); }
@@ -817,6 +861,15 @@ export default function EditDocidPage() {
         fd.append('title', meta.title || f.name || f.file?.name || 'Untitled');
         fd.append('description', meta.description || '');
         fd.append('publication_type_id', f.publicationType || defaultType);
+        // Optional external identifier (CrossRef DOI). Only send if the user
+        // picked CrossRef AND we have a non-empty DOI. Pre-save validation
+        // above guarantees we never reach here with an empty DOI when
+        // CrossRef is selected.
+        const extDoi = String(f.externalIdentifier || '').trim();
+        if (meta.identifierType === 3 && extDoi) {
+          fd.append('external_identifier_type', 'DOI');
+          fd.append('external_identifier_value', extDoi);
+        }
         if (f.videoUrl) {
           fd.append('video_url', f.videoUrl);
         } else if (f.file instanceof File || f.file instanceof Blob) {
