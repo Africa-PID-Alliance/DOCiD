@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -37,7 +37,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 
-const PublicationsForm = ({ formData, updateFormData }) => {
+const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
@@ -75,17 +75,23 @@ const PublicationsForm = ({ formData, updateFormData }) => {
     { label: 'APA Handle iD', value: 1 },
   ], []);
 
-  // Effect to sync state with parent when formData changes
+  // Seed local state from parent at controlled moments only — namely each
+  // time the parent successfully (re)loads the publication from the server.
+  // The parent bumps `loadGeneration` after every successful load, including
+  // post-save refresh, so we re-seed once per generation and ignore
+  // incidental parent re-renders in between (tab switches, stepper nav,
+  // sibling-state updates). This is the fix for the 2026-06-25 incident
+  // where a passive sync effect overwrote local state and the downstream
+  // diff-on-save then DELETEd the missing rows from the DB. See
+  // /Users/ekariz/.claude/plans/next-we-need-to-mutable-matsumoto.md
+  const lastSeededGeneration = useRef(-1);
   useEffect(() => {
-    if (formData) {
-      if (formData.publicationType !== selectedType) {
-        setSelectedType(formData.publicationType || '');
-      }
-      if (formData.files !== uploadedFiles) {
-        setUploadedFiles(formData.files || []);
-      }
-    }
-  }, [formData]);
+    if (!formData) return;
+    if (lastSeededGeneration.current === loadGeneration) return;
+    setSelectedType(formData.publicationType || '');
+    setUploadedFiles(formData.files || []);
+    lastSeededGeneration.current = loadGeneration;
+  }, [loadGeneration, formData]);
 
   // Fetch publication types
   useEffect(() => {
@@ -138,22 +144,15 @@ const PublicationsForm = ({ formData, updateFormData }) => {
 
     const updatedFiles = [...uploadedFiles, ...newFiles];
     setUploadedFiles(updatedFiles);
-    
-    // Create a serializable version for the form data update
-    const serializableFiles = updatedFiles.map(file => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-      url: file.url,
-      // Don't include the actual file object in the serializable version
-      file: file.file,
-      metadata: file.metadata
-    }));
 
+    // Preserve ALL fields on already-loaded rows (especially id, existing,
+    // publicationType). The previous serializableFiles.map() cherry-picked
+    // a fixed subset and silently dropped id/existing/publicationType from
+    // existing rows — which then caused savePublicationFiles' diff loop to
+    // DELETE every baseline row from the DB. Codex round-2 catch.
     updateFormData({
       publicationType: selectedType,
-      files: serializableFiles
+      files: updatedFiles,
     });
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -72,7 +72,7 @@ const documentTypes = [
   { id: 21, type: 'Correction Erratum', extensions: '.pdf, .doc, .docx', icon: DocumentIcon, enabled: false }
 ];
 
-const DocumentsForm = ({ formData, updateFormData }) => {
+const DocumentsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
@@ -100,17 +100,19 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   console.log('DocumentsForm - user:', user);
   console.log('DocumentsForm - accountTypeName:', accountTypeName);
 
-  // Effect to sync state with parent when formData changes
+  // Seed local state from parent only when the parent successfully (re)loads
+  // the publication (loadGeneration bumps). This matches PublicationsForm and
+  // closes the same 2026-06-25 data-loss path (parent re-renders no longer
+  // clobber the user's in-progress documents list). See
+  // /Users/ekariz/.claude/plans/next-we-need-to-mutable-matsumoto.md
+  const lastSeededGeneration = useRef(-1);
   useEffect(() => {
-    if (formData) {
-      if (formData.documentType !== selectedType) {
-        setSelectedType(formData.documentType || '');
-      }
-      if (formData.files !== uploadedFiles) {
-        setUploadedFiles(formData.files || []);
-      }
-    }
-  }, [formData]);
+    if (!formData) return;
+    if (lastSeededGeneration.current === loadGeneration) return;
+    setSelectedType(formData.documentType || '');
+    setUploadedFiles(formData.files || []);
+    lastSeededGeneration.current = loadGeneration;
+  }, [loadGeneration, formData]);
 
   const getAcceptedFileTypes = (typeId) => {
     const documentType = documentTypes.find(dt => dt.id === typeId)?.type;

@@ -278,6 +278,18 @@ export default function EditDocidPage() {
   const originalPublicationFiles = useRef([]);
   const [documentsData, setDocumentsData] = useState({ documentType: '', files: [] });
   const originalPublicationDocuments = useRef([]);
+  // True only after loadPublication() has successfully populated the file/doc
+  // baseline refs. Until then the diff-on-save flow would treat every absent
+  // row as a deletion target, so we gate the Save button on this. See
+  // /Users/ekariz/.claude/plans/next-we-need-to-mutable-matsumoto.md for the
+  // 2026-06-25 data-loss incident that motivates this gate.
+  const [publicationsLoaded, setPublicationsLoaded] = useState(false);
+  // Bumped on every successful loadPublication(). Child forms watch this to
+  // know when to re-seed their local state from the fresh DB shape (e.g.
+  // newly-assigned ids after upload). Without this, the previous "sync on
+  // every formData change" effect created the data-loss bug; with this, the
+  // child form only re-syncs at controlled moments.
+  const [loadGeneration, setLoadGeneration] = useState(0);
 
   // Local Contexts attachments (project-level, M2M). `_legacy` synthetic entry
   // groups NULL-project attachment rows so we never lose-track-of legacy data.
@@ -298,6 +310,9 @@ export default function EditDocidPage() {
   const loadPublication = useCallback(async () => {
     if (!publicationId || !currentUserId) return;
     setIsLoading(true);
+    // Force gate closed during reload so a slow refetch can't be saved against
+    // a stale (or partially-mutated) state. Reopened only on success below.
+    setPublicationsLoaded(false);
     try {
       const response = await axios.get(
         `/api/publications/get-publication-for-edit/${publicationId}`
@@ -373,8 +388,17 @@ export default function EditDocidPage() {
       }
 
       setFetchError(null);
+      // Only flip the gate open AFTER the baseline refs above were populated
+      // by a successful response. If we got here, the diff-on-save flow is
+      // safe to run against a real baseline.
+      setPublicationsLoaded(true);
+      // Bump the load generation so child forms (PublicationsForm /
+      // DocumentsForm) know to re-seed their local list from the fresh
+      // server shape (e.g. newly-minted ids after an upload).
+      setLoadGeneration((g) => g + 1);
     } catch (err) {
       setFetchError(err.response?.data?.message || 'Failed to load publication');
+      // Leave publicationsLoaded=false so Save stays disabled until reload.
     } finally {
       setIsLoading(false);
     }
@@ -706,11 +730,46 @@ export default function EditDocidPage() {
 
   // ---- Files & Documents: upload / diff-update / delete on "Save" ----
   async function savePublicationFiles() {
+    // Defensive guards against the 2026-06-25 data-loss bug. The diff-and-save
+    // flow below DELETEs any baseline row not present in the current state. If
+    // the page never finished loading (or was clobbered to empty), running the
+    // diff would silently wipe every attached file.
+    if (!publicationsLoaded) {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Publication is still loading — please wait, then try again.',
+      });
+      return;
+    }
+    const files = publicationsData.files || [];
+    const original = originalPublicationFiles.current || [];
+    if (original.length > 0 && files.length === 0) {
+      setFeedbackMessage({
+        type: 'error',
+        text:
+          'Publications list is empty — refusing to delete all attached files. ' +
+          'Please reload the page and try again.',
+      });
+      return;
+    }
+    const wouldDeleteCount = original.filter(
+      (o) => !files.find((f) => f.id === o.id)
+    ).length;
+    if (original.length >= 3 && wouldDeleteCount > original.length / 2) {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm(
+            `This will delete ${wouldDeleteCount} of ${original.length} attached files. Continue?`
+          )
+        : false;
+      if (!ok) {
+        setFeedbackMessage({ type: 'info', text: 'Save cancelled.' });
+        return;
+      }
+    }
+
     setIsSaving(true);
     let uploaded = 0, updated = 0, deleted = 0, errors = 0;
-    const files = publicationsData.files;
     const defaultType = publicationsData.publicationType || '1';
-    const original = originalPublicationFiles.current;
     const successfullyDeletedIds = new Set();
     const successfullyPutById = new Map();
     try {
@@ -795,11 +854,45 @@ export default function EditDocidPage() {
   }
 
   async function savePublicationDocuments() {
+    // Same defensive guards as savePublicationFiles — the Documents tab uses
+    // the same diff-and-delete pattern against publication_documents and is
+    // equally vulnerable to the 2026-06-25 data-loss bug.
+    if (!publicationsLoaded) {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Publication is still loading — please wait, then try again.',
+      });
+      return;
+    }
+    const docs = documentsData.files || [];
+    const original = originalPublicationDocuments.current || [];
+    if (original.length > 0 && docs.length === 0) {
+      setFeedbackMessage({
+        type: 'error',
+        text:
+          'Documents list is empty — refusing to delete all attached documents. ' +
+          'Please reload the page and try again.',
+      });
+      return;
+    }
+    const wouldDeleteCount = original.filter(
+      (o) => !docs.find((d) => d.id === o.id)
+    ).length;
+    if (original.length >= 3 && wouldDeleteCount > original.length / 2) {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm(
+            `This will delete ${wouldDeleteCount} of ${original.length} attached documents. Continue?`
+          )
+        : false;
+      if (!ok) {
+        setFeedbackMessage({ type: 'info', text: 'Save cancelled.' });
+        return;
+      }
+    }
+
     setIsSaving(true);
     let uploaded = 0, updated = 0, deleted = 0, errors = 0;
-    const docs = documentsData.files;
     const defaultType = documentsData.documentType || '1';
-    const original = originalPublicationDocuments.current;
     const successfullyDeletedIds = new Set();
     const successfullyPutById = new Map();
     try {
@@ -910,7 +1003,10 @@ export default function EditDocidPage() {
     return pageWrap(
       <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
         <Alert severity="error">{fetchError}</Alert>
-        <Button sx={{ mt: 2 }} startIcon={<ArrowBackIcon />} onClick={() => router.back()}>Back</Button>
+        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          <Button variant="contained" onClick={loadPublication}>Retry</Button>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => router.back()}>Back</Button>
+        </Box>
       </Paper>
     );
   }
@@ -1155,10 +1251,16 @@ export default function EditDocidPage() {
               publicationType: next.publicationType ?? publicationsData.publicationType ?? '',
               files: next.files || [],
             })}
+            loadGeneration={loadGeneration}
           />
           <Box mt={2}>
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationFiles} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Publications'}
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={savePublicationFiles}
+              disabled={isSaving || !publicationsLoaded}
+            >
+              {isSaving ? 'Saving...' : (publicationsLoaded ? 'Save Publications' : 'Loading...')}
             </Button>
           </Box>
         </Paper>
@@ -1173,10 +1275,16 @@ export default function EditDocidPage() {
               documentType: next.documentType ?? documentsData.documentType ?? '',
               files: next.files || [],
             })}
+            loadGeneration={loadGeneration}
           />
           <Box mt={2}>
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={savePublicationDocuments} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Documents'}
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={savePublicationDocuments}
+              disabled={isSaving || !publicationsLoaded}
+            >
+              {isSaving ? 'Saving...' : (publicationsLoaded ? 'Save Documents' : 'Loading...')}
             </Button>
           </Box>
         </Paper>
