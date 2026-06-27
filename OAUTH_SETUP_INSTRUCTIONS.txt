@@ -1,0 +1,52 @@
+DOCiD — How to create the Google and GitHub sign-in credentials
+
+Why we need this
+
+The "Sign in with Google" and "Sign in with GitHub" buttons on https://docid.africapidalliance.org are currently broken. Google shows the error "Access blocked: Authorization Error — Missing required parameter: client_id". The reason is that the website is missing its Google and GitHub app credentials (a Client ID and a Client Secret for each). These have to be created once inside the Google and GitHub websites, then handed to the developer to install on the server. This guide walks you through it. No coding required.
+
+By the end you will have four values to send back to the developer: a Google Client ID, a Google Client Secret, a GitHub Client ID, and a GitHub Client Secret. The two Secret values are like passwords, so send them privately and never in a public chat or group. The two Client ID values are not secret. You will use our shared Gmail account to sign in to both Google and GitHub.
+
+
+Part A — Google sign-in (Google Cloud Console)
+
+Step 1. Open https://console.cloud.google.com/ in your browser and sign in with our Gmail account. If it asks you to agree to the Terms of Service, tick the box and continue.
+
+Step 2. At the very top of the page, next to the words "Google Cloud", there is a project picker (a dropdown that may say "Select a project"). Click it. If a project called DOCiD already exists, choose it. Otherwise click "NEW PROJECT", type the name DOCiD, click CREATE, and wait a few seconds. Make sure the project picker at the top now shows DOCiD.
+
+Step 3. Configure the consent screen (only needed the first time). In the search bar at the top type "OAuth consent screen" and click the matching result. If it asks for a User Type, choose External and click CREATE. Fill in only the required fields: App name is DOCiD, User support email is our Gmail address (pick it from the dropdown), and Developer contact email is our Gmail address. Click SAVE AND CONTINUE through the remaining screens (Scopes, Test users) without adding anything, and on the last screen click BACK TO DASHBOARD. If the Publishing status shows "Testing", click "PUBLISH APP" and confirm, so anyone can sign in and not just test users.
+
+Step 4. In the search bar at the top type "Credentials" and click the result under APIs & Services. Click "+ CREATE CREDENTIALS" near the top and choose "OAuth client ID". For Application type choose "Web application". For Name type "DOCiD Web". Under "Authorized JavaScript origins" click "+ ADD URI" and enter exactly https://docid.africapidalliance.org — then under "Authorized redirect URIs" click "+ ADD URI" and enter exactly https://docid.africapidalliance.org/callback/google (type it carefully; it must match exactly, including https and no slash at the end). Click CREATE.
+
+Step 5. A popup titled "OAuth client created" appears showing a Client ID and a Client secret. Copy both into a note. The Client ID is the Google Client ID and the Client secret is the Google Client Secret. If you close the popup you can find them again on the Credentials page by clicking the client name "DOCiD Web".
+
+
+Part B — GitHub sign-in (GitHub Developer Settings)
+
+Step 1. Open https://github.com/settings/developers and sign in with our Gmail account (the GitHub account tied to that email).
+
+Step 2. Make sure you are on the "OAuth Apps" tab on the left, then click "New OAuth App" (or "Register a new application").
+
+Step 3. Fill in the form exactly: Application name is DOCiD, Homepage URL is https://docid.africapidalliance.org, and Authorization callback URL is https://docid.africapidalliance.org/callback/github (it must match exactly; https and no slash at the end). Leave "Enable Device Flow" unchecked and click "Register application".
+
+Step 4. The next page shows the Client ID — copy it; this is the GitHub Client ID. Then click "Generate a new client secret" (GitHub may ask you to confirm our password or a 2FA code). A secret value appears; copy it now, as this is the GitHub Client Secret. GitHub only shows this secret once, so if you lose it just generate a new one and use the newest.
+
+
+What to send back
+
+Send these four values to the developer, with the two secrets sent privately:
+
+  GOOGLE_CLIENT_ID     = ........................................
+  GOOGLE_CLIENT_SECRET = ........................................
+  GITHUB_CLIENT_ID     = ........................................
+  GITHUB_CLIENT_SECRET = ........................................
+
+That is all. The developer will install them on the server and the "Sign in with Google" and "Sign in with GitHub" buttons will start working.
+
+
+Notes and troubleshooting
+
+The exact web addresses you enter must be: Google JavaScript origin https://docid.africapidalliance.org, Google redirect URI https://docid.africapidalliance.org/callback/google, GitHub homepage https://docid.africapidalliance.org, and GitHub callback URL https://docid.africapidalliance.org/callback/github. A single typo here is the most common cause of sign-in still failing.
+
+If, after installing, Google shows "redirect_uri_mismatch", it means the redirect URI in Step A4 does not exactly match the one above; fix it and save.
+
+Keep the Client Secrets safe, because anyone who has them could impersonate our app. Do not paste them into public chats, screenshots, or documents that get shared widely.

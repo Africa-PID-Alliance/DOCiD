@@ -61,7 +61,7 @@ export async function GET(request) {
             "https://github.com/login/oauth/access_token",
             {
               client_id: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
-              client_secret: process.env.NEXT_PUBLIC_GITHUB_CLIENT_SECRET,
+              client_secret: process.env.GITHUB_CLIENT_SECRET,
               code: code,
               redirect_uri:process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI,
             },
@@ -115,7 +115,7 @@ export async function GET(request) {
     },
     body: JSON.stringify({
         social_id: social_id,
-        full_name: name,
+        full_name: name || login,
         email: uniqueEmail,
         type: 'github',
         avatar: avatar_url,
@@ -144,7 +144,7 @@ console.log("Flask API Response:", userData);
     avatar: userData.avator || avatar_url,
     email: userData.email || uniqueEmail,
     first_time: userData.first_time || 0,
-    full_name: userData.full_name || name,
+    full_name: userData.full_name || name || login,
     message: userData.message || "User already exists",
     status: userData.status || false,
     type: "github",

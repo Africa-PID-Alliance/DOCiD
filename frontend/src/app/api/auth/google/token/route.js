@@ -70,14 +70,14 @@ export async function GET(request) {
         // Log all environment variables (without values for security)
         const envCheck = {
             hasClientId: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-            hasClientSecret: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET,
+            hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
             hasRedirectUri: !!process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI
         };
         console.log('Environment variables:', envCheck);
 
         // Google OAuth Configuration
         const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-        const clientSecret = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
         const redirectUri = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI;
         const tokenUrl = 'https://oauth2.googleapis.com/token';
 
