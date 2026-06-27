@@ -85,6 +85,12 @@ class Config:
     LENS_SCHOLAR_API_KEY = os.getenv('LENS_SCHOLAR_API_KEY', '')
     LENS_PATENT_API_KEY = os.getenv('LENS_PATENT_API_KEY', '')
     LENS_API_BASE_URL = os.getenv('LENS_API_BASE_URL', 'https://api.lens.org')
+    BASE_API_KEY = os.getenv('BASE_API_KEY', '')
+    BASE_API_BASE_URL = os.getenv('BASE_API_BASE_URL', 'https://api.base-search.net/cgi-bin/BaseHttpSearchInterface.fcgi')
+    WORLDCAT_CLIENT_ID = os.getenv('WORLDCAT_CLIENT_ID', '')
+    WORLDCAT_CLIENT_SECRET = os.getenv('WORLDCAT_CLIENT_SECRET', '')
+    WORLDCAT_SEARCH_BASE_URL = os.getenv('WORLDCAT_SEARCH_BASE_URL', 'https://americas.discovery.api.oclc.org/worldcat/search/v2')
+    WORLDCAT_METADATA_BASE_URL = os.getenv('WORLDCAT_METADATA_BASE_URL', 'https://metadata.api.oclc.org')
 
     # Canonical list of active enrichment providers.
     # Routes and CLI both read from this list — no per-provider boolean flags needed.
@@ -103,6 +109,8 @@ class Config:
     OPENAIRE_KILL_SWITCH = os.getenv('OPENAIRE_KILL_SWITCH', 'false').lower() == 'true'
     OPENCITATIONS_KILL_SWITCH = os.getenv('OPENCITATIONS_KILL_SWITCH', 'false').lower() == 'true'
     LENS_ORG_KILL_SWITCH = os.getenv('LENS_ORG_KILL_SWITCH', 'false').lower() == 'true'
+    BASE_KILL_SWITCH = os.getenv('BASE_KILL_SWITCH', 'false').lower() == 'true'
+    WORLDCAT_KILL_SWITCH = os.getenv('WORLDCAT_KILL_SWITCH', 'false').lower() == 'true'
 
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
