@@ -101,23 +101,19 @@ const Navbar = () => {
   };
 
   const languagesByRegion = {
-    'Global': [
-      { code: 'en', name: 'English', flag: '🇬🇧' }
+    'AU Integrated Languages': [
+      { code: 'en', name: 'English', flag: '🇬🇧' },
+      { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
+      { code: 'ar', name: 'Arabic', flag: '🇸🇦' }
     ],
-    'Europe': [
+    'EU Integrated Languages': [
       { code: 'fr', name: 'French', flag: '🇫🇷' },
       { code: 'de', name: 'German', flag: '🇩🇪' },
       { code: 'es', name: 'Spanish', flag: '🇪🇸' },
       { code: 'pt', name: 'Portuguese', flag: '🇵🇹' }
     ],
-    'Africa': [
-      { code: 'sw', name: 'Swahili', flag: '🇰🇪' }
-    ],
-    'Middle East': [
-      { code: 'ar', name: 'Arabic', flag: '🇸🇦' }
-    ],
-    'Asia-Pacific': [
-      { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+    'Asia': [
+      { code: 'id', name: 'Indonesian', flag: '🇮🇩', regions: 'Indonesia' },
       { code: 'ms', name: 'Malay', flag: '🇲🇾', regions: 'Malaysia, Singapore, Brunei, Indonesia' },
       { code: 'km', name: 'Khmer', flag: '🇰🇭', regions: 'Cambodia' },
       { code: 'hi', name: 'Hindi', flag: '🇮🇳', regions: 'India' },
@@ -830,7 +826,9 @@ const Navbar = () => {
                     overflow: 'visible',
                     filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
                     borderRadius: 2,
-                    minWidth: '220px',
+                    minWidth: { xs: '280px', sm: '400px', md: '500px' },
+                    maxWidth: { xs: '90vw', sm: '500px', md: '600px' },
+                    maxHeight: '80vh',
                     '&:before': {
                       content: '""',
                       display: 'block',
@@ -868,61 +866,112 @@ const Navbar = () => {
                   </Box>
                 ) : (
                   <Box sx={{ 
-                    display: 'flex',
-                    gap: 1,
-                    p: 1,
-                    overflowX: 'auto'
+                    maxHeight: 'calc(80vh - 60px)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    pb: 2
                   }}>
-                    {Object.entries(getFilteredLanguagesByRegion()).map(([region, langs]) => (
-                      <Box key={region} sx={{ minWidth: '140px', flex: '1 1 auto' }}>
-                        <Box sx={{ 
-                          py: 0.5, 
-                          px: 1,
-                          mb: 0.5,
-                          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                          borderRadius: 0.5
-                        }}>
+                    {Object.entries(getFilteredLanguagesByRegion()).map(([region, langs], index) => (
+                      <Box key={region}>
+                        {index > 0 && <Divider sx={{ my: 1.5 }} />}
+                        <Box sx={{ px: 2, py: 1 }}>
                           <Typography 
                             variant="caption" 
                             sx={{ 
                               fontWeight: 600,
-                              fontSize: '0.65rem',
+                              fontSize: '0.7rem',
                               color: 'text.secondary',
                               textTransform: 'uppercase',
-                              letterSpacing: '0.3px'
+                              letterSpacing: '0.5px'
                             }}
                           >
                             {region}
                           </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Box sx={{ 
+                          px: 2, 
+                          py: 0.5,
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 1.5
+                        }}>
                           {langs.map((lang) => (
                             <Box
                               key={lang.code}
                               onClick={() => handleLanguageChange(lang.code)}
                               sx={{
-                                p: 0.75,
-                                borderRadius: 0.5,
+                                px: 2,
+                                py: 1,
+                                borderRadius: 1.5,
                                 cursor: 'pointer',
+                                display: 'inline-flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                gap: 0.25,
                                 backgroundColor: i18n.language === lang.code
-                                  ? theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)'
-                                  : 'transparent',
-                                transition: 'all 0.2s',
+                                  ? theme.palette.primary.main
+                                  : theme.palette.mode === 'dark' 
+                                    ? 'rgba(255, 255, 255, 0.05)' 
+                                    : 'rgba(0, 0, 0, 0.04)',
+                                color: i18n.language === lang.code
+                                  ? '#fff'
+                                  : theme.palette.text.primary,
+                                transition: 'all 0.2s ease-in-out',
+                                boxShadow: i18n.language === lang.code
+                                  ? '0 2px 8px rgba(0, 0, 0, 0.15)'
+                                  : 'none',
+                                transform: i18n.language === lang.code ? 'translateY(-1px)' : 'none',
+                                ...(region === 'Asia' ? {
+                                  flex: { 
+                                    xs: '0 0 calc(50% - 8px)',
+                                    sm: '0 0 calc(33.333% - 12px)',
+                                    md: '0 0 calc(33.333% - 12px)'
+                                  },
+                                  minWidth: 0,
+                                  maxWidth: { 
+                                    xs: 'calc(50% - 8px)',
+                                    sm: 'calc(33.333% - 12px)',
+                                    md: 'calc(33.333% - 12px)'
+                                  }
+                                } : {
+                                  minWidth: 'fit-content',
+                                  flex: '0 0 auto'
+                                }),
                                 '&:hover': {
-                                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
+                                  backgroundColor: i18n.language === lang.code
+                                    ? theme.palette.primary.dark
+                                    : theme.palette.mode === 'dark' 
+                                      ? 'rgba(255, 255, 255, 0.1)' 
+                                      : 'rgba(0, 0, 0, 0.08)',
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                                 }
                               }}
                             >
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: lang.regions ? 0.25 : 0 }}>
-                                <Typography sx={{ fontWeight: 500, fontSize: '0.8rem', flex: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
+                                <Typography sx={{ 
+                                  fontWeight: i18n.language === lang.code ? 600 : 500,
+                                  fontSize: '0.9rem',
+                                  flex: 1,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
                                   {lang.name}
                                 </Typography>
                                 {i18n.language === lang.code && (
-                                  <CheckIcon sx={{ color: theme.palette.primary.main, fontSize: '0.9rem' }} />
+                                  <CheckIcon sx={{ fontSize: '1rem', flexShrink: 0 }} />
                                 )}
                               </Box>
                               {lang.regions && (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
+                                <Typography sx={{ 
+                                  fontSize: '0.7rem',
+                                  opacity: i18n.language === lang.code ? 0.95 : 0.65,
+                                  lineHeight: 1.3,
+                                  fontWeight: 400,
+                                  width: '100%',
+                                  wordBreak: 'break-word'
+                                }}>
                                   {lang.regions}
                                 </Typography>
                               )}
