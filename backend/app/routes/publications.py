@@ -1882,6 +1882,7 @@ def create_publication():
             given_name = request.form.get(f'creators[{index}][given_name]')
             identifier_type = request.form.get(f'creators[{index}][identifier]')  # This contains 'orcid', 'isni', etc.
             role_id = request.form.get(f'creators[{index}][role]')
+            affiliation = request.form.get(f'creators[{index}][affiliation]') or None
             
             # Get the actual identifier value based on the type
             identifier_value = None
@@ -1954,7 +1955,8 @@ def create_publication():
                 given_name=given_name,
                 identifier=resolvable_identifier,  # Store the full resolvable URL
                 identifier_type=identifier_type,   # Store the type (e.g., 'orcid')
-                role_id=role_id
+                role_id=role_id,
+                affiliation=affiliation
             ))
             index += 1
         
@@ -3751,6 +3753,7 @@ def create_version():
             creator_identifier = clean_undefined_string(request.form.get(f'creators[{index}][orcid_id]'))
             creator_identifier_type = clean_undefined_string(request.form.get(f'creators[{index}][identifier]'))
             creator_role = request.form.get(f'creators[{index}][role]')
+            creator_affiliation = request.form.get(f'creators[{index}][affiliation]') or None
 
             creator = PublicationCreators(
                 publication_id=publication_id,
@@ -3758,7 +3761,8 @@ def create_version():
                 given_name=creator_given or '',
                 identifier=creator_identifier or '',
                 identifier_type=creator_identifier_type or '',
-                role_id=creator_role or ''
+                role_id=creator_role or '',
+                affiliation=creator_affiliation
             )
             db.session.add(creator)
             index += 1

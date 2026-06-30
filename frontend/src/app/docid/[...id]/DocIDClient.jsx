@@ -1883,7 +1883,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                               </Typography>
                               <TextField
                                 fullWidth
-                                value={item.affiliation || docData?.owner || ''}
+                                value={item.affiliation || 'N/A'}
                                 InputProps={{ readOnly: true, disableUnderline: true }}
                                 variant="filled"
                                 size="small"

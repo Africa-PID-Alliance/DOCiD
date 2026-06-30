@@ -722,6 +722,7 @@ const AssignDocID = () => {
           submitData.append(`creators[${index}][identifier]`, creator.identifier_type);
           submitData.append(`creators[${index}][role]`, creator.role);
           submitData.append(`creators[${index}][orcid_id]`, creator.orcidId || '');
+          submitData.append(`creators[${index}][affiliation]`, creator.affiliation || '');
         });
       }
 
