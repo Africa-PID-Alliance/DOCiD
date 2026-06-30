@@ -44,7 +44,12 @@ export async function GET(_req, { params }) {
     .map((r) => {
       const loc = canonicalDocidUrl(r.docid);
       if (!loc) return null;
-      const lastmod = r.updated_at ? `    <lastmod>${xmlEscape(r.updated_at)}</lastmod>\n` : '';
+      // W3C datetime requires timezone. Backend returns bare ISO (no Z/offset);
+      // append Z so sitemaps pass Google's validator.
+      const updatedAtUtc = r.updated_at
+        ? r.updated_at.replace(/(\.\d+)?$/, 'Z').replace(/Z+$/, 'Z')
+        : null;
+      const lastmod = updatedAtUtc ? `    <lastmod>${xmlEscape(updatedAtUtc)}</lastmod>\n` : '';
       return `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n${lastmod}  </url>`;
     })
     .filter(Boolean);

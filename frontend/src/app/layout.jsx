@@ -4,6 +4,7 @@ import { cache } from 'react';
 import ClientWrapper from './ClientWrapper';
 import { getDefaultTenant, resolveTenantSlugFromHost } from '@/lib/tenant';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
+import { SITE_ORIGIN } from '@/lib/highwire';
 
 /**
  * Server-side tenant resolution.
@@ -58,7 +59,11 @@ const resolveTenant = cache(async () => {
 
 export async function generateMetadata() {
   const tenant = await resolveTenant();
+  // metadataBase makes Next.js resolve all relative image/canonical URLs
+  // against the production origin so og:image never emits localhost:3000.
+  const metadataBase = new URL(SITE_ORIGIN);
   return {
+    metadataBase,
     title: {
       default: tenant.page_title || 'DOCiD™ APP',
       template: `%s | ${tenant.display_name || 'DOCiD™ APP'}`,
@@ -91,10 +96,11 @@ export async function generateMetadata() {
       icon: tenant.favicon_url || '/favicon.ico',
     },
     verification: {
-      google: 'google-site-verification',
+      // Replace with the real token from Google Search Console.
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
     },
     alternates: {
-      canonical: 'https://docid.africa',
+      canonical: SITE_ORIGIN,
     },
   };
 }

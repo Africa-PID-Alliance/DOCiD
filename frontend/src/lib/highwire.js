@@ -215,6 +215,10 @@ export function buildHighwireMetaOther(publication) {
   set('citation_publication_date', date);
   set('citation_doi', doi);
   set('citation_pdf_url', pdfUrl);
+  // Required by Google Scholar to identify this URL as the abstract/landing page
+  // rather than the PDF itself. Without it Scholar may fail to associate the
+  // citation_* meta tags with the record entry in its index.
+  set('citation_abstract_html_url', canonicalDocidUrl(docid));
 
   if (category === 'journal') {
     set('citation_journal_title', journal);
