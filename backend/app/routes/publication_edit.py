@@ -584,7 +584,7 @@ def add_file(publication_id):
             file_name='',
             file_type='video/external',
             file_url=video_url_raw[:255],
-            identifier=minted[:100],
+            identifier='1',  # identifier-TYPE id (1=APA Handle iD); handle lives in handle_identifier
             generated_identifier=minted[:100],
             handle_identifier=minted[:100],
             external_identifier=ext_identifier,
@@ -625,7 +625,7 @@ def add_file(publication_id):
         file_name=file_name[:255],
         file_type=(uploaded.mimetype or 'application/octet-stream')[:100],
         file_url=file_url[:255],
-        identifier=minted[:100],
+        identifier='1',  # identifier-TYPE id (1=APA Handle iD); handle lives in handle_identifier
         generated_identifier=minted[:100],
         handle_identifier=minted[:100],
         external_identifier=ext_identifier,

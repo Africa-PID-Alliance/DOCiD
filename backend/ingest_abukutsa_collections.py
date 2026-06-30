@@ -92,8 +92,12 @@ def ingest_row(row, files_base_url, author_role_id, dry_run=False):
         file_name=filename[:255],
         file_type='application/pdf',
         file_url=file_url[:255],
-        identifier=minted_docid[:100],
+        # `identifier` holds the identifier-TYPE id (1=APA Handle iD, 2=Datacite,
+        # 3=CrossRef, 4=DOI) — the detail page maps it to a label via getIdentifierLabel.
+        # The minted handle itself belongs in generated_identifier / handle_identifier.
+        identifier='1',
         generated_identifier=minted_docid[:100],
+        handle_identifier=minted_docid[:100],
     )
     db.session.add(pub_file)
 
