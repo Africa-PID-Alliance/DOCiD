@@ -222,6 +222,25 @@ const CreatorsForm = ({ formData, updateFormData }) => {
     });
   };
 
+  // Inline edit of an existing creator's editable fields (affiliation, role).
+  // Keeps role_name in sync so the read-side stays consistent.
+  const handleExistingCreatorChange = (index, field, value) => {
+    const updatedCreators = creators.map((creator, i) => {
+      if (i !== index) return creator;
+      const nextCreator = { ...creator, [field]: value };
+      if (field === 'role') {
+        const selectedRole = creatorRoles.find((role) => role.role_id === value);
+        nextCreator.role_name = selectedRole ? selectedRole.role_name : '';
+      }
+      return nextCreator;
+    });
+    setCreators(updatedCreators);
+    updateFormData({
+      ...formData,
+      creators: updatedCreators
+    });
+  };
+
   const handleSearchOrcid = async () => {
     // Different validation and search logic based on active tab
     if (activeTab === 0) { // ORCID ID tab
@@ -612,13 +631,9 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                   <TextField
                     fullWidth
                     label={t('assign_docid.creators_form.modal.affiliation')}
-                    value={creator.affiliation || 'N/A'}
-                    InputProps={{
-                      readOnly: true,
-                      sx: { 
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                      }
-                    }}
+                    value={creator.affiliation || ''}
+                    onChange={(e) => handleExistingCreatorChange(index, 'affiliation', e.target.value)}
+                    placeholder={t('assign_docid.creators_form.modal.affiliation')}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         '& fieldset': {
@@ -630,23 +645,26 @@ const CreatorsForm = ({ formData, updateFormData }) => {
                 </Grid>
                 <Grid item xs={12}>
                   <FormControl fullWidth>
-                    <TextField
+                    <InputLabel>{t('assign_docid.creators_form.modal.role')}</InputLabel>
+                    <Select
+                      value={isLoadingRoles ? '' : (creator.role || '')}
+                      onChange={(e) => handleExistingCreatorChange(index, 'role', e.target.value)}
                       label={t('assign_docid.creators_form.modal.role')}
-                      value={creator.role_name}
-                      InputProps={{
-                        readOnly: true,
-                        sx: { 
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                        }
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': {
-                            borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider
-                          }
-                        }
-                      }}
-                    />
+                      disabled={isLoadingRoles}
+                    >
+                      {isLoadingRoles ? (
+                        <MenuItem disabled>
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                          {t('assign_docid.creators_form.modal.loading_roles')}
+                        </MenuItem>
+                      ) : (
+                        creatorRoles.map((role) => (
+                          <MenuItem key={role.role_id} value={role.role_id}>
+                            {role.role_name}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
                   </FormControl>
                 </Grid>
               </Grid>

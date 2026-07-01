@@ -620,13 +620,8 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                   <TextField
                     fullWidth
                     label={t('assign_docid.organizations_form.organization_name')}
-                    value={organization.name}
-                    InputProps={{
-                      readOnly: true,
-                      sx: { 
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                      }
-                    }}
+                    value={organization.name || ''}
+                    onChange={handleOrganizationFieldChange(index, 'name')}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         '& fieldset': {
@@ -664,30 +659,20 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                   <TextField
                     fullWidth
                     label={t('assign_docid.organizations_form.country')}
-                    value={organization.country || 'N/A'}
-                    InputProps={{
-                      readOnly: true,
-                      sx: { 
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                      }
-                    }}
+                    value={organization.country || ''}
+                    onChange={handleOrganizationFieldChange(index, 'country')}
+                    placeholder={t('assign_docid.organizations_form.country')}
                   />
                 </Grid>
-                {organization.otherName && (
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label={t('assign_docid.organizations_form.other_name')}
-                      value={organization.otherName}
-                      InputProps={{
-                        readOnly: true,
-                        sx: {
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
-                        }
-                      }}
-                    />
-                  </Grid>
-                )}
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label={t('assign_docid.organizations_form.other_name')}
+                    value={organization.otherName || ''}
+                    onChange={handleOrganizationFieldChange(index, 'otherName')}
+                    placeholder={t('assign_docid.organizations_form.other_name')}
+                  />
+                </Grid>
                 {organization.rrid && (
                   <Grid item xs={12} sm={6}>
                     <TextField
