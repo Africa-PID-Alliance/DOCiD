@@ -176,17 +176,6 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
     });
   };
 
-  const handleOrganizationFieldChange = (index, field) => (event) => {
-    const updatedOrganizations = organizations.map((org, i) =>
-      i === index ? { ...org, [field]: event.target.value } : org
-    );
-    setOrganizations(updatedOrganizations);
-    updateFormData({
-      ...formData,
-      organizations: updatedOrganizations
-    });
-  };
-
   const handleSearchRor = async () => {
     // Different validation and search logic based on active tab
     if (activeTab === 0) { // ID tab (ROR ID or ISNI ID or Ringgold ID)
@@ -616,12 +605,21 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               </Box>
 
               <Grid container spacing={3}>
+                {/* ROR-sourced organization metadata is READ-ONLY to preserve
+                    data integrity — it must stay faithful to the authoritative
+                    ROR/ISNI/Ringgold registry. To change it, delete and re-add
+                    via the registry lookup (the Add flow). */}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label={t('assign_docid.organizations_form.organization_name')}
                     value={organization.name || ''}
-                    onChange={handleOrganizationFieldChange(index, 'name')}
+                    InputProps={{
+                      readOnly: true,
+                      sx: {
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
+                      }
+                    }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         '& fieldset': {
@@ -639,7 +637,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                       value={organization.rorId}
                       InputProps={{
                         readOnly: true,
-                        sx: { 
+                        sx: {
                           bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
                         }
                       }}
@@ -651,28 +649,42 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
                     fullWidth
                     label={t('assign_docid.organizations_form.organization_type')}
                     value={organization.type || ''}
-                    onChange={handleOrganizationFieldChange(index, 'type')}
-                    placeholder="e.g. Education, Healthcare, Company"
+                    InputProps={{
+                      readOnly: true,
+                      sx: {
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
+                      }
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label={t('assign_docid.organizations_form.country')}
-                    value={organization.country || ''}
-                    onChange={handleOrganizationFieldChange(index, 'country')}
-                    placeholder={t('assign_docid.organizations_form.country')}
+                    value={organization.country || 'N/A'}
+                    InputProps={{
+                      readOnly: true,
+                      sx: {
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
+                      }
+                    }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label={t('assign_docid.organizations_form.other_name')}
-                    value={organization.otherName || ''}
-                    onChange={handleOrganizationFieldChange(index, 'otherName')}
-                    placeholder={t('assign_docid.organizations_form.other_name')}
-                  />
-                </Grid>
+                {organization.otherName && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label={t('assign_docid.organizations_form.other_name')}
+                      value={organization.otherName}
+                      InputProps={{
+                        readOnly: true,
+                        sx: {
+                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5'
+                        }
+                      }}
+                    />
+                  </Grid>
+                )}
                 {organization.rrid && (
                   <Grid item xs={12} sm={6}>
                     <TextField
