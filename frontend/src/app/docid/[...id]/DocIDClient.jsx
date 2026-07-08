@@ -111,6 +111,9 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const [checksumLoading, setChecksumLoading] = useState(false);
   const [checksumError, setChecksumError] = useState('');
   const [expandedChecksumKeys, setExpandedChecksumKeys] = useState(new Set());
+  // Client-side "verify a downloaded file" results, keyed by `${objectClass}:${id}`.
+  // Each value: { status: 'hashing'|'match'|'mismatch'|'error', computed, fileName }.
+  const [localVerifyByKey, setLocalVerifyByKey] = useState({});
 
   // Redux state
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -789,6 +792,43 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
       setChecksumError('Could not load checksum information. Please try again.');
     } finally {
       setChecksumLoading(false);
+    }
+  };
+
+  // Client-side integrity check: hash the visitor's own copy of the file in the
+  // browser (Web Crypto, no upload) and compare to the stored checksum.
+  const handleVerifyLocalFile = async (checksumKey, storedChecksum, event) => {
+    const selectedFile = event.target.files && event.target.files[0];
+    // Allow re-selecting the same file later.
+    event.target.value = '';
+    if (!selectedFile) return;
+
+    setLocalVerifyByKey((previous) => ({
+      ...previous,
+      [checksumKey]: { status: 'hashing', fileName: selectedFile.name },
+    }));
+
+    try {
+      const fileBuffer = await selectedFile.arrayBuffer();
+      const digestBuffer = await window.crypto.subtle.digest('SHA-256', fileBuffer);
+      const computedChecksum = Array.from(new Uint8Array(digestBuffer))
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join('');
+      const isMatch = computedChecksum.toLowerCase() === (storedChecksum || '').toLowerCase();
+      setLocalVerifyByKey((previous) => ({
+        ...previous,
+        [checksumKey]: {
+          status: isMatch ? 'match' : 'mismatch',
+          computed: computedChecksum,
+          fileName: selectedFile.name,
+        },
+      }));
+    } catch (error) {
+      console.error('Client-side hashing failed:', error);
+      setLocalVerifyByKey((previous) => ({
+        ...previous,
+        [checksumKey]: { status: 'error', fileName: selectedFile.name },
+      }));
     }
   };
 
@@ -1876,9 +1916,55 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                                   File size: {formatByteSize(checksumInfo.file_size)}
                                                 </Typography>
                                               ) : null}
-                                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                                                Verify your download matches by running <code>shasum -a 256 &lt;file&gt;</code> and comparing to the value above.
+                                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1, mb: 1.5 }}>
+                                                Or verify manually: run <code>shasum -a 256 &lt;file&gt;</code> and compare to the value above.
                                               </Typography>
+                                              {(() => {
+                                                const verifyState = localVerifyByKey[checksumKey];
+                                                return (
+                                                  <Box sx={{ mt: 1, pt: 1.5, borderTop: '1px dashed rgba(0,0,0,0.15)' }}>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                                      Verify a downloaded file
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                                      Select your copy of this file — it is hashed in your browser (never uploaded) and compared automatically.
+                                                    </Typography>
+                                                    <Button variant="outlined" size="small" component="label">
+                                                      Choose file to verify
+                                                      <input
+                                                        type="file"
+                                                        hidden
+                                                        onChange={(e) => handleVerifyLocalFile(checksumKey, checksumInfo.checksum, e)}
+                                                      />
+                                                    </Button>
+                                                    {verifyState?.status === 'hashing' && (
+                                                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                                        Hashing “{verifyState.fileName}”…
+                                                      </Typography>
+                                                    )}
+                                                    {verifyState?.status === 'match' && (
+                                                      <Typography variant="body2" sx={{ mt: 1, color: 'success.main', fontWeight: 600 }}>
+                                                        ✓ Integrity verified — “{verifyState.fileName}” is identical to the registered file.
+                                                      </Typography>
+                                                    )}
+                                                    {verifyState?.status === 'mismatch' && (
+                                                      <Box sx={{ mt: 1 }}>
+                                                        <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
+                                                          ✗ Does NOT match — this file differs from the version registered in DOCiD.
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                                          your file: {verifyState.computed}
+                                                        </Typography>
+                                                      </Box>
+                                                    )}
+                                                    {verifyState?.status === 'error' && (
+                                                      <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                                                        Could not hash that file in your browser. Try the manual method above.
+                                                      </Typography>
+                                                    )}
+                                                  </Box>
+                                                );
+                                              })()}
                                             </>
                                           ) : checksumInfo && checksumInfo.checksum_status === 'external_not_supported' ? (
                                             <Typography variant="body2" color="text.secondary">
