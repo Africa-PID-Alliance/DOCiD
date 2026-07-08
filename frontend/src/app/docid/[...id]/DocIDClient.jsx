@@ -55,6 +55,7 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import Popover from '@mui/material/Popover';
 import axios from 'axios';
 import { Close as CloseIcon } from '@mui/icons-material';
@@ -103,6 +104,13 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
 
   // Version history state
   const [versionHistory, setVersionHistory] = useState(null);
+
+  // Checksum / integrity verification state.
+  // checksumByKey maps `${objectClass}:${id}` -> the object's stored checksum info.
+  const [checksumByKey, setChecksumByKey] = useState(null);
+  const [checksumLoading, setChecksumLoading] = useState(false);
+  const [checksumError, setChecksumError] = useState('');
+  const [expandedChecksumKeys, setExpandedChecksumKeys] = useState(new Set());
 
   // Redux state
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -731,6 +739,56 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
     } else {
       const file = filesStats.files.find(f => f.id === itemId);
       return file ? file.downloads : 0;
+    }
+  };
+
+  // Human-readable byte size for checksum display.
+  const formatByteSize = (bytes) => {
+    if (bytes === null || bytes === undefined) return '';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = Number(bytes);
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex += 1;
+    }
+    return `${unitIndex === 0 ? size : size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  // Toggle the per-file checksum panel. Fetches all checksums for this DOCiD
+  // once (via AJAX), then reveals the requested object's stored fingerprint.
+  const handleToggleChecksum = async (item, objectClass) => {
+    const key = `${objectClass}:${item.id}`;
+
+    setExpandedChecksumKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+
+    // Already loaded — nothing more to fetch.
+    if (checksumByKey) return;
+
+    try {
+      setChecksumLoading(true);
+      setChecksumError('');
+      const identifier = docData.document_docid || docData.docid || docId;
+      const response = await axios.get('/api/verify', { params: { identifier } });
+      const objects = response.data?.objects || [];
+      const nextMap = {};
+      objects.forEach((object) => {
+        nextMap[`${object.object_class}:${object.id}`] = object;
+      });
+      setChecksumByKey(nextMap);
+    } catch (error) {
+      console.error('Checksum verification failed:', error);
+      setChecksumError('Could not load checksum information. Please try again.');
+    } finally {
+      setChecksumLoading(false);
     }
   };
 
@@ -1760,6 +1818,82 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                     </Box>
                                   </Grid>
                                 )}
+                                {(() => {
+                                  const objectClass = selectedSection?.type === 'documents' ? 'document' : 'file';
+                                  const checksumKey = `${objectClass}:${item.id}`;
+                                  const isExpanded = expandedChecksumKeys.has(checksumKey);
+                                  const checksumInfo = checksumByKey ? checksumByKey[checksumKey] : null;
+                                  return (
+                                    <Grid item xs={12}>
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<VerifiedUserIcon />}
+                                        onClick={() => handleToggleChecksum(item, objectClass)}
+                                        sx={{ mb: isExpanded ? 1.5 : 0 }}
+                                      >
+                                        {isExpanded ? 'Hide integrity checksum' : 'View / compare checksum'}
+                                      </Button>
+                                      {isExpanded && (
+                                        <Box sx={{ p: 2, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 1, bgcolor: 'rgba(0,0,0,0.02)' }}>
+                                          {checksumLoading && !checksumByKey ? (
+                                            <Typography variant="body2" color="text.secondary">Loading checksum…</Typography>
+                                          ) : checksumError ? (
+                                            <Typography variant="body2" color="error">{checksumError}</Typography>
+                                          ) : checksumInfo && checksumInfo.checksum_status === 'failed' ? (
+                                            <Typography variant="body2" color="error">
+                                              ⚠ Integrity check failed for this file — the stored bytes no longer match the
+                                              registered checksum. Please contact the DOCiD team before relying on this file.
+                                            </Typography>
+                                          ) : checksumInfo && checksumInfo.checksum_status === 'verified' && checksumInfo.checksum ? (
+                                            <>
+                                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                                {checksumInfo.checksum_algorithm || 'SHA-256'} checksum
+                                              </Typography>
+                                              <Box display="flex" gap={1} alignItems="center" sx={{ mb: 1 }}>
+                                                <TextField
+                                                  fullWidth
+                                                  value={checksumInfo.checksum}
+                                                  InputProps={{ readOnly: true, disableUnderline: true, sx: { fontFamily: 'monospace', fontSize: '0.8rem' } }}
+                                                  variant="filled"
+                                                  size="small"
+                                                />
+                                                <Button
+                                                  variant="contained"
+                                                  size="small"
+                                                  onClick={() => {
+                                                    navigator.clipboard?.writeText(checksumInfo.checksum);
+                                                    setSnackbarMessage('Checksum copied to clipboard');
+                                                    setSnackbarOpen(true);
+                                                  }}
+                                                  sx={{ minWidth: 'auto', px: 2 }}
+                                                >
+                                                  Copy
+                                                </Button>
+                                              </Box>
+                                              {checksumInfo.file_size ? (
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                  File size: {formatByteSize(checksumInfo.file_size)}
+                                                </Typography>
+                                              ) : null}
+                                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                                                Verify your download matches by running <code>shasum -a 256 &lt;file&gt;</code> and comparing to the value above.
+                                              </Typography>
+                                            </>
+                                          ) : checksumInfo && checksumInfo.checksum_status === 'external_not_supported' ? (
+                                            <Typography variant="body2" color="text.secondary">
+                                              This is an externally-hosted object, so DOCiD cannot provide a local integrity checksum for it.
+                                            </Typography>
+                                          ) : (
+                                            <Typography variant="body2" color="text.secondary">
+                                              A checksum has not yet been generated for this file.
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                      )}
+                                    </Grid>
+                                  );
+                                })()}
                                 {item.rrid && (
                                   <Grid item xs={12}>
                                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>

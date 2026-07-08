@@ -27,6 +27,7 @@ from urllib.parse import quote as url_quote, urlparse
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
+from app.utils_checksum import checksum_fields_for_upload, external_checksum_fields
 
 from app import db
 from app.models import (
@@ -589,6 +590,7 @@ def add_file(publication_id):
             handle_identifier=minted[:100],
             external_identifier=ext_identifier,
             external_identifier_type=ext_identifier_type,
+            **external_checksum_fields()
         )
         db.session.add(pub_file)
         db.session.flush()
@@ -630,6 +632,7 @@ def add_file(publication_id):
         handle_identifier=minted[:100],
         external_identifier=ext_identifier,
         external_identifier_type=ext_identifier_type,
+        **checksum_fields_for_upload(_abs_path, file_url)
     )
     db.session.add(pub_file)
     db.session.flush()
@@ -806,6 +809,7 @@ def add_document(publication_id):
             identifier_type_id=identifier_type_id,
             generated_identifier=minted[:255],
             handle_identifier=minted[:100],
+            **external_checksum_fields()
         )
         db.session.add(pub_doc)
         db.session.flush()
@@ -839,6 +843,7 @@ def add_document(publication_id):
         identifier_type_id=identifier_type_id,
         generated_identifier=minted[:255],
         handle_identifier=minted[:100],
+        **checksum_fields_for_upload(_abs_path, file_url)
     )
     db.session.add(pub_doc)
     db.session.flush()
