@@ -133,12 +133,13 @@ def enrich_with_unpaywall(publication, client, mapper):
 def enrich_with_semantic_scholar(publication, client, mapper):
     from app.service_openalex import normalize_doi
     normalized_doi = normalize_doi(publication.doi) if publication.doi else None
-    paper_data = None
-    if normalized_doi:
-        paper_data = client.get_paper_by_doi(normalized_doi)
-    if not paper_data and publication.document_title:
-        results = client.search_papers_by_title(publication.document_title)
-        paper_data = results[0] if results else None
+    # DOI-only. Title-search matching is unsafe (the first title hit is applied
+    # directly, so a near-title collision writes the WRONG paper's citation count/
+    # abstract onto the DOCiD) and it would run S2 against every DOI-less record,
+    # flooding the 1 req/s rate limit. Skip without a DOI, like the other providers.
+    if not normalized_doi:
+        return 'skipped', 'no_valid_doi', None
+    paper_data = client.get_paper_by_doi(normalized_doi)
     if not paper_data:
         return 'not_found', None, None
     enrichment_data = mapper.extract_enrichment(paper_data)
@@ -236,7 +237,7 @@ SOURCE_REGISTRY = {
     },
     'semantic_scholar': {
         'enrich_function': enrich_with_semantic_scholar,
-        'require_doi': False,
+        'require_doi': True,  # DOI-only (see enrich_with_semantic_scholar): no unsafe title matching
     },
     'openaire': {
         'enrich_function': enrich_with_openaire,
