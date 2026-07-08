@@ -137,7 +137,8 @@ def enrich_with_semantic_scholar(publication, client, mapper):
     if normalized_doi:
         paper_data = client.get_paper_by_doi(normalized_doi)
     if not paper_data and publication.document_title:
-        paper_data = client.get_paper_by_title(publication.document_title)
+        results = client.search_papers_by_title(publication.document_title)
+        paper_data = results[0] if results else None
     if not paper_data:
         return 'not_found', None, None
     enrichment_data = mapper.extract_enrichment(paper_data)
