@@ -47,7 +47,8 @@ export function getDefaultTenant() {
  * Examples:
  *   stellenbosch.africapidalliance.test:8080 → "stellenbosch"
  *   unilag.africapidalliance.org            → "unilag"
- *   docid-core.africapidalliance.test:8080  → null (default)
+ *   docid.africapidalliance.org             → null (default)
+ *   docid-demo.africapidalliance.org        → null (default)
  *   www.africapidalliance.org               → null (default)
  *   localhost:3000                          → null (default)
  *   127.0.0.1                               → null (default)
@@ -71,7 +72,7 @@ export function resolveTenantSlugFromHost(hostHeader) {
   if (firstSegment.includes('.')) return null;
 
   // Reserved / default slugs — fall through to default tenant
-  const reserved = new Set(['docid', 'www', 'api', 'admin', 'blog']);
+  const reserved = new Set(['docid', 'docid-demo', 'www', 'api', 'admin', 'blog']);
   if (reserved.has(firstSegment)) return null;
 
   return firstSegment;
