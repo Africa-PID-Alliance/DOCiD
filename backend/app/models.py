@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, Boolean, event
+from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, DateTime, Enum, Boolean, event
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app import db
@@ -556,6 +556,15 @@ class PublicationFiles(db.Model):
     external_identifier = Column(String(100), nullable=True)  # DOI from DataCite/Crossref
     external_identifier_type = Column(String(50), nullable=True)  # Type of external identifier (DOI, etc.)
 
+    # Integrity / checksum fields (see docs/checksum-integrity-implementation-plan.md)
+    checksum = Column(String(64), nullable=True)  # hex SHA-256 of stored file bytes
+    checksum_algorithm = Column(String(20), nullable=True)  # e.g. 'SHA-256'
+    file_size = Column(BigInteger, nullable=True)  # bytes
+    checksum_status = Column(String(30), nullable=True)  # pending|verified|external_not_supported|missing_bytes|failed
+    checksum_error = Column(Text, nullable=True)  # last error when status=failed
+    checksum_generated_at = Column(DateTime, nullable=True)  # when the hash was computed
+    checksum_last_checked_at = Column(DateTime, nullable=True)  # when it was last (re)verified
+
     # Relationships
     publication = relationship('Publications', back_populates='publications_files')
 
@@ -581,6 +590,15 @@ class PublicationDocuments(db.Model):
     external_identifier = Column(String(100), nullable=True)  # DOI from DataCite/Crossref
     external_identifier_type = Column(String(50), nullable=True)  # Type of external identifier (DOI, etc.)
     rrid = Column(String(100), nullable=True)  # Optional RRID e.g. "RRID:SCR_012345"
+
+    # Integrity / checksum fields (see docs/checksum-integrity-implementation-plan.md)
+    checksum = Column(String(64), nullable=True)  # hex SHA-256 of stored file bytes
+    checksum_algorithm = Column(String(20), nullable=True)  # e.g. 'SHA-256'
+    file_size = Column(BigInteger, nullable=True)  # bytes
+    checksum_status = Column(String(30), nullable=True)  # pending|verified|external_not_supported|missing_bytes|failed
+    checksum_error = Column(Text, nullable=True)  # last error when status=failed
+    checksum_generated_at = Column(DateTime, nullable=True)  # when the hash was computed
+    checksum_last_checked_at = Column(DateTime, nullable=True)  # when it was last (re)verified
 
     # Relationships
     publication = relationship('Publications', back_populates='publication_documents')

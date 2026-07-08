@@ -2,6 +2,8 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Blueprint, jsonify, request, Response, abort
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app import db
@@ -11,6 +13,7 @@ from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifie
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
 # from app.service_codra import update_object
 from app.service_identifiers import IdentifierService
+from app.utils_checksum import checksum_fields_for_upload, external_checksum_fields
 from sqlalchemy import desc, func, or_
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -18,6 +21,23 @@ from urllib.parse import urlsplit
 import re
 import json
 from config import Config
+
+
+def _save_upload_collision_safe(file_storage):
+    """Save an uploaded file under a UUID-prefixed name so a later upload with
+    the same original filename can never overwrite earlier bytes (which would
+    silently invalidate the earlier file's stored checksum).
+
+    Returns (stored_name, saved_path, file_url). Mirrors publication_edit._save_upload.
+    """
+    safe_name = secure_filename(file_storage.filename) or 'upload.bin'
+    unique_name = f"{uuid.uuid4().hex[:12]}_{safe_name}"
+    os.makedirs('uploads', exist_ok=True)
+    saved_path = f'uploads/{unique_name}'
+    file_storage.save(saved_path)
+    base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
+    file_url = f'{base_url}/uploads/{unique_name}'
+    return unique_name, saved_path, file_url
 
 
 def _absolute_upload_url(value):
@@ -1683,12 +1703,10 @@ def create_publication():
             external_id_type = None
 
             if file:
-                file_filename = file.filename
-                file.save(f'uploads/{file_filename}')
-                # Always use production domain for consistency
-                base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
-                file_url = f'{base_url}/uploads/{file_filename}'
+                file_filename, saved_path, file_url = _save_upload_collision_safe(file)
                 logger.info(f"File saved: {file_url}")
+
+                checksum_fields = checksum_fields_for_upload(saved_path, file_url)
 
                 # Process the identifier
                 handle_id, external_id, external_id_type = IdentifierService.process_identifier(generated_identifier)
@@ -1705,7 +1723,8 @@ def create_publication():
                     generated_identifier=generated_identifier,
                     handle_identifier=handle_id,
                     external_identifier=external_id,
-                    external_identifier_type=external_id_type
+                    external_identifier_type=external_id_type,
+                    **checksum_fields
                 ))
 
                 # CORDRA push has been moved to separate script push_to_cordra.py
@@ -1727,7 +1746,8 @@ def create_publication():
                     generated_identifier=generated_identifier or '',
                     handle_identifier=None,
                     external_identifier=None,
-                    external_identifier_type=None
+                    external_identifier_type=None,
+                    **external_checksum_fields()
                 ))
             else:
                 logger.warning(f"PublicationFile [{index}] has no file or video URL - skipping file record creation")
@@ -1813,12 +1833,10 @@ def create_publication():
           video_url = request.form.get(f'filesDocuments[{index}][video_url]', '').strip()
 
           if file:
-              file_filename = file.filename
-              file.save(f'uploads/{file_filename}')
-              # Always use production domain for consistency
-              base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
-              file_url = f'{base_url}/uploads/{file_filename}'
+              file_filename, saved_path, file_url = _save_upload_collision_safe(file)
               logger.info(f"File saved: {file_url}")
+
+              checksum_fields = checksum_fields_for_upload(saved_path, file_url)
 
               # Process the identifier only if we have generated_identifier and a file
               if generated_identifier:
@@ -1835,7 +1853,8 @@ def create_publication():
                   handle_identifier=handle_id,
                   external_identifier=external_id,
                   external_identifier_type=external_id_type,
-                  rrid=rrid_value
+                  rrid=rrid_value,
+                  **checksum_fields
               ))
 
               # CORDRA push has been moved to separate script push_to_cordra.py
@@ -1859,7 +1878,8 @@ def create_publication():
                   handle_identifier=handle_id,
                   external_identifier=external_id,
                   external_identifier_type=external_id_type,
-                  rrid=rrid_value
+                  rrid=rrid_value,
+                  **external_checksum_fields()
               ))
           else:
               logger.warning(f"PublicationDocument [{index}] has no file uploaded - skipping document record creation")
@@ -3679,11 +3699,10 @@ def create_version():
             video_url = request.form.get(f'filesPublications[{index}][video_url]', '').strip()
             file_url = ''
             file_name = ''
+            checksum_fields = external_checksum_fields()
             if file:
-                file_name = file.filename
-                file.save(f'uploads/{file_name}')
-                base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
-                file_url = f'{base_url}/uploads/{file_name}'
+                file_name, saved_path, file_url = _save_upload_collision_safe(file)
+                checksum_fields = checksum_fields_for_upload(saved_path, file_url)
             elif video_url:
                 file_url = video_url
                 file_name = 'external_video'
@@ -3697,7 +3716,8 @@ def create_version():
                 file_type='video/external' if video_url and not file else (file_type or ''),
                 file_url=file_url,
                 identifier=identifier or '',
-                generated_identifier=generated_identifier or ''
+                generated_identifier=generated_identifier or '',
+                **checksum_fields
             )
             db.session.add(pub_file)
             files_publications.append(pub_file)
@@ -3720,11 +3740,10 @@ def create_version():
             doc_video_url = request.form.get(f'filesDocuments[{index}][video_url]', '').strip()
 
             doc_file_url = ''
+            doc_checksum_fields = external_checksum_fields()
             if doc_file:
-                doc_filename = doc_file.filename
-                doc_file.save(f'uploads/{doc_filename}')
-                base_url = (Config.APPLICATION_BASE_URL or '').rstrip('/')
-                doc_file_url = f'{base_url}/uploads/{doc_filename}'
+                doc_filename, doc_saved_path, doc_file_url = _save_upload_collision_safe(doc_file)
+                doc_checksum_fields = checksum_fields_for_upload(doc_saved_path, doc_file_url)
             elif doc_video_url:
                 doc_file_url = doc_video_url
 
@@ -3736,7 +3755,8 @@ def create_version():
                 file_url=doc_file_url,
                 identifier_type_id=int(doc_identifier) if doc_identifier else None,
                 generated_identifier=doc_generated_identifier or '',
-                rrid=doc_rrid
+                rrid=doc_rrid,
+                **doc_checksum_fields
             )
             db.session.add(pub_doc)
             files_documents.append(pub_doc)
