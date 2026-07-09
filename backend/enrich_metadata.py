@@ -59,7 +59,10 @@ def get_publications_to_enrich(source_name, batch_size, force_reprocess=False, r
         .distinct()
     )
 
-    query = Publications.query.filter(~Publications.id.in_(already_done_ids))
+    query = Publications.query.filter(
+        ~Publications.id.in_(already_done_ids),
+        Publications.deleted_at.is_(None),
+    )
 
     if require_doi:
         query = query.filter(
