@@ -1,7 +1,7 @@
 """
 OpenAIRE Graph API Client Service.
-Uses the current Graph API at graph.openaire.eu/api (NOT the deprecated
-api.openaire.eu/search/* endpoint which was shut down in 2023).
+Uses the v1 Graph API at api.openaire.eu/graph/v1 (NOT the old
+graph.openaire.eu/api endpoint which returns 406 on Accept: application/json).
 """
 import time
 import urllib.parse
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 
 from app.service_openalex import normalize_doi
 
-_DEPRECATED_URL_FRAGMENT = 'api.openaire.eu'
+_DEPRECATED_URL_FRAGMENT = 'graph.openaire.eu'
 
 
 class OpenAIREClient:
-    """Client for the OpenAIRE Graph API (graph.openaire.eu/api)."""
+    """Client for the OpenAIRE Graph API v1 (api.openaire.eu/graph/v1)."""
 
-    def __init__(self, base_url: str = 'https://graph.openaire.eu/api'):
+    def __init__(self, base_url: str = 'https://api.openaire.eu/graph/v1'):
         if _DEPRECATED_URL_FRAGMENT in base_url:
             raise ValueError(
-                f"OpenAIRE base_url '{base_url}' points at the deprecated Search API "
-                f"(api.openaire.eu). Use 'https://graph.openaire.eu/api' instead."
+                f"OpenAIRE base_url '{base_url}' points at the old graph.openaire.eu "
+                f"endpoint which returns 406. Use 'https://api.openaire.eu/graph/v1' instead."
             )
         self.base_url = base_url.rstrip('/')
         self.rate_limit_delay = 0.6
@@ -42,8 +42,7 @@ class OpenAIREClient:
         url = f"{self.base_url}{endpoint}"
         try:
             response = self.session.get(
-                url, headers={'Accept': 'application/json'},
-                params=params, timeout=self.timeout,
+                url, params=params, timeout=self.timeout,
             )
             if response.status_code == 200:
                 return response.json()
@@ -57,8 +56,7 @@ class OpenAIREClient:
                 time.sleep(retry_seconds)
                 self._last_request_time = time.time()
                 response = self.session.get(
-                    url, headers={'Accept': 'application/json'},
-                    params=params, timeout=self.timeout,
+                    url, params=params, timeout=self.timeout,
                 )
                 if response.status_code == 200:
                     return response.json()
@@ -82,10 +80,9 @@ class OpenAIREClient:
         normalized = normalize_doi(doi)
         if not normalized:
             return None
-        encoded = urllib.parse.quote(normalized, safe='')
         resp = self._make_request(
             '/researchProducts',
-            params={'pid': normalized, 'format': 'json', 'pageSize': 1},
+            params={'pid': normalized, 'page': 1, 'pageSize': 1},
         )
         if not resp:
             return None
