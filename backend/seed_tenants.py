@@ -95,6 +95,29 @@ _UNILAG_BRANDING = {
     "is_active": True,
 }
 
+# DOCiD / APA default brand — same values as frontend getDefaultTenant().
+# Used for publishers / publishers-demo until custom branding is applied.
+_DOCID_DEFAULT_BRANDING = {
+    "display_name": "DOCiD™ APP",
+    "logo_url": "/assets/images/logo2.png",
+    "logo_dark_url": None,
+    "favicon_url": "/favicon.ico",
+    "og_image_url": "/assets/images/logo2.png",
+    "primary_color": "#1565c0",
+    "primary_color_dark": "#141a3b",
+    "accent_color": "#cce1f7",
+    "page_title": "DOCiD™ APP",
+    "page_description": (
+        "DOCiD is a unique persistent identifier for African research outputs."
+    ),
+    "hero_tagline": None,
+    "footer_copyright": "© DOCiD™",
+    "contact_email": "info@africapidalliance.org",
+    "email_from_name": "AFRICA PID Alliance",
+    "feature_flags": None,
+    "is_active": True,
+}
+
 TENANTS = [
     {**_STELLENBOSCH_BRANDING, "slug": "stellenbosch"},
     # Demo/test host: stellenbosch-test.africapidalliance.org
@@ -102,6 +125,10 @@ TENANTS = [
     {**_UNILAG_BRANDING, "slug": "unilag"},
     # Demo/test host: unilag-test.africapidalliance.org
     {**_UNILAG_BRANDING, "slug": "unilag-test"},
+    # publishers.africapidalliance.org — default DOCiD branding for now
+    {**_DOCID_DEFAULT_BRANDING, "slug": "publishers"},
+    # Demo/test host: publishers-demo.africapidalliance.org
+    {**_DOCID_DEFAULT_BRANDING, "slug": "publishers-demo"},
 ]
 
 
