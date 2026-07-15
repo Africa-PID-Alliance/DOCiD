@@ -288,7 +288,7 @@ def create_client_and_mapper(source_name, app_config):
 
     if source_name == 'openaire':
         from app.service_openaire import OpenAIREClient, OpenAIREEnrichmentMapper
-        return OpenAIREClient(base_url=app_config.get('OPENAIRE_API_BASE_URL', 'https://graph.openaire.eu/api')), OpenAIREEnrichmentMapper
+        return OpenAIREClient(base_url=app_config.get('OPENAIRE_API_BASE_URL', 'https://api.openaire.eu/graph/v1')), OpenAIREEnrichmentMapper
 
     if source_name == 'core':
         from app.service_core import CoreClient, CoreEnrichmentMapper
