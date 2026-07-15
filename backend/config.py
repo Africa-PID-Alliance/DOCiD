@@ -80,7 +80,7 @@ class Config:
     SEMANTIC_SCHOLAR_API_KEY = os.getenv('SEMANTIC_SCHOLAR_API_KEY', '')
     CORE_API_KEY = os.getenv('CORE_API_KEY', '')
     CORE_API_BASE_URL = os.getenv('CORE_API_BASE_URL', 'https://api.core.ac.uk/v3')
-    OPENAIRE_API_BASE_URL = os.getenv('OPENAIRE_API_BASE_URL', 'https://graph.openaire.eu/api')
+    OPENAIRE_API_BASE_URL = os.getenv('OPENAIRE_API_BASE_URL', 'https://api.openaire.eu/graph/v1')
     OPENCITATIONS_ACCESS_TOKEN = os.getenv('OPENCITATIONS_ACCESS_TOKEN', '')
     LENS_SCHOLAR_API_KEY = os.getenv('LENS_SCHOLAR_API_KEY', '')
     LENS_PATENT_API_KEY = os.getenv('LENS_PATENT_API_KEY', '')
