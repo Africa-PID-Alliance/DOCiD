@@ -1,37 +1,213 @@
 # app/routes/cordra.py
-from flask import Blueprint, jsonify, request, current_app
-from flask_limiter import Limiter
+from flask import Blueprint, g, jsonify, make_response, request, current_app
 from flask_limiter.util import get_remote_address
-from flask_caching import Cache
+from flask_jwt_extended import get_jwt_identity, jwt_required
+import hashlib
 import json
 from functools import wraps
 import logging
 from logging.handlers import RotatingFileHandler
 import re
-from typing import Dict, Tuple, Optional, Union
-import requests
+import uuid
 from datetime import datetime
 import time
-from app import cache
-from app.service_codra import deposit_metadata,  list_operations ,assign_doi_indigenous_knowledge,assign_doi_container_id,assign_doi_patent,assign_doi_user,assign_identifier_apa_handle
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
+from app import db, limiter
+from app.authz import admin_required, pid_minter_required
+from app.models import PidMintAudit
+from app.service_codra import deposit_metadata, list_operations, assign_doi_indigenous_knowledge, assign_doi_container_id, assign_doi_patent, assign_identifier_apa_handle
 from app.service_codra import push_apa_metadata
 
 # Configure logging with more detail
 logger = logging.getLogger("cordoi_api_logger")
 logger.setLevel(logging.DEBUG)
-handler = RotatingFileHandler("logs/cordoi_api.log", maxBytes=1000000, backupCount=5)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# Initialize rate limiter
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+if not logger.handlers:
+    handler = RotatingFileHandler("logs/cordoi_api.log", maxBytes=1000000, backupCount=5)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 # Blueprint definition
 cordoi_bp = Blueprint("cordoi", __name__, url_prefix="/api/v1/cordoi")
+
+
+def _mint_rate_key():
+    """Rate-limit by authenticated actor and source IP."""
+    return f"{get_jwt_identity()}:{get_remote_address()}"
+
+
+def _minute_limit():
+    return current_app.config.get("PID_MINT_RATE_LIMIT", "5 per minute")
+
+
+def _daily_limit():
+    return current_app.config.get("PID_MINT_DAILY_LIMIT", "100 per day")
+
+
+def _payload_sha256(payload):
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _safe_response_body(response):
+    body = response.get_json(silent=True)
+    if not isinstance(body, dict):
+        return {"message": "PID registry operation completed"}
+    allowed = {
+        key: body[key]
+        for key in ("success", "message", "id", "error", "error_code")
+        if key in body
+    }
+    return allowed or {"message": "PID registry operation completed"}
+
+
+def _audit_replay(audit):
+    try:
+        body = json.loads(audit.response_body or "{}")
+    except (TypeError, ValueError):
+        body = {"error": "Stored PID operation response is unavailable"}
+    response = jsonify(body)
+    response.status_code = audit.response_status or 409
+    response.headers["X-Idempotent-Replay"] = "true"
+    response.headers["X-Request-ID"] = audit.request_id
+    return response
+
+
+def audited_pid_write(operation, resource_type):
+    """Reserve an idempotency key and persist a sanitized PID write audit."""
+
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            idempotency_key = (request.headers.get("Idempotency-Key") or "").strip()
+            if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", idempotency_key):
+                return jsonify({
+                    "error": "A valid Idempotency-Key header (8-128 characters) is required"
+                }), 400
+
+            user = g.current_user
+            existing = PidMintAudit.query.filter_by(
+                user_id=user.user_id,
+                operation=operation,
+                idempotency_key=idempotency_key,
+            ).first()
+            if existing:
+                if existing.status == "in_progress":
+                    return jsonify({
+                        "error": "A request with this idempotency key is already in progress",
+                        "request_id": existing.request_id,
+                    }), 409
+                return _audit_replay(existing)
+
+            payload = request.get_json(silent=True) or {}
+            audit = PidMintAudit(
+                user_id=user.user_id,
+                operation=operation,
+                resource_type=resource_type,
+                idempotency_key=idempotency_key,
+                request_id=str(uuid.uuid4()),
+                payload_sha256=_payload_sha256(payload),
+                status="in_progress",
+                ip_address=request.environ.get("HTTP_X_REAL_IP", request.remote_addr),
+                user_agent=(request.headers.get("User-Agent") or "")[:1000],
+            )
+            db.session.add(audit)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                existing = PidMintAudit.query.filter_by(
+                    user_id=user.user_id,
+                    operation=operation,
+                    idempotency_key=idempotency_key,
+                ).first()
+                if existing:
+                    return _audit_replay(existing) if existing.status != "in_progress" else (
+                        jsonify({"error": "A request with this idempotency key is already in progress"}),
+                        409,
+                    )
+                return jsonify({"error": "Unable to reserve PID operation"}), 503
+            except SQLAlchemyError:
+                db.session.rollback()
+                logger.exception("Unable to create PID audit reservation")
+                return jsonify({"error": "PID audit service unavailable"}), 503
+
+            try:
+                response = make_response(function(*args, **kwargs))
+                response_body = _safe_response_body(response)
+                audit.response_status = response.status_code
+                audit.response_body = json.dumps(response_body, sort_keys=True)
+                audit.identifier = str(response_body.get("id"))[:255] if response_body.get("id") else None
+                audit.status = "success" if 200 <= response.status_code < 300 else "failed"
+                audit.error_code = response_body.get("error_code")
+                audit.completed_at = datetime.utcnow()
+                db.session.commit()
+                response.headers["X-Request-ID"] = audit.request_id
+                return response
+            except Exception:
+                db.session.rollback()
+                try:
+                    audit = db.session.get(PidMintAudit, audit.id)
+                    if audit:
+                        audit.status = "failed"
+                        audit.response_status = 500
+                        audit.response_body = json.dumps({"error": "PID registry operation failed"})
+                        audit.error_code = "UNHANDLED_EXCEPTION"
+                        audit.completed_at = datetime.utcnow()
+                        db.session.commit()
+                except SQLAlchemyError:
+                    db.session.rollback()
+                    logger.exception("Unable to finalize failed PID audit")
+                logger.exception("Unhandled PID registry operation failure")
+                return jsonify({"error": "PID registry operation failed"}), 500
+
+        return wrapper
+
+    return decorator
+
+
+def minting_enabled(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not current_app.config.get("PID_MINTING_ENABLED", False):
+            return jsonify({
+                "error": "PID minting is temporarily disabled",
+                "error_code": "PID_MINTING_DISABLED",
+            }), 503
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
+def debug_routes_enabled(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not current_app.config.get("CORDRA_DEBUG_ROUTES_ENABLED", False):
+            return jsonify({"error": "Not found"}), 404
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
+def _service_response(result):
+    if not isinstance(result, dict):
+        return jsonify({"error": "Invalid response from PID registry"}), 502
+    if result.get("success"):
+        return jsonify({
+            "success": True,
+            "message": result.get("message", "PID registry operation completed"),
+            "id": result.get("id"),
+        }), 200
+    status = result.get("status_code")
+    if not isinstance(status, int) or status < 400 or status > 499:
+        status = 502
+    logger.error("Cordra operation failed with status=%s", result.get("status_code"))
+    return jsonify({
+        "success": False,
+        "error": "PID registry operation failed",
+        "error_code": "UPSTREAM_PID_FAILURE",
+    }), status
 
 def log_api_request(func):
     """Decorator to log API requests with detailed information"""
@@ -55,6 +231,13 @@ def log_api_request(func):
     return wrapper
 
 @cordoi_bp.route("/push-apa-sample", methods=["POST"])
+@jwt_required()
+@admin_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("push_apa_sample", "APA_Handle_ID")
+@debug_routes_enabled
+@minting_enabled
 def push_sample_apa_metadata():
     """
     Push sample APA metadata to Cordra.
@@ -86,14 +269,19 @@ def push_sample_apa_metadata():
             "created_on": int(time.time())
         }
 
-        response = push_apa_metadata(metadata)
-        return jsonify(response), 200 if response.get("success") else 400
+        return _service_response(push_apa_metadata(metadata))
 
-    except Exception as e:
-        logger.error(f"Error in /push-apa-sample: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error in /push-apa-sample")
+        return jsonify({"error": "PID registry operation failed"}), 500
    
 @cordoi_bp.route("/assign-identifier/apa-handle", methods=["POST"])
+@jwt_required()
+@pid_minter_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("assign_apa_handle", "APA_Handle_ID")
+@minting_enabled
 def assign_identifier_apa_handle_route():
     """
     Assign an auto-generated identifier using the APA_Handle_ID schema.
@@ -137,17 +325,19 @@ def assign_identifier_apa_handle_route():
                   example: "Internal server error: <details>"
     """
     try:
-        response = assign_identifier_apa_handle()
-        
-        if response.get("success"):
-            return jsonify(response), 200
-        else:
-            return jsonify(response), 500
+        return _service_response(assign_identifier_apa_handle())
 
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        logger.exception("APA Handle assignment failed")
+        return jsonify({"error": "PID registry operation failed"}), 500
 
 @cordoi_bp.route("/assign-doi/indigenous-knowledge", methods=["POST"])
+@jwt_required()
+@pid_minter_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("assign_indigenous_knowledge", "Indigenous Knowledge")
+@minting_enabled
 def assign_doi_indigenous_knowledge_route():
     """
     Assign a DOI to an Indigenous Knowledge example object.
@@ -189,18 +379,25 @@ def assign_doi_indigenous_knowledge_route():
         description: Internal server error.
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         response = assign_doi_indigenous_knowledge(
             doi=data.get("doi"),
             name=data.get("name"),
             description=data.get("description"),
             description2=data.get("description2", "")
         )
-        return jsonify(response), 200 if response.get("success") else 400
-    except Exception as e:
-        return jsonify({"error": f"Failed to assign DOI: {str(e)}"}), 500
+        return _service_response(response)
+    except Exception:
+        logger.exception("Indigenous Knowledge PID assignment failed")
+        return jsonify({"error": "PID registry operation failed"}), 500
 
 @cordoi_bp.route("/assign-doi/container-id", methods=["POST"])
+@jwt_required()
+@pid_minter_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("assign_container_id", "Container iD")
+@minting_enabled
 def assign_doi_container_id_route():
     """
     Assign a DOI to a Container iD object.
@@ -259,7 +456,7 @@ def assign_doi_container_id_route():
                   example: "Internal server error: <details>"
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         # Validate required fields
         required_fields = ["title", "description"]
@@ -277,13 +474,20 @@ def assign_doi_container_id_route():
             title=data.get("title"),
             description=clean_description
         )
-        return jsonify(response), 200
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        return _service_response(response)
+    except Exception:
+        logger.exception("Container iD assignment failed")
+        return jsonify({"error": "PID registry operation failed"}), 500
 
 
 
 @cordoi_bp.route("/assign-doi/patent", methods=["POST"])
+@jwt_required()
+@pid_minter_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("assign_patent", "Patent")
+@minting_enabled
 def assign_doi_patent_route():
     """
     Assign a DOI to a Patent object.
@@ -382,7 +586,7 @@ def assign_doi_patent_route():
       500:
         description: Internal server error.
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     try:
         response = assign_doi_patent(
             doi=data["doi"],
@@ -397,15 +601,21 @@ def assign_doi_patent_route():
             classification_code=data["classification_code"],
             classification_date=data.get("classification_date", ""),
             abstract=data.get("abstract", ""),
-            owner=data.get("owner", "")
+            owner=g.current_user.full_name or g.current_user.email
         )
-        return jsonify(response), 200 if response.get("success") else 400
-    except KeyError as e:
-        return jsonify({"error": f"Missing required parameter: {str(e)}"}), 400
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        return _service_response(response)
+    except KeyError as error:
+        return jsonify({"error": f"Missing required parameter: {error.args[0]}"}), 400
+    except Exception:
+        logger.exception("Patent PID assignment failed")
+        return jsonify({"error": "PID registry operation failed"}), 500
 
 @cordoi_bp.route("/assign-doi/user", methods=["POST"])
+@jwt_required()
+@admin_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("assign_user", "User")
 def assign_doi_user_route():
     """
     Assign a DOI to a User object.
@@ -446,17 +656,19 @@ def assign_doi_user_route():
       500:
         description: Internal server error.
     """
-    data = request.get_json()
-    response =  assign_doi_user(
-        username=data.get("username"),
-        password=data.get("password"),
-        email=data.get("email"),
-        role=data.get("role"),
-        metadata=data.get("metadata", {})
-    )
-    return jsonify(response)
+    return jsonify({
+        "error": "User PID creation is disabled; use the account provisioning workflow",
+        "error_code": "USER_PID_ENDPOINT_DISABLED",
+    }), 410
 
-@cordoi_bp.route("/deposit-metadata", methods=["GET"])
+@cordoi_bp.route("/deposit-metadata", methods=["POST"])
+@jwt_required()
+@admin_required
+@limiter.limit(_minute_limit, key_func=_mint_rate_key)
+@limiter.limit(_daily_limit, key_func=_mint_rate_key)
+@audited_pid_write("deposit_sample_metadata", "Sample Resource")
+@debug_routes_enabled
+@minting_enabled
 def deposit_metadata_route():
     """
     Deposit CODRA metadata
@@ -489,12 +701,14 @@ def deposit_metadata_route():
         }
 
         # Replace 'target_id' with the actual target ID if needed
-        response = deposit_metadata(example_metadata, target_id="your_target_id")
-        return jsonify(response)
-    except Exception as e:
-        return jsonify({"error": f"Failed to deposit CODRA metadata: {str(e)}"}), 500
+        return _service_response(deposit_metadata(example_metadata, target_id="your_target_id"))
+    except Exception:
+        logger.exception("Sample metadata deposit failed")
+        return jsonify({"error": "PID registry operation failed"}), 500
 
 @cordoi_bp.route("/list-operations", methods=["GET"])
+@jwt_required()
+@pid_minter_required
 def list_operations_route():
     """
     Retrieve a list of available operations from the Cordra API.
@@ -545,8 +759,6 @@ def list_operations_route():
                 "message": response.get("message", "Failed to retrieve operations"),
             }), 500
 
-    except Exception as e:
-        return jsonify({
-            "error": f"Failed to list operations: {str(e)}"
-        }), 500
-
+    except Exception:
+        logger.exception("Failed to list Cordra operations")
+        return jsonify({"error": "Failed to list PID registry operations"}), 500

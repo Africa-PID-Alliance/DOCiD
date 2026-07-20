@@ -1,6 +1,8 @@
 # app/routes/arks.py
 
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
+from app.authz import pid_minter_required
 import requests
 import logging
 
@@ -21,6 +23,8 @@ ARKS_CONFIG = {
 }
 
 @arks_bp.route("/create", methods=["POST"])
+@jwt_required()
+@pid_minter_required
 def create_ark():
     """
     Create a new ARK identifier.

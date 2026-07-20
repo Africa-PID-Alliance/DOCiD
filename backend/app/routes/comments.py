@@ -1,10 +1,12 @@
 """
 API endpoints for publication comments
 """
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_cors import cross_origin
+from flask_jwt_extended import jwt_required
 from app import db
 from app.models import PublicationComments, Publications, UserAccount
+from app.authz import database_user_required
 import logging
 
 # Configure logging
@@ -112,6 +114,8 @@ def get_publication_comments(publication_id):
 
 @comments_bp.route('/api/publications/<int:publication_id>/comments', methods=['POST'])
 @cross_origin()
+@jwt_required()
+@database_user_required
 def add_comment(publication_id):
     """
     Add a new comment to a publication
@@ -173,15 +177,11 @@ def add_comment(publication_id):
         data = request.get_json()
         
         # Validate required fields
-        if not data.get('user_id'):
-            return jsonify({'error': 'user_id is required'}), 400
         if not data.get('comment_text'):
             return jsonify({'error': 'comment_text is required'}), 400
         
         # Check if user exists
-        user = UserAccount.query.get(data['user_id'])
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        user = g.current_user
         
         # Check if parent comment exists (for replies)
         parent_comment_id = data.get('parent_comment_id')
@@ -195,13 +195,13 @@ def add_comment(publication_id):
         # Add the comment
         comment = PublicationComments.add_comment(
             publication_id=publication_id,
-            user_id=data['user_id'],
+            user_id=user.user_id,
             comment_text=data['comment_text'],
             comment_type=data.get('comment_type', 'general'),
             parent_comment_id=parent_comment_id
         )
         
-        logger.info(f"Comment {comment.id} added to publication {publication_id} by user {data['user_id']}")
+        logger.info(f"Comment {comment.id} added to publication {publication_id} by user {user.user_id}")
         
         return jsonify({
             'message': 'Comment added successfully',
@@ -215,6 +215,8 @@ def add_comment(publication_id):
 
 @comments_bp.route('/api/comments/<int:comment_id>', methods=['PUT'])
 @cross_origin()
+@jwt_required()
+@database_user_required
 def edit_comment(comment_id):
     """
     Edit an existing comment
@@ -271,7 +273,7 @@ def edit_comment(comment_id):
         data = request.get_json()
         
         # Validate user permission (only comment author can edit)
-        if data.get('user_id') != comment.user_id:
+        if g.current_user.user_id != comment.user_id and g.current_user.role != 'admin':
             return jsonify({'error': 'Unauthorized: Only comment author can edit'}), 403
         
         # Validate new text
@@ -296,6 +298,8 @@ def edit_comment(comment_id):
 
 @comments_bp.route('/api/comments/<int:comment_id>', methods=['DELETE'])
 @cross_origin()
+@jwt_required()
+@database_user_required
 def delete_comment(comment_id):
     """
     Delete a comment (soft delete)
@@ -342,18 +346,9 @@ def delete_comment(comment_id):
         if not comment:
             return jsonify({'error': 'Comment not found'}), 404
         
-        # Get request data
-        data = request.get_json()
-        
         # Validate user permission (only comment author or admin can delete)
-        user_id = data.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'user_id is required'}), 400
-            
-        user = UserAccount.query.get(user_id)
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-            
+        user = g.current_user
+        user_id = user.user_id
         # Check permission
         is_admin = user.role == 'admin' if user.role else False
         if user_id != comment.user_id and not is_admin:
@@ -375,6 +370,8 @@ def delete_comment(comment_id):
 
 @comments_bp.route('/api/comments/<int:comment_id>/like', methods=['POST'])
 @cross_origin()
+@jwt_required()
+@database_user_required
 def like_comment(comment_id):
     """
     Like a comment

@@ -12,6 +12,8 @@ import logging
 import requests
 from typing import Dict, Any, List, Optional
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
+from app.authz import pid_minter_required
 
 # Configure logging
 logging.basicConfig(
@@ -80,6 +82,8 @@ def health_check():
 
 # --- Register new identifiers ---
 @cstr_bp.route('/register', methods=['POST'])
+@jwt_required()
+@pid_minter_required
 def register():
     """
     Mint & register up to 100 new CSTR IDs in a batch.
@@ -132,6 +136,8 @@ def register():
 
 # --- Update existing metadata ---
 @cstr_bp.route('/update', methods=['POST'])
+@jwt_required()
+@pid_minter_required
 def update():
     """
     Batch-modify metadata for existing CSTR IDs.
@@ -328,6 +334,8 @@ def get_related():
 
 # --- Create relationships between resources ---
 @cstr_bp.route('/relate', methods=['POST'])
+@jwt_required()
+@pid_minter_required
 def create_relation():
     """
     Create relationship between two CSTR resources.

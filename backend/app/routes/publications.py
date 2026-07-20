@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 import os
 import uuid
 from werkzeug.utils import secure_filename
-from flask import Blueprint, jsonify, request, Response, abort
+from flask import Blueprint, jsonify, request, Response, abort, g
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 import re
 import json
 from config import Config
+from app.authz import database_user_required
 
 
 def _save_upload_collision_safe(file_storage):
@@ -1533,12 +1534,6 @@ def create_publication():
         logger.info(f"  Content-Length header: {request.headers.get('Content-Length', 'Not specified')}")
         logger.info(f"  Content-Type: {request.headers.get('Content-Type', 'Not specified')}")
         
-        # Log parsed JSON data if available
-        if request.is_json:
-            logger.info("-" * 40)
-            logger.info("JSON DATA RECEIVED:")
-            logger.info(f"  {request.get_json()}")
-        
         logger.info("=" * 80)
         
         # Access form data from request.form and files from request.files
@@ -1552,8 +1547,11 @@ def create_publication():
             user_id = int(get_jwt_identity())
         except (TypeError, ValueError):
             return jsonify({'message': 'Authentication required'}), 401
+        user = db.session.get(UserAccount, user_id)
+        if not user:
+            return jsonify({'message': 'Authenticated user not found'}), 401
         doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
-        owner = request.form.get('owner')
+        owner = user.full_name or user.email
         publication_poster = request.files.get('publicationPoster')
         avatar = clean_undefined_string(request.form.get('avatar'))  # Assuming it's a URL
 
@@ -1604,12 +1602,6 @@ def create_publication():
         resource_type_id = resource_type_obj.id
         logger.info(f"Resource type validated: ID={resource_type_id}")
 
-        # Validate user (derived from JWT, but defensive)
-        user = UserAccount.query.filter_by(user_id=user_id).first()
-        if not user:
-            logger.error(f"User '{user_id}' validation failed")
-            return jsonify({"message": f"Invalid user '{user_id}'."}), 400
-        
         logger.info(f"User validated: ID={user_id}")
 
         # Handle file uploads if they exist
@@ -2452,6 +2444,8 @@ def create_publication():
 # ===== DRAFT MANAGEMENT ENDPOINTS =====
 
 @publications_bp.route('/draft', methods=['POST'])
+@jwt_required()
+@database_user_required
 def save_draft():
     """
     Save draft form data for assign-docid form
@@ -2490,7 +2484,7 @@ def save_draft():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
-        email = data.get('email')
+        email = g.current_user.email
         resource_type_id = data.get('resource_type_id')
         form_data = data.get('formData')
 
@@ -2610,6 +2604,8 @@ def get_specific_draft(email, resource_type_id):
 
 
 @publications_bp.route('/draft/<email>/<int:resource_type_id>', methods=['DELETE'])
+@jwt_required()
+@database_user_required
 def delete_draft_data(email, resource_type_id):
     """
     Delete specific draft after successful submission
@@ -2636,6 +2632,8 @@ def delete_draft_data(email, resource_type_id):
         description: Internal server error
     """
     try:
+        if g.current_user.email.lower() != email.lower() and g.current_user.role != 'admin':
+            return jsonify({'error': 'Forbidden'}), 403
         logger.info(f"Deleting draft for user: {email}, resource_type_id: {resource_type_id}")
 
         deleted = PublicationDrafts.delete_draft(email, resource_type_id)
@@ -3501,6 +3499,8 @@ def get_publication_versions(publication_id):
 
 
 @publications_bp.route('/version', methods=['POST'])
+@jwt_required()
+@database_user_required
 def create_version():
     """
     Create a new version of an existing publication.
@@ -3576,9 +3576,9 @@ def create_version():
         document_title = request.form.get('documentTitle')
         document_description = request.form.get('documentDescription')
         resource_type = request.form.get('resourceType')
-        user_id = request.form.get('user_id')
+        user_id = g.current_user.user_id
         doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
-        owner = request.form.get('owner')
+        owner = g.current_user.full_name or g.current_user.email
         publication_poster = request.files.get('publicationPoster')
         avatar = clean_undefined_string(request.form.get('avatar'))
 
@@ -3591,11 +3591,6 @@ def create_version():
             missing_fields.append('documentDescription')
         if not resource_type:
             missing_fields.append('resourceType')
-        if not user_id:
-            missing_fields.append('user_id')
-        if not owner:
-            missing_fields.append('owner')
-
         if missing_fields:
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
 
@@ -3609,14 +3604,7 @@ def create_version():
             return jsonify({'message': f"Invalid resource type '{resource_type}'."}), 400
         resource_type_id = resource_type_obj.id
 
-        try:
-            user_id = int(user_id)
-        except ValueError:
-            return jsonify({'message': f"Invalid user id '{user_id}'."}), 400
-
-        user = UserAccount.query.filter_by(user_id=user_id).first()
-        if not user:
-            return jsonify({'message': f"Invalid user '{user_id}'."}), 400
+        user = g.current_user
 
         # --- Owner check: only parent owner can create versions ---
         if parent_publication.user_id != user_id:

@@ -375,6 +375,8 @@ def _normalize_resolver_response(raw_json):
         "description": item.get("description", ""),
         "url": item.get("url", ""),
         "resource_type": resource_type,
+        "properCitation": item.get("properCitation", ""),
+        "mentions": item.get("mentions", 0),
     }
 
 

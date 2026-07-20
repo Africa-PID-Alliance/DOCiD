@@ -12,6 +12,7 @@ export async function POST(request) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': request.headers.get('authorization'),
+        'Idempotency-Key': request.headers.get('idempotency-key'),
       },
       body: JSON.stringify(requestBody),
     });

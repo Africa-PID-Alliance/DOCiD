@@ -1,9 +1,12 @@
 import time
 from datetime import datetime
 from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, DateTime, Enum, Boolean, event
+from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app import db
+
+JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
  
 class UserAccount(db.Model):
     """
@@ -504,7 +507,7 @@ class Publications(db.Model):
     influential_citation_count = Column(Integer, nullable=True)
     open_access_status = Column(String(20), nullable=True)  # gold|green|hybrid|bronze|closed
     open_access_url = Column(String(500), nullable=True)
-    openalex_topics = Column(JSONB, nullable=True)  # [{name, score}]
+    openalex_topics = Column(JSON_DOCUMENT, nullable=True)  # [{name, score}]
     openalex_id = Column(String(100), nullable=True)
     semantic_scholar_id = Column(String(100), nullable=True)
     abstract_text = Column(Text, nullable=True)
@@ -726,7 +729,7 @@ class Tenant(db.Model):
     email_from_name = Column(String(255), nullable=True)
 
     # Extensibility without migrations
-    feature_flags = Column(JSONB, nullable=True)
+    feature_flags = Column(JSON_DOCUMENT, nullable=True)
 
     # Lifecycle
     is_active = Column(Boolean, nullable=False, default=True, server_default='true')
@@ -1009,6 +1012,60 @@ class PublicationDrafts(db.Model):
     def get_user_drafts_count(cls):
         """Get total count of drafts (for admin purposes)"""
         return cls.query.count()
+
+
+class PidMintAudit(db.Model):
+    """Immutable security audit record for PID namespace write attempts."""
+
+    __tablename__ = 'pid_mint_audit'
+    __table_args__ = (
+        db.UniqueConstraint(
+            'user_id', 'operation', 'idempotency_key',
+            name='uq_pid_mint_audit_actor_operation_key',
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('user_accounts.user_id'),
+        nullable=False,
+        index=True,
+    )
+    operation = db.Column(db.String(100), nullable=False, index=True)
+    resource_type = db.Column(db.String(100), nullable=False)
+    idempotency_key = db.Column(db.String(128), nullable=False)
+    request_id = db.Column(db.String(36), nullable=False, unique=True, index=True)
+    payload_sha256 = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='in_progress', index=True)
+    response_status = db.Column(db.Integer, nullable=True)
+    response_body = db.Column(db.Text, nullable=True)
+    identifier = db.Column(db.String(255), nullable=True, index=True)
+    error_code = db.Column(db.String(100), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship('UserAccount', backref='pid_mint_audits')
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'operation': self.operation,
+            'resource_type': self.resource_type,
+            'idempotency_key': self.idempotency_key,
+            'request_id': self.request_id,
+            'payload_sha256': self.payload_sha256,
+            'status': self.status,
+            'response_status': self.response_status,
+            'identifier': self.identifier,
+            'error_code': self.error_code,
+            'ip_address': self.ip_address,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+        }
 
 
 class PublicationAuditTrail(db.Model):
@@ -1665,7 +1722,7 @@ class DocidRrid(db.Model):
     rrid_description = db.Column(db.Text, nullable=True)  # resource description
     rrid_resource_type = db.Column(db.String(100), nullable=True)  # e.g. 'core facility', 'software'
     rrid_url = db.Column(db.String(500), nullable=True)  # resource URL
-    resolved_json = db.Column(JSONB, nullable=True)  # cached resolver metadata (normalized subset only)
+    resolved_json = db.Column(JSON_DOCUMENT, nullable=True)  # cached resolver metadata (normalized subset only)
     last_resolved_at = db.Column(db.DateTime, nullable=True)  # when resolver cache was last refreshed
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
@@ -1741,7 +1798,7 @@ class PublicationEnrichment(db.Model):
     source_name = db.Column(db.String(50), nullable=False, index=True)  # openalex|unpaywall|semantic_scholar|openaire
     status = db.Column(db.String(20), nullable=False, default='pending')  # pending|enriched|not_found|error|skipped
     enriched_at = db.Column(db.DateTime, nullable=True)
-    raw_response = db.Column(JSONB, nullable=True)
+    raw_response = db.Column(JSON_DOCUMENT, nullable=True)
     error_message = db.Column(db.Text, nullable=True)
     retry_count = db.Column(db.Integer, default=0)
     review_status = db.Column(db.String(20), nullable=True, index=True)  # accepted|pending_review|rejected|NULL
@@ -1955,7 +2012,7 @@ class PublicationExternalEdge(db.Model):
     relation       = db.Column(db.String(40), nullable=False)
     source_name    = db.Column(db.String(50), nullable=False)
     confidence     = db.Column(db.String(20), nullable=True)
-    raw_metadata   = db.Column(JSONB, nullable=True)
+    raw_metadata   = db.Column(JSON_DOCUMENT, nullable=True)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at     = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -2047,7 +2104,7 @@ class HarvestStagingRecord(db.Model):
     oai_datestamp          = db.Column(db.DateTime, nullable=False)
     is_deleted             = db.Column(db.Boolean, default=False, nullable=False)
     raw_xml                = db.Column(db.Text, nullable=True)
-    normalised             = db.Column(JSONB, nullable=True)
+    normalised             = db.Column(JSON_DOCUMENT, nullable=True)
     matched_publication_id = db.Column(
         db.Integer,
         db.ForeignKey('publications.id', ondelete='SET NULL'),

@@ -11,7 +11,37 @@ from datetime import datetime
 
 import pytest
 from app import db
-from app.models import DocidRrid
+from app.models import (
+    DocidRrid,
+    PublicationOrganization,
+    Publications,
+    ResourceTypes,
+)
+
+
+@pytest.fixture(autouse=True)
+def owned_rrid_targets(authenticated_client):
+    """Create entities owned by the authenticated test user."""
+    if db.session.get(ResourceTypes, 1) is None:
+        db.session.add(ResourceTypes(id=1, resource_type="Dataset"))
+    for publication_id in (1, 55, 99):
+        if db.session.get(Publications, publication_id) is None:
+            db.session.add(Publications(
+                id=publication_id,
+                user_id=1,
+                document_docid=f"20.500.test/{publication_id}",
+                document_title=f"RRID target {publication_id}",
+                resource_type_id=1,
+            ))
+    db.session.flush()
+    if db.session.get(PublicationOrganization, 77) is None:
+        db.session.add(PublicationOrganization(
+            id=77,
+            publication_id=1,
+            name="RRID Test Organization",
+            type="Institution",
+        ))
+    db.session.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -39,13 +69,15 @@ MOCK_SCICRUNCH_SEARCH_RESPONSE = {
 }
 
 MOCK_SCICRUNCH_RESOLVER_RESPONSE = {
-    "name": "Flow Cytometry Core",
-    "curie": "RRID:SCR_012345",
-    "description": "A core facility for flow cytometry services",
-    "url": "https://example.com/flow",
-    "resource_type": "core facility",
-    "properCitation": "(Flow Cytometry Core, RRID:SCR_012345)",
-    "mentions": 42,
+    "hits": {"hits": [{"_source": {"item": {
+        "name": "Flow Cytometry Core",
+        "curie": "RRID:SCR_012345",
+        "description": "A core facility for flow cytometry services",
+        "url": "https://example.com/flow",
+        "types": [{"name": "core facility"}],
+        "properCitation": "(Flow Cytometry Core, RRID:SCR_012345)",
+        "mentions": 42,
+    }}}]},
 }
 
 

@@ -1,5 +1,6 @@
 # app/routes/crossref.py
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 from app import db
 from app.models import DocIdLookup,CrossrefMetadata
 from app.service_crossref import deposit_metadata
@@ -178,6 +179,7 @@ def save_metadata(doi, metadata):
         db.session.commit()
 
 @crossref_bp.route('/bulk/', methods=['POST'])
+@jwt_required()
 def get_bulk_doi_info():
     """
     Fetches metadata for multiple DOIs from the Crossref API.

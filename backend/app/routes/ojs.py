@@ -3,12 +3,13 @@ OJS (Open Journal Systems) Integration API Endpoints
 Read-only operations for retrieving journal submissions, issues, and articles
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_ojs import OJSClient, OJSMetadataMapper
+from app.authz import database_user_required
 import os
 import logging
 from datetime import datetime
@@ -1043,6 +1044,7 @@ def get_sync_stats():
 
 @ojs_bp.route('/sync/delete/<int:publication_id>', methods=['DELETE'])
 @jwt_required()
+@database_user_required
 @cross_origin()
 def delete_synced_submission(publication_id):
     """
@@ -1076,6 +1078,8 @@ def delete_synced_submission(publication_id):
 
         if not publication.ojs_submission_id:
             return jsonify({'error': 'Publication is not an OJS import'}), 404
+        if publication.user_id != g.current_user.user_id and g.current_user.role != 'admin':
+            return jsonify({'error': 'Forbidden'}), 403
 
         ojs_id = publication.ojs_submission_id
 

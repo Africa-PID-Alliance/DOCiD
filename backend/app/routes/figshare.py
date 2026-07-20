@@ -3,12 +3,13 @@ Figshare Integration API Endpoints
 Read-only operations for searching and retrieving Figshare articles/datasets
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_figshare import FigshareClient, FigshareMetadataMapper
+from app.authz import database_user_required
 import os
 import logging
 from datetime import datetime
@@ -1116,6 +1117,7 @@ def get_sync_stats():
 
 @figshare_bp.route('/sync/delete/<int:publication_id>', methods=['DELETE'])
 @jwt_required()
+@database_user_required
 @cross_origin()
 def delete_synced_article(publication_id):
     """
@@ -1149,6 +1151,8 @@ def delete_synced_article(publication_id):
 
         if not publication.figshare_article_id:
             return jsonify({'error': 'Publication is not a Figshare import'}), 404
+        if publication.user_id != g.current_user.user_id and g.current_user.role != 'admin':
+            return jsonify({'error': 'Forbidden'}), 403
 
         figshare_id = publication.figshare_article_id
 

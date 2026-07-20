@@ -6,12 +6,13 @@ Search and resolve RRID resources via the SciCrunch service layer.
 import logging
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.models import DocidRrid
+from app.models import DocidRrid, Publications, PublicationOrganization, PublicationDocuments
+from app.authz import database_user_required
 from app.service_scicrunch import search_rrid_resources, resolve_rrid, validate_rrid
 
 # Module-level logger
@@ -19,6 +20,20 @@ logger = logging.getLogger(__name__)
 
 # Blueprint object
 rrid_bp = Blueprint('rrid', __name__, url_prefix='/api/v1/rrid')
+
+
+def _can_manage_entity(entity_type, entity_id):
+    if entity_type == 'publication':
+        publication = db.session.get(Publications, entity_id)
+    elif entity_type == 'organization':
+        entity = db.session.get(PublicationOrganization, entity_id)
+        publication = db.session.get(Publications, entity.publication_id) if entity else None
+    else:
+        entity = db.session.get(PublicationDocuments, entity_id)
+        publication = db.session.get(Publications, entity.publication_id) if entity else None
+    if publication is None:
+        return None
+    return publication.user_id == g.current_user.user_id or g.current_user.role == 'admin'
 
 
 @rrid_bp.route('/search', methods=['GET'])
@@ -197,6 +212,7 @@ def resolve_rrid_endpoint():
 
 @rrid_bp.route('/attach', methods=['POST'])
 @jwt_required()
+@database_user_required
 def attach_rrid():
     """
     Attach an RRID to a publication or organization entity.
@@ -295,6 +311,12 @@ def attach_rrid():
     normalized_rrid, validation_error = validate_rrid(rrid_value)
     if validation_error is not None:
         return jsonify({'error': 'Invalid RRID format'}), 400
+
+    can_manage = _can_manage_entity(entity_type, entity_id)
+    if can_manage is None:
+        return jsonify({'error': 'Target entity not found'}), 404
+    if not can_manage:
+        return jsonify({'error': 'Forbidden'}), 403
 
     # Resolve via SciCrunch — fresh resolve without entity context (no cache lookup)
     resolved_result, resolve_error = resolve_rrid(normalized_rrid)
@@ -425,6 +447,7 @@ def list_entity_rrids():
 
 @rrid_bp.route('/<int:rrid_id>', methods=['DELETE'])
 @jwt_required()
+@database_user_required
 def detach_rrid(rrid_id):
     """
     Detach (delete) an RRID record by its primary key.
@@ -458,6 +481,11 @@ def detach_rrid(rrid_id):
 
     if rrid_record is None:
         return jsonify({'error': 'RRID record not found'}), 404
+    can_manage = _can_manage_entity(rrid_record.entity_type, rrid_record.entity_id)
+    if can_manage is None:
+        return jsonify({'error': 'Target entity not found'}), 404
+    if not can_manage:
+        return jsonify({'error': 'Forbidden'}), 403
 
     db.session.delete(rrid_record)
     db.session.commit()

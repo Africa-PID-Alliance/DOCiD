@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
+from flask_jwt_extended import jwt_required
+from app.authz import admin_required, pid_minter_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
@@ -201,6 +203,8 @@ def log_api_request(func):
     return wrapper
 
 @raid_bp.route('/get-access-token', methods=['POST'])
+@jwt_required()
+@admin_required
 @limiter.limit("5 per minute")
 @log_api_request
 def request_raid_token():
@@ -323,6 +327,8 @@ def get_raid():
         return jsonify({'error': 'Internal server error'}), 500
 
 @raid_bp.route('/mint-raid', methods=['POST'])
+@jwt_required()
+@pid_minter_required
 @limiter.limit("10 per hour")
 @log_api_request
 def mint_raid():

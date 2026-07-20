@@ -1,8 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from ..email_utils import send_email
+from app.authz import admin_required
 import re
 
 # Initialize Blueprint and Rate Limiter
@@ -16,7 +17,8 @@ def is_valid_email(email):
 # Apply a rate limit to the send email route (e.g., 5 requests per minute per IP)
 @limiter.limit("5 per minute")
 @smtp_bp.route('/send', methods=['POST'])
-# @jwt_required()  # Require JWT token for access
+@jwt_required()
+@admin_required
 def send_email_route():
     data = request.get_json()
     email = data.get('email')

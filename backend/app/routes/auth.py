@@ -1352,8 +1352,8 @@ def login():
         # Verify password
         if user and check_password_hash(user.password, user_password):
             # Generate access and refresh tokens
-            access_token = create_access_token(identity=user.user_id)
-            refresh_token = create_refresh_token(identity=user.user_id)
+            access_token = create_access_token(identity=str(user.user_id))
+            refresh_token = create_refresh_token(identity=str(user.user_id))
 
             # Set session details
             session["user_id"] = user.user_id
@@ -1542,8 +1542,8 @@ def social_auth():
 
         if existing_user:
             logger.info(f"User already exists: social_id={social_id}, user_id={existing_user.user_id}")
-            access_token = create_access_token(identity=existing_user.user_id)
-            refresh_token = create_refresh_token(identity=existing_user.user_id)
+            access_token = create_access_token(identity=str(existing_user.user_id))
+            refresh_token = create_refresh_token(identity=str(existing_user.user_id))
             return jsonify({
                 'status': True,
                 'message': 'User logged in successfully',
@@ -1570,8 +1570,8 @@ def social_auth():
 
         logger.info(f"New user registered successfully: social_id={social_id}, user_id={new_user.user_id}")
 
-        access_token = create_access_token(identity=new_user.user_id)
-        refresh_token = create_refresh_token(identity=new_user.user_id)
+        access_token = create_access_token(identity=str(new_user.user_id))
+        refresh_token = create_refresh_token(identity=str(new_user.user_id))
         return jsonify({
             'status': True,
             'message': 'User registered and logged in successfully',

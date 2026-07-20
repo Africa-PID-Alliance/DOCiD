@@ -171,3 +171,29 @@ The remediation is complete only when all the following are true:
 - Every mint attempt creates a sanitized audit event.
 - CI prevents new unprotected mutation routes from being merged.
 - Previously minted identifiers from the exposure window have been reviewed and dispositioned.
+
+## Implementation Progress — 2026-07-20
+
+Implemented in code:
+
+- Database-backed `user`, `pid_minter`, and `admin` authorization helpers.
+- JWT and role enforcement on all Cordra writes, with minting disabled by default.
+- Per-user/IP minute and daily PID mint limits.
+- Required idempotency keys and replay of completed PID operations.
+- Sanitized PID audit records containing actor, request ID, payload hash, result, IP, and user agent.
+- Debug/sample Cordra routes disabled by default and the credential-bearing user PID route retired.
+- Ownership enforcement for profiles, comments, drafts, publication versions, RRID attachments, and integration deletion routes.
+- Admin enforcement for harvest-source management, bulk DSpace deletion, SMTP, and credential/token operations.
+- JWT enforcement for every non-bootstrap Flask `POST`, `PUT`, `PATCH`, and `DELETE` route.
+- Frontend JWT enforcement and idempotency-key forwarding.
+- CI route-audit tests that reject newly introduced unauthenticated mutation routes.
+- Request/response body logging removed from the global Flask logger.
+
+Still required during deployment and incident response:
+
+- Apply the `pid_mint_audit` migration in every environment before serving the new backend.
+- Assign `pid_minter` only to approved accounts, then explicitly set `PID_MINTING_ENABLED=true`.
+- Configure a shared production limiter backend (for example Redis) for multi-worker enforcement.
+- Preserve and review historical Flask, proxy, and Cordra logs and records from the exposure window.
+- Quarantine or tombstone confirmed unauthorized identifiers under the PID governance policy.
+- Rotate Cordra credentials if the review indicates exposure, then notify the reporting partner.

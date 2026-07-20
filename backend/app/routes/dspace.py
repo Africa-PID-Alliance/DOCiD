@@ -2,12 +2,13 @@
 DSpace Integration API Endpoints (DSpace 7/8/9)
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles
 from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
 from app.service_identifiers import IdentifierService
+from app.authz import admin_required, database_user_required
 import os
 import logging
 
@@ -756,6 +757,7 @@ def get_stats():
 
 @dspace_bp.route('/sync/delete/<int:publication_id>', methods=['DELETE'])
 @jwt_required()
+@database_user_required
 def delete_synced_item(publication_id):
     """
     Delete a synced DSpace item and its mapping
@@ -792,6 +794,8 @@ def delete_synced_item(publication_id):
         publication = Publications.query.get(publication_id)
         if not publication:
             return jsonify({'error': 'Publication not found'}), 404
+        if publication.user_id != g.current_user.user_id and g.current_user.role != 'admin':
+            return jsonify({'error': 'Forbidden'}), 403
 
         # Delete the mapping first
         db.session.delete(mapping)
@@ -816,6 +820,7 @@ def delete_synced_item(publication_id):
 
 @dspace_bp.route('/sync/delete-all', methods=['DELETE'])
 @jwt_required()
+@admin_required
 def delete_all_synced_items():
     """
     Delete all synced DSpace items and their mappings

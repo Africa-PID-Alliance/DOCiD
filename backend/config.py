@@ -64,6 +64,14 @@ class Config:
     CORDRA_BASE_URL = os.getenv('CORDRA_BASE_URL', 'https://cordra.kenet.or.ke/cordra')
     CORDRA_USERNAME = os.getenv('CORDRA_USERNAME')
     CORDRA_PASSWORD = os.getenv('CORDRA_PASSWORD')
+    # Fail closed: production PID writes remain disabled until roles, migration,
+    # and direct-backend authorization checks have been deployed and verified.
+    PID_MINTING_ENABLED = os.getenv('PID_MINTING_ENABLED', 'false').lower() == 'true'
+    PID_MINT_RATE_LIMIT = os.getenv('PID_MINT_RATE_LIMIT', '5 per minute')
+    PID_MINT_DAILY_LIMIT = os.getenv('PID_MINT_DAILY_LIMIT', '100 per day')
+    CORDRA_DEBUG_ROUTES_ENABLED = os.getenv(
+        'CORDRA_DEBUG_ROUTES_ENABLED', 'false'
+    ).lower() == 'true'
 
     # RAID Configuration
     RAID_API_URL = os.getenv('RAID_API_URL', 'https://api.demo.raid.org.au/raid/')
@@ -116,4 +124,3 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # 24 hours in seconds (default)
     JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2592000))  # 30 days in seconds (default)
- 

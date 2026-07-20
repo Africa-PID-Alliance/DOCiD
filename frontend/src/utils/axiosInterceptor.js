@@ -29,6 +29,13 @@ const isAuthenticationExempt = (url = '') => {
   }
 };
 
+const createIdempotencyKey = () => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -58,6 +65,12 @@ axios.interceptors.request.use(
       const error = new Error('Authentication required for this request');
       error.code = 'AUTHENTICATION_REQUIRED';
       return Promise.reject(error);
+    }
+
+    // Preserve this key on Axios retries so PID-writing POST requests remain
+    // idempotent even when the access token is refreshed and the call is replayed.
+    if (method === 'post' && requiresJwt && !config.headers?.['Idempotency-Key']) {
+      config.headers['Idempotency-Key'] = createIdempotencyKey();
     }
 
     return config;

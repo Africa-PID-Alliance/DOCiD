@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 from flask_cors import cross_origin
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import PublicationViews, FileDownloads, Publications, PublicationFiles, PublicationDocuments, PublicationComments
 
@@ -8,6 +9,7 @@ analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/api/publications/<int:publication_id>/views', methods=['POST'])
 @cross_origin()
+@jwt_required()
 def track_view(publication_id):
     """
     Track a publication view
@@ -43,7 +45,7 @@ def track_view(publication_id):
             return jsonify({"status": "error", "message": "Publication not found"}), 404
 
         # Get request metadata
-        user_id = request.json.get('user_id') if request.json else None
+        user_id = int(get_jwt_identity())
         ip_address = request.remote_addr
         user_agent = request.headers.get('User-Agent')
 
@@ -104,6 +106,7 @@ def get_view_count(publication_id):
 
 @analytics_bp.route('/api/publications/files/<int:file_id>/downloads', methods=['POST'])
 @cross_origin()
+@jwt_required()
 def track_file_download(file_id):
     """
     Track a file download
@@ -139,7 +142,7 @@ def track_file_download(file_id):
             return jsonify({"status": "error", "message": "File not found"}), 404
 
         # Get request metadata
-        user_id = request.json.get('user_id') if request.json else None
+        user_id = int(get_jwt_identity())
         ip_address = request.remote_addr
 
         # Track download
@@ -165,6 +168,7 @@ def track_file_download(file_id):
 
 @analytics_bp.route('/api/publications/documents/<int:document_id>/downloads', methods=['POST'])
 @cross_origin()
+@jwt_required()
 def track_document_download(document_id):
     """
     Track a document download
@@ -200,7 +204,7 @@ def track_document_download(document_id):
             return jsonify({"status": "error", "message": "Document not found"}), 404
 
         # Get request metadata
-        user_id = request.json.get('user_id') if request.json else None
+        user_id = int(get_jwt_identity())
         ip_address = request.remote_addr
 
         # Track download

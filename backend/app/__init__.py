@@ -25,7 +25,7 @@ limiter = Limiter(get_remote_address)
 # Create the cache object
 cache = Cache()
 
-def create_app():
+def create_app(test_config=None):
     
     swagger_config = Swagger.DEFAULT_CONFIG
 
@@ -44,6 +44,8 @@ def create_app():
 
     # Load configurations from config.py
     app.config.from_object(Config)
+    if test_config:
+        app.config.update(test_config)
     os.makedirs(app.config["UPLOADS_DIRECTORY"], exist_ok=True)
 
     # Hard-fail on unsafe production URL defaults to prevent broken upload links.
@@ -59,9 +61,8 @@ def create_app():
 
     # JWT Configuration from environment
     from datetime import timedelta
-    app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
-    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(seconds=Config.JWT_REFRESH_TOKEN_EXPIRES)
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=app.config['JWT_ACCESS_TOKEN_EXPIRES'])
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(seconds=app.config['JWT_REFRESH_TOKEN_EXPIRES'])
 
     # Initialize extensions
     db.init_app(app)
@@ -74,8 +75,8 @@ def create_app():
     
     
     # Cache configuration
-    app.config['CACHE_TYPE'] = 'simple'
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes timeout
+    app.config.setdefault('CACHE_TYPE', 'simple')
+    app.config.setdefault('CACHE_DEFAULT_TIMEOUT', 300)  # 5 minutes timeout
     
     # Initialize cache
     cache.init_app(app)
@@ -167,22 +168,21 @@ def create_app():
     # Log requests and responses
     @app.before_request
     def log_request_info():
-        if request.method in ['GET', 'POST']:
-            app.logger.info("-----------------------------------------------------------------\r\n")
-            app.logger.info(f"Request: {request.method} {request.url} - Body: {request.get_data()}")
+        app.logger.info(
+            "Request: method=%s path=%s remote_addr=%s",
+            request.method,
+            request.path,
+            request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
+        )
 
     @app.after_request
     def log_response_info(response):
-        if request.method in ['GET', 'POST']:
-            app.logger.info(f"Response: {response.status} - Body: {request.get_data(as_text=True)}")
-
-        # Only log the response body if direct_passthrough is not set
-        if not response.direct_passthrough:
-            app.logger.info(f"Response: {response.status} - Body: {response.get_data(as_text=True)}")
-        else:
-            app.logger.info(f"Response: {response.status} - Direct passthrough enabled")
-
-        app.logger.info("-----------------------------------------------------------------\r\n")
+        app.logger.info(
+            "Response: method=%s path=%s status=%s",
+            request.method,
+            request.path,
+            response.status_code,
+        )
         return response
 
     return app

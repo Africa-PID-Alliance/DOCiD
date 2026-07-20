@@ -11,6 +11,7 @@ import logging
 
 from app import db
 from app.models import HarvestSource, UserAccount
+from app.authz import admin_required
 from app.utils_crypto import encrypt_value
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,7 @@ def _serialize_with_status(source):
 
 @admin_harvest_sources_bp.route("", methods=["GET"])
 @jwt_required()
+@admin_required
 def list_sources():
     sources = HarvestSource.query.order_by(HarvestSource.id).all()
     return jsonify({"sources": [_serialize_with_status(source) for source in sources]})
@@ -77,6 +79,7 @@ def list_sources():
 
 @admin_harvest_sources_bp.route("/<int:source_id>", methods=["GET"])
 @jwt_required()
+@admin_required
 def get_source(source_id):
     source = HarvestSource.query.get_or_404(source_id)
     return jsonify(_serialize_with_status(source))
@@ -84,6 +87,7 @@ def get_source(source_id):
 
 @admin_harvest_sources_bp.route("", methods=["POST"])
 @jwt_required()
+@admin_required
 def create_source():
     payload = request.get_json(silent=True) or {}
     error = _validate_payload(payload, partial=False)
@@ -110,6 +114,7 @@ def create_source():
 
 @admin_harvest_sources_bp.route("/<int:source_id>", methods=["PATCH"])
 @jwt_required()
+@admin_required
 def update_source(source_id):
     source = HarvestSource.query.get_or_404(source_id)
     payload = request.get_json(silent=True) or {}
@@ -129,6 +134,7 @@ def update_source(source_id):
 
 @admin_harvest_sources_bp.route("/<int:source_id>/resolve-owner", methods=["POST"])
 @jwt_required()
+@admin_required
 def resolve_owner(source_id):
     """Manual re-resolution endpoint — useful after the institutional user_account is created."""
     source = HarvestSource.query.get_or_404(source_id)

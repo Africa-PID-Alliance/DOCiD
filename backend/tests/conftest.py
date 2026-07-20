@@ -9,6 +9,7 @@ import pytest
 from unittest.mock import patch
 
 from app import create_app, db as _db
+from app.models import UserAccount
 
 
 @pytest.fixture(scope="session")
@@ -23,8 +24,7 @@ def app():
         "CACHE_TYPE": "null",
     }
 
-    application = create_app()
-    application.config.update(test_config)
+    application = create_app(test_config)
 
     with application.app_context():
         _db.create_all()
@@ -36,9 +36,11 @@ def app():
 def database_session(app):
     """Provide a clean database session for each test."""
     with app.app_context():
-        _db.session.begin_nested()
+        _db.drop_all()
+        _db.create_all()
         yield _db.session
         _db.session.rollback()
+        _db.session.remove()
 
 
 @pytest.fixture
@@ -54,10 +56,25 @@ def authenticated_client(client):
     Patches ``jwt_required`` so every request appears authenticated
     as user ID 1 without needing real tokens.
     """
+    user = _db.session.get(UserAccount, 1)
+    if user is None:
+        user = UserAccount(
+            user_id=1,
+            user_name="test-auth-user",
+            full_name="Test Auth User",
+            email="test-auth-user@example.test",
+            type="email",
+            role="user",
+            password="unused",
+        )
+        _db.session.add(user)
+        _db.session.flush()
+
     with patch(
         "flask_jwt_extended.view_decorators.verify_jwt_in_request"
     ):
         with patch(
             "flask_jwt_extended.utils.get_jwt_identity", return_value=1
         ):
-            yield client
+            with patch("app.authz.get_jwt_identity", return_value=1):
+                yield client

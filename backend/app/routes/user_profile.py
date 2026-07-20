@@ -7,6 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.models import UserAccount, Publications
+from app.authz import owner_or_admin_required
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from datetime import datetime
 
@@ -174,6 +175,8 @@ def get_user_profile(user_id):
 
 
 @user_profile_bp.route('/<int:user_id>', methods=['PUT', 'PATCH'])
+@jwt_required()
+@owner_or_admin_required()
 def update_user_profile(user_id):
     """
     Update user profile
@@ -284,7 +287,7 @@ def update_user_profile(user_id):
 
         # Update allowed fields
         updateable_fields = [
-            'user_name', 'full_name', 'email', 'affiliation', 'role',
+            'user_name', 'full_name', 'email', 'affiliation',
             'orcid_id', 'ror_id', 'country', 'city', 'location',
             'linkedin_profile_link', 'facebook_profile_link',
             'x_profile_link', 'instagram_profile_link', 'github_profile_link',
@@ -528,6 +531,8 @@ def get_user_publications(user_id):
 
 
 @user_profile_bp.route('/<int:user_id>/change-password', methods=['POST'])
+@jwt_required()
+@owner_or_admin_required()
 def change_password(user_id):
     """
     Change user password
