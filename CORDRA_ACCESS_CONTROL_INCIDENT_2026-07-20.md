@@ -51,6 +51,12 @@ One object is conclusively the disclosed integration probe:
 - original title: `Test Title For URAAS Integration Probe`
 - original description: `A test description for probing the real docid assignment API.`
 
+The production Nginx access log independently correlates the same timestamp
+with a `POST /api/cordoi/assign-doi/container-id` response of `200`. The source
+address and full log line are retained in
+`confirmed-probe-nginx-lines.txt` in the production evidence directory and are
+not reproduced here.
+
 The original object was preserved in the evidence archive. On 2026-07-20 it
 was tombstoned in place, retaining the persistent identifier while replacing
 the public record with an explicit unauthorized-probe notice. The post-change
