@@ -1068,6 +1068,36 @@ class PidMintAudit(db.Model):
         }
 
 
+class MutationAudit(db.Model):
+    """Append-only audit event for every state-changing HTTP request."""
+
+    __tablename__ = 'mutation_audit'
+
+    id = db.Column(
+        db.BigInteger().with_variant(db.Integer, 'sqlite'),
+        primary_key=True,
+        autoincrement=True,
+    )
+    request_id = db.Column(db.String(36), nullable=False, unique=True, index=True)
+    user_id = db.Column(db.Integer, nullable=True, index=True)
+    user_role = db.Column(db.String(50), nullable=True)
+    method = db.Column(db.String(10), nullable=False)
+    endpoint = db.Column(db.String(255), nullable=True)
+    path = db.Column(db.String(500), nullable=False)
+    payload_sha256 = db.Column(db.String(64), nullable=False)
+    response_status = db.Column(db.Integer, nullable=False, index=True)
+    outcome = db.Column(db.String(20), nullable=False, index=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+
+@event.listens_for(MutationAudit, 'before_update')
+@event.listens_for(MutationAudit, 'before_delete')
+def _prevent_mutation_audit_changes(mapper, connection, target):
+    raise ValueError('mutation_audit records are immutable')
+
+
 class PublicationAuditTrail(db.Model):
     """
     Audit trail for tracking changes to publications

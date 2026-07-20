@@ -82,7 +82,8 @@ export async function POST(request) {
     console.log("Storing registration token...");
     await axios.post(
         `${apiBaseUrl}/auth/store-registration-token`,
-        { email, token, expires_at: formattedExpiresAt }
+        { email, token, expires_at: formattedExpiresAt },
+        { headers: { 'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET } }
     );
 
     //Send registration email
@@ -184,4 +185,4 @@ export async function POST(request) {
       { status: 500 }
     );
   }
-} 
+}

@@ -22,6 +22,7 @@ def app():
         "JWT_SECRET_KEY": "test-secret-key",
         "SCICRUNCH_API_KEY": "test-api-key-12345",
         "CACHE_TYPE": "null",
+        "MUTATION_AUDIT_ENABLED": False,
     }
 
     application = create_app(test_config)

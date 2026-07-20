@@ -1,14 +1,17 @@
 # app/__init__.py
 
 import os
+import hashlib
 import logging
+import uuid
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, get_jwt_identity
 from flask_mailman import Mail
 from config import Config
 from flasgger import Swagger
@@ -168,6 +171,11 @@ def create_app(test_config=None):
     # Log requests and responses
     @app.before_request
     def log_request_info():
+        if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+            g.mutation_request_id = str(uuid.uuid4())
+            g.mutation_payload_sha256 = hashlib.sha256(
+                request.get_data(cache=True) or b''
+            ).hexdigest()
         app.logger.info(
             "Request: method=%s path=%s remote_addr=%s",
             request.method,
@@ -183,6 +191,44 @@ def create_app(test_config=None):
             request.path,
             response.status_code,
         )
+        if (
+            app.config.get('MUTATION_AUDIT_ENABLED', True)
+            and request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}
+        ):
+            try:
+                from app.models import MutationAudit, UserAccount
+
+                request_id = response.headers.get('X-Request-ID') or getattr(
+                    g, 'mutation_request_id', str(uuid.uuid4())
+                )
+                user = getattr(g, 'current_user', None)
+                if user is None:
+                    try:
+                        identity = get_jwt_identity()
+                        user = db.session.get(UserAccount, int(identity)) if identity else None
+                    except (RuntimeError, TypeError, ValueError):
+                        user = None
+                event_values = {
+                    'request_id': request_id,
+                    'user_id': user.user_id if user else None,
+                    'user_role': (user.role or 'user') if user else None,
+                    'method': request.method,
+                    'endpoint': request.endpoint,
+                    'path': request.path,
+                    'payload_sha256': getattr(
+                        g, 'mutation_payload_sha256', hashlib.sha256(b'').hexdigest()
+                    ),
+                    'response_status': response.status_code,
+                    'outcome': 'success' if response.status_code < 400 else 'failed',
+                    'ip_address': request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
+                    'user_agent': (request.headers.get('User-Agent') or '')[:1000],
+                    'created_at': datetime.utcnow(),
+                }
+                with db.engine.begin() as connection:
+                    connection.execute(MutationAudit.__table__.insert().values(**event_values))
+                response.headers.setdefault('X-Request-ID', request_id)
+            except Exception:
+                app.logger.exception('Unable to append mutation audit event')
         return response
 
     return app

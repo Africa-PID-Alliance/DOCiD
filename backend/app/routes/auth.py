@@ -1,11 +1,13 @@
 # app/routes/auth.py
 import functools
+import hashlib
+import hmac
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Blueprint, g, redirect, request, session, url_for, jsonify
+from flask import Blueprint, current_app, g, redirect, request, session, url_for, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
-from app import db
+from app import db, limiter
 from app.models import UserAccount, PasswordResets, RegistrationTokens, AccountTypes
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -23,6 +25,22 @@ logger.addHandler(handler)
 jwt = JWTManager()
 
 auth_bp = Blueprint('auth', __name__, url_prefix="/api/v1/auth")
+
+
+def _token_digest(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _trusted_bootstrap_request():
+    configured = current_app.config.get("AUTH_BOOTSTRAP_SECRET", "")
+    supplied = request.headers.get("X-Auth-Bootstrap-Secret", "")
+    return bool(configured and supplied and hmac.compare_digest(configured, supplied))
+
+
+def _require_trusted_bootstrap():
+    if not _trusted_bootstrap_request():
+        return jsonify({"error": "Trusted authentication bootstrap required"}), 403
+    return None
 
 @auth_bp.route("/get-list-account-types", methods=["GET"])
 def get_account_types():
@@ -62,7 +80,7 @@ def get_account_types():
 def verify_registration_token(token):
     """Looks up a registration token and returns the associated email."""
     try:
-        token_entry = RegistrationTokens.query.filter_by(token=token).first()
+        token_entry = RegistrationTokens.query.filter_by(token=_token_digest(token)).first()
         if not token_entry:
             return jsonify({"status": False, "message": "Invalid or expired token"}), 404
         from datetime import datetime
@@ -74,6 +92,7 @@ def verify_registration_token(token):
 
 
 @auth_bp.route("/store-registration-token", methods=["POST"])
+@limiter.limit("5 per hour")
 def store_registration_token():
     """
     Store a registration token for initiating user registration.
@@ -158,6 +177,9 @@ def store_registration_token():
     """
     logger.info("Received request to store registration token")
     try:
+        bootstrap_error = _require_trusted_bootstrap()
+        if bootstrap_error:
+            return bootstrap_error
         data = request.get_json()
         email = data.get("email")
         token = data.get("token")
@@ -172,7 +194,19 @@ def store_registration_token():
             logger.warning(f"Email {email} already exists")
             return jsonify({"error": "Email already exists."}), 400
 
-        new_token = RegistrationTokens(email=email, token=token, expires_at=expires_at)
+        try:
+            expires_at = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00")).replace(tzinfo=None)
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid expiration timestamp"}), 400
+        if expires_at <= datetime.utcnow() or expires_at > datetime.utcnow() + timedelta(days=31):
+            return jsonify({"error": "Expiration must be within 31 days"}), 400
+
+        RegistrationTokens.query.filter_by(email=email).delete()
+        new_token = RegistrationTokens(
+            email=email,
+            token=_token_digest(token),
+            expires_at=expires_at,
+        )
         db.session.add(new_token)
         db.session.commit()
         
@@ -304,7 +338,10 @@ def complete_registration():
             logger.warning("Missing required fields: email or token")
             return jsonify({'message': 'Missing required fields'}), 400
 
-        token_entry = RegistrationTokens.query.filter_by(email=email, token=token).first()
+        token_entry = RegistrationTokens.query.filter_by(
+            email=email,
+            token=_token_digest(token),
+        ).first()
         if not token_entry:
             logger.warning("Invalid token or email")
             return jsonify({'message': 'Invalid token or email'}), 400
@@ -313,24 +350,7 @@ def complete_registration():
             logger.warning("Token has expired")
             return jsonify({'message': 'Token has expired'}), 400
 
-        user = UserAccount.query.filter_by(email=email).first()
-        if user is None:
-            logger.warning("User not found")
-            return jsonify({"message": "User not found"}), 404
-
-        logger.info("User registration completed successfully")
-        return jsonify({
-            "user_id": user.user_id,
-            "user_name": user.user_name,
-            "full_name": user.full_name,
-            "social_id": user.social_id,
-            "type": user.type,
-            "affiliation": user.affiliation,
-            "date_joined": user.date_joined.isoformat(),
-            "email": user.email,
-            "first_time": user.first_time,
-            "avator": user.avator
-        }), 200
+        return jsonify({"status": True, "message": "Registration token is valid"}), 200
 
     except Exception as e:
         logger.exception("Error completing registration")
@@ -507,6 +527,11 @@ def social_auth_register():
                   example: "Failed to register user due to server error."
     """
       
+    return jsonify({
+        "error": "Legacy social registration endpoint is disabled",
+        "error_code": "LEGACY_SOCIAL_AUTH_DISABLED",
+    }), 410
+
     try:
         data = request.get_json()
         social_id = data.get("social_id")
@@ -565,6 +590,7 @@ def social_auth_register():
         return jsonify({'error': f'Failed to register user: {str(e)}'}), 500 
 
 @auth_bp.route("/set-password-social", methods=["POST"])
+@jwt_required()
 def set_password_social():
     """
     Set a password for a user registered via social authentication.
@@ -621,6 +647,12 @@ def set_password_social():
             logger.warning("Password setting failed: Missing required fields (email, password, type, id).")
             return jsonify({'message': 'Email, password, type, and user ID are required.'}), 400
 
+        try:
+            if int(get_jwt_identity()) != int(user_id):
+                return jsonify({'message': 'Forbidden'}), 403
+        except (TypeError, ValueError):
+            return jsonify({'message': 'Invalid authenticated identity'}), 401
+
         # ✅ Find the user by ID
         user = UserAccount.query.filter_by(user_id=user_id).first()
         if not user:
@@ -660,6 +692,7 @@ def set_password_social():
       
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("10 per hour")
 def register():
     """
     Register a New User Account.
@@ -729,6 +762,9 @@ def register():
     """
     
     try:
+        bootstrap_error = _require_trusted_bootstrap()
+        if bootstrap_error:
+            return bootstrap_error
         data = request.json
         social_id = data.get("social_id")
         account_type = data.get("type")
@@ -739,6 +775,7 @@ def register():
         avator = data.get("avator", None)
         password = data.get("password", None)
         account_type_id = data.get("account_type_id", None)
+        registration_token = data.get("registration_token")
 
         logger.info(f"Received registration request - Type: {account_type}, Email: {email}, Social ID: {social_id}, Username: {username}")
 
@@ -752,6 +789,17 @@ def register():
         else:
             logger.warning("Invalid account type or missing required identifier (email/social_id)")
             return jsonify({"message": "Invalid account type or missing identifier (email/social_id)."}), 400
+
+        token_entry = None
+        if account_type == "email":
+            if not registration_token:
+                return jsonify({"message": "Registration token is required."}), 400
+            token_entry = RegistrationTokens.query.filter_by(
+                email=email,
+                token=_token_digest(registration_token),
+            ).first()
+            if not token_entry or token_entry.expires_at < datetime.utcnow():
+                return jsonify({"message": "Invalid or expired registration token."}), 400
 
         if existing_user:
             logger.warning(f"User already exists: {existing_user.email if existing_user.email else existing_user.social_id}")
@@ -787,6 +835,8 @@ def register():
         db.session.add(new_user)
         db.session.flush()
         new_user_id = new_user.user_id  # Access the ID after flush
+        if token_entry:
+            db.session.delete(token_entry)
         db.session.commit()
 
         logger.info(f"User registered successfully: {new_user_id}, Email: {email if email else 'N/A'}, Social ID: {social_id if social_id else 'N/A'}")
@@ -1518,6 +1568,11 @@ def social_auth():
                   example: "Failed to authenticate user due to server error."
     """
     
+    return jsonify({
+        "error": "Legacy social authentication endpoint is disabled",
+        "error_code": "LEGACY_SOCIAL_AUTH_DISABLED",
+    }), 410
+
     try:
         data = request.get_json()
         social_id = data.get("social_id")
@@ -1590,6 +1645,7 @@ def social_auth():
       
       
 @auth_bp.route("/request-password-reset", methods=["POST"])
+@limiter.limit("5 per hour")
 def request_password_reset():
     """
     Request Password Reset.
@@ -1674,10 +1730,12 @@ def request_password_reset():
     """
       
     try:
+        bootstrap_error = _require_trusted_bootstrap()
+        if bootstrap_error:
+            return bootstrap_error
         data = request.get_json()
         email = data.get("email")
         token = data.get("token")
-        expires_at = data.get("expiresAt")
 
         # ✅ Log incoming request
         logger.info(f"Password reset request received for email: {email}")
@@ -1691,20 +1749,7 @@ def request_password_reset():
             logger.warning(f"Password reset request failed for {email}: Missing token.")
             return jsonify({'error': 'Token is required.'}), 400
 
-        if not expires_at:
-            logger.warning(f"Password reset request failed for {email}: Missing expiresAt.")
-            return jsonify({'error': 'expiresAt is required.'}), 400
-
-        # ✅ Validate expiration timestamp
-        try:
-            expiration_datetime = datetime.fromisoformat(expires_at)
-        except ValueError:
-            logger.warning(f"Invalid expiresAt format for {email}: {expires_at}")
-            return jsonify({'error': 'Invalid expiresAt format. Use ISO 8601 (e.g., "2025-01-19T12:00:00Z").'}), 400
-
-        if expiration_datetime <= datetime.utcnow():
-            logger.warning(f"Password reset request failed for {email}: Expiration time must be in the future.")
-            return jsonify({'error': 'Expiration time must be in the future.'}), 400
+        expiration_datetime = datetime.utcnow() + timedelta(minutes=10)
 
         # ✅ Check if the user exists
         user = UserAccount.query.filter_by(email=email).first()
@@ -1722,7 +1767,7 @@ def request_password_reset():
         # ✅ Save the new password reset request
         password_reset_entry = PasswordResets(
             email=email,
-            token=token,
+            token=_token_digest(token),
             type="password_reset",
             expires_at=expiration_datetime
         )
@@ -1735,7 +1780,6 @@ def request_password_reset():
         return jsonify({
             'status': True,
             'message': 'Password reset email sent successfully.',
-            'data': password_reset_entry.serialize(),
         }), 200
 
     except IntegrityError as e:
@@ -1748,6 +1792,7 @@ def request_password_reset():
       
 
 @auth_bp.route("/reset-password", methods=["POST"])
+@limiter.limit("10 per hour")
 def reset_password():
     """
     Reset Password.
@@ -1818,7 +1863,7 @@ def reset_password():
         new_password = data.get("password")
 
         # ✅ Log incoming request
-        logger.info(f"Received password reset request with token: {token}")
+        logger.info("Received password reset completion request")
 
         # ✅ Check for required fields
         if not token or not new_password:
@@ -1826,14 +1871,14 @@ def reset_password():
             return jsonify({'error': 'Token and password are required.'}), 400
 
         # ✅ Validate the reset token
-        reset_entry = PasswordResets.query.filter_by(token=token).first()
+        reset_entry = PasswordResets.query.filter_by(token=_token_digest(token)).first()
         if not reset_entry:
-            logger.warning(f"Password reset failed: Invalid token ({token}).")
+            logger.warning("Password reset failed: invalid token")
             return jsonify({'error': 'Invalid token.'}), 400
 
         # ✅ Check if the token has expired
         if reset_entry.expires_at < datetime.utcnow():
-            logger.warning(f"Password reset failed: Token expired ({token}).")
+            logger.warning("Password reset failed: token expired")
             return jsonify({'error': 'Token expired.'}), 400
 
         # ✅ Retrieve the user account based on the reset request email
@@ -1850,7 +1895,7 @@ def reset_password():
         # ✅ Remove the used token
         db.session.delete(reset_entry)
         db.session.commit()
-        logger.info(f"Password reset token {token} deleted.")
+        logger.info("Password reset token consumed")
 
         # ✅ Return success response
         return jsonify({

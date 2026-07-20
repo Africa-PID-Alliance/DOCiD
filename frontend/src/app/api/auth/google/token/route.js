@@ -247,7 +247,8 @@ export async function GET(request) {
             const dbResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/register`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET
                 },
                 body: JSON.stringify({
                     social_id: social_id,
@@ -402,4 +403,4 @@ export async function GET(request) {
             headers: corsHeaders
         });
     }
-} 
+}

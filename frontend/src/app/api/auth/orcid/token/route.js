@@ -180,7 +180,8 @@ export async function GET(request) {
             const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET
                 },
                 body: JSON.stringify({
                     social_id: orcid,

@@ -65,6 +65,9 @@ export async function POST(request) {
             email: email,
             token: token,
             expiresAt: formattedDate
+          },
+          {
+            headers: { 'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET }
           }
         );
 

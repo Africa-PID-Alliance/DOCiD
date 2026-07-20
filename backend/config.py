@@ -69,6 +69,7 @@ class Config:
     PID_MINTING_ENABLED = os.getenv('PID_MINTING_ENABLED', 'false').lower() == 'true'
     PID_MINT_RATE_LIMIT = os.getenv('PID_MINT_RATE_LIMIT', '5 per minute')
     PID_MINT_DAILY_LIMIT = os.getenv('PID_MINT_DAILY_LIMIT', '100 per day')
+    RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', 'memory://')
     CORDRA_DEBUG_ROUTES_ENABLED = os.getenv(
         'CORDRA_DEBUG_ROUTES_ENABLED', 'false'
     ).lower() == 'true'
@@ -124,3 +125,5 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # 24 hours in seconds (default)
     JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2592000))  # 30 days in seconds (default)
+    AUTH_BOOTSTRAP_SECRET = os.getenv('AUTH_BOOTSTRAP_SECRET', '')
+    MUTATION_AUDIT_ENABLED = os.getenv('MUTATION_AUDIT_ENABLED', 'true').lower() == 'true'
