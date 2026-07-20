@@ -4,8 +4,9 @@
 
 The unauthenticated Cordra minting path has been closed and the hardened release
 `11b29a2` has been deployed to DOCiD Core/KENET, Docker demo, and Docker
-production. PID minting remains globally disabled pending explicit approval of
-the accounts that may receive the `pid_minter` role.
+production. Production PID minting is enabled only for approved `pid_minter`
+or `admin` accounts. It remains disabled in Core/KENET and demo because those
+environments currently target the same official Cordra namespace.
 
 Direct write-endpoint smoke tests returned:
 
@@ -80,15 +81,20 @@ authentication from an unrecognized client or source address.
 The newly introduced `AUTH_BOOTSTRAP_SECRET` was generated independently in
 each environment and was never committed to Git.
 
-## Role assignment pending approval
+## Approved PID minter
 
-All three DOCiD databases contain the same sole existing operational candidate:
+The repository owner confirmed that Morris Mutinda creates and edits records on
+behalf of clients. On 2026-07-20 his account was assigned `pid_minter` in all
+three databases:
 
-- Morris Mutinda (`morrismutinda468@gmail.com`), current role `Data Officer`
+- Morris Mutinda (`morrismutinda468@gmail.com`), user ID `151`
 
-Changing this account to `pid_minter` requires explicit approval. The global
-`PID_MINTING_ENABLED=false` kill switch remains in force until that decision is
-recorded and an authorized-minter smoke test succeeds.
+Each direct administrative assignment has a corresponding append-only
+`mutation_audit` event. An authenticated Morris JWT reached the kill switch in
+each environment and returned `503` without minting, proving the role was
+recognized. Production was then enabled; anonymous and authenticated ordinary
+users continued to return `401` and `403`, respectively. No test identifier was
+minted. Core/KENET and demo retain `PID_MINTING_ENABLED=false`.
 
 ## Send-ready partner notification
 
@@ -97,7 +103,8 @@ recorded and an authorized-minter smoke test succeeds.
 > Cordra inventory, deployed JWT and role enforcement across all environments,
 > enabled shared Redis rate limiting, and added immutable mutation audit events.
 > Anonymous requests now receive 401 and authenticated non-minters receive 403.
-> PID minting remains globally disabled pending approved-minter assignment. The
+> Production PID minting is now limited to an explicitly approved minter, while
+> non-production minting remains disabled. The
 > disclosed URAAS probe identifier `20.500.14351/d823920b601a74c29754` has been
 > tombstoned in place so it cannot be mistaken for a valid registered object.
 > We found no evidence of personal-data exposure or Cordra credential leakage.
