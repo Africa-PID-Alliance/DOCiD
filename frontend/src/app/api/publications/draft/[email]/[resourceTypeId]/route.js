@@ -111,6 +111,7 @@ export async function DELETE(request, { params }) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization'),
       },
     });
 

@@ -59,6 +59,7 @@ export async function PUT(request, { params }) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization'),
       },
       body: JSON.stringify(updateData),
     });

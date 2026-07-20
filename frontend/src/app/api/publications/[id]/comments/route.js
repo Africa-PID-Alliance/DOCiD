@@ -56,6 +56,7 @@ export async function POST(request, { params }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization'),
       },
       body: JSON.stringify(body),
     });

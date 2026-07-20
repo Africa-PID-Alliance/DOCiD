@@ -12,6 +12,7 @@ export async function POST(request, { params }) {
     const response = await axios.post(fullUrl, body, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization'),
       },
     });
 

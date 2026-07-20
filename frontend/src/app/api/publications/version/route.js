@@ -7,6 +7,9 @@ export async function POST(request) {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const response = await fetch(`${baseUrl}/publications/version`, {
       method: 'POST',
+      headers: {
+        'Authorization': request.headers.get('authorization'),
+      },
       body: formData,
     });
 

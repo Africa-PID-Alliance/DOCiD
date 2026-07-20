@@ -10,6 +10,25 @@ export const injectStore = (_store) => {
 let isRefreshing = false;
 let failedQueue = [];
 
+const JWT_REQUIRED_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+const AUTHENTICATION_EXEMPT_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/initiate-registration',
+  '/api/auth/complete-registration',
+  '/api/auth/request-reset-password',
+  '/api/auth/reset-password',
+  '/api/auth/refresh',
+]);
+
+const isAuthenticationExempt = (url = '') => {
+  try {
+    const pathname = new URL(url, 'http://frontend.local').pathname;
+    return AUTHENTICATION_EXEMPT_PATHS.has(pathname);
+  } catch {
+    return false;
+  }
+};
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -25,13 +44,22 @@ const processQueue = (error, token = null) => {
 // Request interceptor to attach JWT token to outgoing requests
 axios.interceptors.request.use(
   (config) => {
-    if (store) {
-      const state = store.getState();
-      const accessToken = state.auth?.user?.accessToken;
-      if (accessToken && !config.headers['Authorization']) {
-        config.headers['Authorization'] = `Bearer ${accessToken}`;
-      }
+    const method = (config.method || 'get').toLowerCase();
+    const requiresJwt = JWT_REQUIRED_METHODS.has(method) && !isAuthenticationExempt(config.url);
+    const state = store?.getState();
+    const accessToken = state?.auth?.user?.accessToken;
+
+    if (accessToken && !config.headers?.Authorization) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    if (requiresJwt && !config.headers?.Authorization) {
+      const error = new Error('Authentication required for this request');
+      error.code = 'AUTHENTICATION_REQUIRED';
+      return Promise.reject(error);
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
