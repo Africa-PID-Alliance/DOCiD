@@ -36,7 +36,18 @@ export async function GET(request, { params }) {
 
     if (!response.ok) {
       console.error(`External API error! status: ${response.status}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Forward the upstream status and message. Collapsing every failure
+      // into a generic 500 hides actionable causes (401 expired token,
+      // 403 not authorized, 429 rate limited) and, on mint routes, invites
+      // retries that each create a real PID.
+      const upstreamText = await response.text();
+      let upstreamBody;
+      try {
+        upstreamBody = JSON.parse(upstreamText);
+      } catch {
+        upstreamBody = { error: upstreamText || response.statusText };
+      }
+      return NextResponse.json(upstreamBody, { status: response.status });
     }
 
     const data = await response.json();
