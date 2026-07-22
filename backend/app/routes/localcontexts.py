@@ -36,7 +36,7 @@ from app.models import (
     LocalContextAuditLog, Publications
 )
 from app.service_codra import push_apa_metadata
-from app.authz import admin_required, pid_minter_required
+from app.authz import admin_required, database_user_required
 
 # Canonical UUID format used by the LC Hub. Validate every external_id at the
 # system boundary so arbitrary strings never reach Hub URLs, logs, or DB rows.
@@ -741,7 +741,7 @@ def get_open_to_collaborate_notice():
 
 @localcontexts_bp.route('/store', methods=['POST'])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 def store_custom_data():
     """
     Store Local Contexts data in Cordra

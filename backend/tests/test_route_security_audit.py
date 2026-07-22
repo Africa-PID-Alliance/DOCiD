@@ -59,11 +59,15 @@ def test_every_non_bootstrap_mutation_route_requires_jwt():
 
 
 def test_namespace_and_admin_writes_have_role_guards():
+    # DOCiD is a self-service PID registry: any authenticated account may mint.
+    # Namespace writes therefore need a database-resolved actor (which also
+    # populates g.current_user for the mint audit trail) rather than a role
+    # gate. Administrative modules still require an explicit admin role.
     required = {
-        "cordoi.py": {"pid_minter_required", "admin_required"},
+        "cordoi.py": {"database_user_required", "pid_minter_required", "admin_required"},
         "admin_harvest_sources.py": {"admin_required"},
-        "arks.py": {"pid_minter_required"},
-        "cstr.py": {"pid_minter_required"},
+        "arks.py": {"database_user_required", "pid_minter_required"},
+        "cstr.py": {"database_user_required", "pid_minter_required"},
         "smtp.py": {"admin_required"},
     }
     violations = []

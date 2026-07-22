@@ -68,15 +68,29 @@ def test_anonymous_container_mint_is_rejected(client):
     service.assert_not_called()
 
 
-def test_normal_user_cannot_mint_container(app, client):
+def test_normal_user_can_mint_container(app, client):
+    """DOCiD is self-service: an ordinary logged-in account may mint.
+
+    The vulnerability that prompted the hardening was *unauthenticated*
+    minting, not minting by ordinary registered users. Restricting the mint
+    path to a privileged role took the whole registry offline for every real
+    depositor, so authentication -- not a role -- is the boundary here.
+    """
     headers, _ = _headers_for(app, "user", idempotency_key="normal-user-attempt")
 
-    with patch("app.routes.cordoi.assign_doi_container_id") as service:
+    with patch(
+        "app.routes.cordoi.assign_doi_container_id",
+        return_value={
+            "success": True,
+            "message": "Object created successfully",
+            "id": "20.500.14351/self-service-test",
+        },
+    ) as service:
         response = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
 
-    assert response.status_code == 403
-    assert response.get_json()["error"] == "Insufficient permissions"
-    service.assert_not_called()
+    assert response.status_code == 200
+    assert response.get_json()["id"] == "20.500.14351/self-service-test"
+    service.assert_called_once()
 
 
 def test_pid_minter_requires_idempotency_key(app, client):

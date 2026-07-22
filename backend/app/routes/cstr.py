@@ -13,7 +13,7 @@ import requests
 from typing import Dict, Any, List, Optional
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from app.authz import pid_minter_required
+from app.authz import database_user_required, pid_minter_required
 
 # Configure logging
 logging.basicConfig(
@@ -83,7 +83,7 @@ def health_check():
 # --- Register new identifiers ---
 @cstr_bp.route('/register', methods=['POST'])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 def register():
     """
     Mint & register up to 100 new CSTR IDs in a batch.

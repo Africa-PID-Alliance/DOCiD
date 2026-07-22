@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required
-from app.authz import admin_required, pid_minter_required
+from app.authz import admin_required, database_user_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
@@ -328,7 +328,7 @@ def get_raid():
 
 @raid_bp.route('/mint-raid', methods=['POST'])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 @limiter.limit("10 per hour")
 @log_api_request
 def mint_raid():

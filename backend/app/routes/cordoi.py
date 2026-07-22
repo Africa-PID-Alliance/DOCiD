@@ -14,7 +14,7 @@ import time
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db, limiter
-from app.authz import admin_required, pid_minter_required
+from app.authz import admin_required, database_user_required, pid_minter_required
 from app.models import PidMintAudit
 from app.service_codra import deposit_metadata, list_operations, assign_doi_indigenous_knowledge, assign_doi_container_id, assign_doi_patent, assign_identifier_apa_handle
 from app.service_codra import push_apa_metadata
@@ -277,7 +277,7 @@ def push_sample_apa_metadata():
    
 @cordoi_bp.route("/assign-identifier/apa-handle", methods=["POST"])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 @limiter.limit(_minute_limit, key_func=_mint_rate_key)
 @limiter.limit(_daily_limit, key_func=_mint_rate_key)
 @audited_pid_write("assign_apa_handle", "APA_Handle_ID")
@@ -333,7 +333,7 @@ def assign_identifier_apa_handle_route():
 
 @cordoi_bp.route("/assign-doi/indigenous-knowledge", methods=["POST"])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 @limiter.limit(_minute_limit, key_func=_mint_rate_key)
 @limiter.limit(_daily_limit, key_func=_mint_rate_key)
 @audited_pid_write("assign_indigenous_knowledge", "Indigenous Knowledge")
@@ -393,7 +393,7 @@ def assign_doi_indigenous_knowledge_route():
 
 @cordoi_bp.route("/assign-doi/container-id", methods=["POST"])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 @limiter.limit(_minute_limit, key_func=_mint_rate_key)
 @limiter.limit(_daily_limit, key_func=_mint_rate_key)
 @audited_pid_write("assign_container_id", "Container iD")
@@ -483,7 +483,7 @@ def assign_doi_container_id_route():
 
 @cordoi_bp.route("/assign-doi/patent", methods=["POST"])
 @jwt_required()
-@pid_minter_required
+@database_user_required
 @limiter.limit(_minute_limit, key_func=_mint_rate_key)
 @limiter.limit(_daily_limit, key_func=_mint_rate_key)
 @audited_pid_write("assign_patent", "Patent")
