@@ -83,7 +83,7 @@ def test_normal_user_can_mint_container(app, client):
         return_value={
             "success": True,
             "message": "Object created successfully",
-            "id": "20.500.14351/self-service-test",
+            "data": {"id": "20.500.14351/self-service-test"},
         },
     ) as service:
         response = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
@@ -109,18 +109,32 @@ def test_pid_minter_can_mint_and_creates_sanitized_audit(app, client):
         app, "pid_minter", idempotency_key="container-success-0001"
     )
 
+    # Mirrors the real service layer: the created object is nested under "data",
+    # and carries Cordra metadata that must not reach the caller.
     with patch(
         "app.routes.cordoi.assign_doi_container_id",
         return_value={
             "success": True,
             "message": "Object created successfully",
-            "id": "20.500.14351/secure-test",
+            "data": {
+                "id": "20.500.14351/secure-test",
+                "type": "Container iD",
+                "attributes": {
+                    "metadata": {"createdBy": "admin", "txnId": 1784714830459367}
+                },
+            },
         },
     ) as service:
         response = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
 
     assert response.status_code == 200
-    assert response.get_json()["id"] == "20.500.14351/secure-test"
+    body = response.get_json()
+    assert body["id"] == "20.500.14351/secure-test"
+    # The browser reads response.data.data.id -- keep that contract.
+    assert body["data"]["id"] == "20.500.14351/secure-test"
+    # ...without re-exposing upstream Cordra internals.
+    assert "createdBy" not in response.get_data(as_text=True)
+    assert "txnId" not in response.get_data(as_text=True)
     assert response.headers.get("X-Request-ID")
     service.assert_called_once_with(
         title="Secure Research Container",
@@ -146,7 +160,7 @@ def test_same_idempotency_key_replays_without_second_mint(app, client):
 
     with patch(
         "app.routes.cordoi.assign_doi_container_id",
-        return_value={"success": True, "id": "20.500.14351/one-object"},
+        return_value={"success": True, "data": {"id": "20.500.14351/one-object"}},
     ) as service:
         first = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
         second = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
@@ -185,7 +199,7 @@ def test_pid_mint_rate_limit_returns_429(app, client):
     headers, _ = _headers_for(app, "pid_minter", idempotency_key="rate-limit-one")
     with patch(
         "app.routes.cordoi.assign_doi_container_id",
-        return_value={"success": True, "id": "20.500.14351/rate-one"},
+        return_value={"success": True, "data": {"id": "20.500.14351/rate-one"}},
     ):
         first = client.post(CONTAINER_ENDPOINT, json=_container_payload(), headers=headers)
         headers["Idempotency-Key"] = "rate-limit-two"

@@ -194,10 +194,22 @@ def _service_response(result):
     if not isinstance(result, dict):
         return jsonify({"error": "Invalid response from PID registry"}), 502
     if result.get("success"):
+        # The Cordra service layer nests the created object under "data", so the
+        # identifier lives at result["data"]["id"] -- not result["id"]. Reading
+        # the wrong key returned a null id to the caller AND recorded a null
+        # identifier in pid_mint_audit, leaving genuinely minted PIDs untraceable.
+        upstream = result.get("data")
+        identifier = result.get("id")
+        if not identifier and isinstance(upstream, dict):
+            identifier = upstream.get("id")
         return jsonify({
             "success": True,
             "message": result.get("message", "PID registry operation completed"),
-            "id": result.get("id"),
+            "id": identifier,
+            # Callers read response.data.data.id. Echo only the identifier here:
+            # the raw upstream object also carries Cordra metadata (createdBy,
+            # txnId) that must not be exposed.
+            "data": {"id": identifier},
         }), 200
     status = result.get("status_code")
     if not isinstance(status, int) or status < 400 or status > 499:
