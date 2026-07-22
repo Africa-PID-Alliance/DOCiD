@@ -583,9 +583,14 @@ const AssignDocID = () => {
     try {
       await handleSubmit();
       
-      // Delete draft data after successful submission
+      // Delete draft data after successful submission. The backend only
+      // exposes DELETE /draft/<email>/<resource_type_id>; omitting the resource
+      // type hits the GET-only /draft/<email> route and returns 405.
       if (user?.email) {
-        await axios.delete(`/api/publications/draft/${user.email}`);
+        const submittedResourceTypeId = formData?.docId?.resourceType || 1;
+        await axios.delete(
+          `/api/publications/draft/${user.email}/${submittedResourceTypeId}`
+        );
         console.log('Draft deleted after successful submission');
       }
     } catch (error) {
