@@ -41,6 +41,7 @@ from app.models import (
     PublicationAuditTrail,
     CreatorsRoles,
     FunderTypes,
+    NationalIdResearcher,
 )
 from app.service_identifiers import IdentifierService
 
@@ -197,12 +198,41 @@ def add_creator(publication_id):
             return jsonify({'error': 'role_id is required; default Author role not configured'}), 400
         role_id = author_role.role_id
 
+    identifier_value = (data.get('identifier') or '')[:500]
+    identifier_type_value = (data.get('identifier_type') or '')[:50]
+
+    # Mirror the create flow: keep the NationalIdResearcher registry in sync
+    # when a national-ID creator is attached. `country` is a registry column
+    # (not a creator column), so it only arrives in this payload — and the
+    # registry key is (national_id_number, country), so country is required.
+    if identifier_type_value == 'national_id':
+        # Trim + cap to the registry column length (100) so the creator row
+        # and the registry can't diverge on whitespace or overflow.
+        identifier_value = identifier_value.strip()[:100]
+        registry_country = (data.get('country') or '').strip()
+        if not identifier_value:
+            return jsonify({'error': 'identifier (national ID number) is required for national_id creators'}), 400
+        if not registry_country:
+            return jsonify({'error': 'country is required for national_id creators'}), 400
+        existing_researcher = NationalIdResearcher.query.filter_by(
+            national_id_number=identifier_value,
+            country=registry_country,
+        ).first()
+        if not existing_researcher:
+            db.session.add(NationalIdResearcher(
+                name=family_name,
+                national_id_number=identifier_value,
+                country=registry_country,
+            ))
+        elif existing_researcher.name != family_name:
+            existing_researcher.name = family_name
+
     creator = PublicationCreators(
         publication_id=publication_id,
         family_name=family_name[:255],
         given_name=(data.get('given_name') or '')[:255],
-        identifier=(data.get('identifier') or '')[:500],
-        identifier_type=(data.get('identifier_type') or '')[:50],
+        identifier=identifier_value,
+        identifier_type=identifier_type_value,
         role_id=role_id,
         affiliation=(data.get('affiliation') or None),
     )
@@ -263,6 +293,15 @@ def delete_creator(publication_id, creator_id):
 
 # ---------- ORGANIZATIONS ----------
 
+def _extract_isni_digits(identifier_value):
+    """Strip URL/separator formatting from an ISNI, keeping the 16-char body.
+
+    The last character of an ISNI is a MOD 11-2 check digit that can be 'X',
+    so a digits-only filter would corrupt those identifiers.
+    """
+    body = ''.join(ch for ch in identifier_value.upper() if ch.isdigit() or ch == 'X')
+    return body[-16:] or None
+
 @edit_bp.route('/<int:publication_id>/organizations', methods=['POST'])
 @jwt_required()
 def add_organization(publication_id):
@@ -275,14 +314,27 @@ def add_organization(publication_id):
     if not name or not org_type:
         return jsonify({'error': 'name and type are required'}), 400
 
+    identifier_type = (data.get('identifier_type') or None)
+    identifier_value = (data.get('identifier') or None)
+    isni_value = (data.get('isni') or None)
+    ringgold_id_value = (data.get('ringgold_id') or None)
+    # Mirror the create-flow backfill (publications.py) so the dedicated
+    # cross-ref columns stay lossless regardless of which client sent the row.
+    if not isni_value and identifier_type == 'isni' and identifier_value:
+        isni_value = _extract_isni_digits(identifier_value)
+    if not ringgold_id_value and identifier_type == 'ringgold' and identifier_value:
+        ringgold_id_value = identifier_value
+
     org = PublicationOrganization(
         publication_id=publication_id,
         name=name[:255],
         type=org_type[:255],
         other_name=(data.get('other_name') or None),
         country=(data.get('country') or None),
-        identifier_type=(data.get('identifier_type') or None),
-        identifier=(data.get('identifier') or None),
+        identifier_type=identifier_type,
+        identifier=identifier_value,
+        isni=isni_value,
+        ringgold_id=ringgold_id_value,
         rrid=(data.get('rrid') or None),
     )
     db.session.add(org)
@@ -305,13 +357,28 @@ def update_organization(publication_id, org_id):
 
     data = request.get_json(silent=True) or {}
     changes = {}
-    for field in ('name', 'type', 'other_name', 'country', 'identifier_type', 'identifier', 'rrid'):
+    for field in ('name', 'type', 'other_name', 'country', 'identifier_type', 'identifier', 'isni', 'ringgold_id', 'rrid'):
         if field in data:
             old = getattr(org, field)
             new = data[field]
             if old != new:
                 setattr(org, field, new)
                 changes[field] = (old, new)
+
+    # Same backfill as add_organization: if the update left an ISNI/Ringgold
+    # row without its dedicated cross-ref column, derive it from the primary
+    # identifier so the columns can't drift apart. When the field was already
+    # changed this request, keep its true pre-request value in the audit entry.
+    if org.identifier_type == 'isni' and org.identifier and not org.isni:
+        derived_isni = _extract_isni_digits(org.identifier)
+        if derived_isni:
+            previous_isni = changes['isni'][0] if 'isni' in changes else org.isni
+            org.isni = derived_isni
+            changes['isni'] = (previous_isni, derived_isni)
+    if org.identifier_type == 'ringgold' and org.identifier and not org.ringgold_id:
+        previous_ringgold_id = changes['ringgold_id'][0] if 'ringgold_id' in changes else org.ringgold_id
+        org.ringgold_id = org.identifier
+        changes['ringgold_id'] = (previous_ringgold_id, org.identifier)
 
     if changes:
         for field, (old, new) in changes.items():

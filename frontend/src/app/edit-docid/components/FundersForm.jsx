@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -41,12 +41,21 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </div>
 );
 
-const FundersForm = ({ formData, updateFormData }) => {
+const FundersForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [funders, setFunders] = useState(formData?.funders || []);
+  // Re-seed only when the parent signals a fresh load (post-save reload), so
+  // rows pick up their new DB ids instead of going stale and causing the
+  // diff-sync to DELETE + re-POST every row on the next change.
+  const lastSeededGenerationRef = useRef(loadGeneration);
+  useEffect(() => {
+    if (lastSeededGenerationRef.current === loadGeneration) return;
+    lastSeededGenerationRef.current = loadGeneration;
+    setFunders(formData?.funders || []);
+  }, [loadGeneration, formData]);
   const [newFunder, setNewFunder] = useState({
     name: '',
     otherName: '',

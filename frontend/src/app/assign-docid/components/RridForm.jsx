@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -25,11 +25,20 @@ import {
 } from '@mui/icons-material';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
-const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourceTypes }) => {
+const RridForm = ({ formData = { resources: [] }, updateFormData, allowedResourceTypes, loadGeneration = 0 }) => {
   const theme = useTheme();
   const [isRridModalOpen, setIsRridModalOpen] = useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [researchResources, setResearchResources] = useState(formData?.resources || []);
+  // Edit mode re-seeds this list after each successful reload (the parent bumps
+  // loadGeneration) so rows pick up their DB ids. The create flow never passes
+  // the prop, so this is a no-op there.
+  const lastSeededGenerationRef = useRef(loadGeneration);
+  useEffect(() => {
+    if (lastSeededGenerationRef.current === loadGeneration) return;
+    lastSeededGenerationRef.current = loadGeneration;
+    setResearchResources(formData?.resources || []);
+  }, [loadGeneration, formData]);
 
   const handleAddResource = (selectedRridData) => {
     const isDuplicate = researchResources.some(

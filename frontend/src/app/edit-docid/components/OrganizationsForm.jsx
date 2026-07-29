@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -50,12 +50,22 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </div>
 );
 
-const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, type = 'ror', label = 'ROR' }) => {
+const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, type = 'ror', label = 'ROR', loadGeneration = 0 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [organizations, setOrganizations] = useState(formData?.organizations || []);
+  // Re-seed local state only at controlled moments (parent bumps loadGeneration
+  // after a successful reload). Without this, a save → reload leaves this list
+  // stale (rows without their new DB ids), and the next add/remove pushes the
+  // stale array up — which the diff-sync would turn into DELETE + re-POST churn.
+  const lastSeededGenerationRef = useRef(loadGeneration);
+  useEffect(() => {
+    if (lastSeededGenerationRef.current === loadGeneration) return;
+    lastSeededGenerationRef.current = loadGeneration;
+    setOrganizations(formData?.organizations || []);
+  }, [loadGeneration, formData]);
   const [newOrganization, setNewOrganization] = useState({
     name: '',
     otherName: '',
@@ -219,7 +229,8 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               rorId: data.isni || newOrganization.rorId
             }));
           } else if (type === 'ringgold') {
-            // Handle Ringgold response format
+            // Handle Ringgold response format. Keep the ISNI cross-reference
+            // when the lookup provides one so the row stays lossless on save.
             setNewOrganization(prev => ({
               ...prev,
               name: data.name || '',
@@ -227,6 +238,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               type: '',
               otherName: '',
               city: data.locality || '',
+              isni: data.isni || data.ISNI || prev.isni || '',
               rorId: data.ringgold_id || newOrganization.rorId
             }));
           } else {
@@ -330,6 +342,7 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
               type: '',
               otherName: '',
               city: data.locality || '',
+              isni: data.isni || data.ISNI || prev.isni || '',
               rorId: data.ringgold_id || ''
             }));
 

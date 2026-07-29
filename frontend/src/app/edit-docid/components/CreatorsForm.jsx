@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -95,13 +95,22 @@ const GetOrcidButton = () => {
   );
 };
 
-const CreatorsForm = ({ formData, updateFormData }) => {
+const CreatorsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [creators, setCreators] = useState(formData?.creators || []);
+  // Re-seed only when the parent signals a fresh load (post-save reload), so
+  // rows pick up their new DB ids instead of going stale and causing the
+  // diff-sync to DELETE + re-POST every row on the next change.
+  const lastSeededGenerationRef = useRef(loadGeneration);
+  useEffect(() => {
+    if (lastSeededGenerationRef.current === loadGeneration) return;
+    lastSeededGenerationRef.current = loadGeneration;
+    setCreators(formData?.creators || []);
+  }, [loadGeneration, formData]);
   const [creatorRoles, setCreatorRoles] = useState([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [roleError, setRoleError] = useState('');

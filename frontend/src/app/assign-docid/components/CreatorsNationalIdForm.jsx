@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,10 +27,19 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 
-const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData }) => {
+const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [creators, setCreators] = useState(formData?.creators || []);
+  // Edit mode re-seeds this list after each successful reload (the parent bumps
+  // loadGeneration) so rows pick up their DB ids. The create flow never passes
+  // the prop, so this is a no-op there.
+  const lastSeededGenerationRef = useRef(loadGeneration);
+  useEffect(() => {
+    if (lastSeededGenerationRef.current === loadGeneration) return;
+    lastSeededGenerationRef.current = loadGeneration;
+    setCreators(formData?.creators || []);
+  }, [loadGeneration, formData]);
   const [newCreator, setNewCreator] = useState({
     name: '',
     nationalIdNumber: '',

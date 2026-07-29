@@ -29,6 +29,10 @@ import PublicationsForm from '../components/PublicationsForm';
 import DocumentsForm from '../components/DocumentsForm';
 // Shared LC step wrapper (defined under assign-docid; same component is used here).
 import LocalContextsForm from '../../assign-docid/components/LocalContextsForm';
+// Shared RRID panel (same component the create flow renders in its Organizations step).
+import RridForm from '../../assign-docid/components/RridForm';
+// Shared National ID creators panel (second panel of the create flow's Creators step).
+import CreatorsNationalIdForm from '../../assign-docid/components/CreatorsNationalIdForm';
 
 // Resource type IDs where the Local Contexts step is shown (Indigenous Knowledge, Cultural Heritage).
 const LC_RESOURCE_TYPE_IDS = new Set([1, 3]);
@@ -67,7 +71,45 @@ function formToDbCreator(c) {
   };
 }
 
+// National-ID creators are publication_creators rows with
+// identifier_type='national_id' (name in family_name, ID number in
+// identifier). They render in their own CreatorsNationalIdForm panel, same as
+// the create flow. `country` lives only in the NationalIdResearcher registry;
+// the edit GET resolves it and the backend uses it for the registry upsert.
+function isNationalIdCreatorRow(c) {
+  return ((c.identifier_type || '').trim().toLowerCase() === 'national_id');
+}
+
+function dbToFormNationalIdCreator(c) {
+  return {
+    id: c.id,
+    name: c.family_name || '',
+    nationalIdNumber: c.identifier || '',
+    country: c.country || '',
+    _raw: c,
+  };
+}
+
+function formToDbNationalIdCreator(c) {
+  return {
+    family_name: c.name || '',
+    given_name: '',
+    identifier: c.nationalIdNumber || '',
+    identifier_type: 'national_id',
+    role_id: 'creator',
+    country: c.country || null,
+  };
+}
+
 function dbToFormOrganization(o) {
+  const normalizedIdentifierType = (o.identifier_type || '').trim().toLowerCase();
+  // Show the canonical registry id for the row's type; the raw stored
+  // `identifier` (often a formatted resolvable URL) is kept separately so
+  // existing rows round-trip it verbatim on save.
+  const displayIdentifier =
+    normalizedIdentifierType === 'ringgold' ? (o.ringgold_id || o.identifier)
+      : normalizedIdentifierType === 'isni' ? (o.isni || o.identifier)
+      : o.identifier;
   return {
     id: o.id,
     name: o.name || '',
@@ -76,7 +118,11 @@ function dbToFormOrganization(o) {
     country: o.country || '',
     department: '',
     role: '',
-    rorId: o.identifier || '',
+    rorId: displayIdentifier || '',
+    identifier: o.identifier || '',
+    identifierType: o.identifier_type || '',
+    isni: o.isni || '',
+    ringgoldId: o.ringgold_id || '',
     city: '',
     website: '',
     rrid: o.rrid || '',
@@ -84,16 +130,39 @@ function dbToFormOrganization(o) {
   };
 }
 
-function formToDbOrganization(o) {
-  return {
-    name: o.name || '',
-    type: o.type || 'Research',
-    other_name: o.otherName || null,
-    country: o.country || null,
-    identifier: o.rorId || null,
-    identifier_type: o.rorId ? 'ror' : null,
-    rrid: o.rrid || null,
+// The edit page renders one OrganizationsForm per registry (ror/isni/ringgold),
+// so the serializer is bucket-aware: existing rows keep their DB
+// identifier_type (including legacy null) untouched; only new rows are stamped
+// with the panel's registry. The backend backfills isni/ringgold_id columns
+// from the identifier for new rows, mirroring the create flow.
+function makeFormToDbOrganization(bucketType) {
+  return (o) => {
+    const isExistingRow = Boolean(o.id);
+    return {
+      name: o.name || '',
+      type: o.type || 'Research',
+      other_name: o.otherName || null,
+      country: o.country || null,
+      identifier: (isExistingRow ? o.identifier : o.rorId) || null,
+      identifier_type: isExistingRow ? (o.identifierType || null) : bucketType,
+      isni: o.isni || null,
+      ringgold_id: o.ringgoldId || null,
+      rrid: o.rrid || null,
+    };
   };
+}
+
+// Every DB row must land in exactly one bucket — a row missing from all
+// buckets would be DELETEd by the diff-sync. Unknown/legacy identifier types
+// (grid, null, mixed case) fall through to the ROR panel.
+function organizationBucketOf(org) {
+  const normalizedType = (org.identifierType || '').trim().toLowerCase();
+  if (normalizedType === 'isni') return 'isni';
+  if (normalizedType === 'ringgold') return 'ringgold';
+  if (normalizedType) return 'ror';
+  if (org.ringgoldId) return 'ringgold';
+  if (org.isni) return 'isni';
+  return 'ror';
 }
 
 function dbToFormFunder(f) {
@@ -277,8 +346,16 @@ export default function EditDocidPage() {
   // Per-entity state + originals
   const [creators, setCreators] = useState([]);
   const originalCreators = useRef([]);
-  const [organizations, setOrganizations] = useState([]);
-  const originalOrganizations = useRef([]);
+  const [creatorsNationalId, setCreatorsNationalId] = useState([]);
+  const originalCreatorsNationalId = useRef([]);
+  const [organizationsRor, setOrganizationsRor] = useState([]);
+  const originalOrganizationsRor = useRef([]);
+  const [organizationsIsni, setOrganizationsIsni] = useState([]);
+  const originalOrganizationsIsni = useRef([]);
+  const [organizationsRinggold, setOrganizationsRinggold] = useState([]);
+  const originalOrganizationsRinggold = useRef([]);
+  const [researchResources, setResearchResources] = useState([]);
+  const originalResearchResources = useRef([]);
   const [funders, setFunders] = useState([]);
   const originalFunders = useRef([]);
   const [projects, setProjects] = useState([]);
@@ -334,13 +411,35 @@ export default function EditDocidPage() {
 
       // Deep-clone the baseline so forms' in-place mutations on state
       // don't poison the originalRef comparison. Codex v3 H1.
-      const mappedCreators = (d.publication_creators || []).map(dbToFormCreator);
+      const creatorRows = d.publication_creators || [];
+      const mappedCreators = creatorRows.filter((c) => !isNationalIdCreatorRow(c)).map(dbToFormCreator);
       setCreators(mappedCreators);
       originalCreators.current = snapshotCopy(mappedCreators);
+      const mappedNationalIdCreators = creatorRows.filter(isNationalIdCreatorRow).map(dbToFormNationalIdCreator);
+      setCreatorsNationalId(mappedNationalIdCreators);
+      originalCreatorsNationalId.current = snapshotCopy(mappedNationalIdCreators);
 
       const mappedOrgs = (d.publication_organizations || []).map(dbToFormOrganization);
-      setOrganizations(mappedOrgs);
-      originalOrganizations.current = snapshotCopy(mappedOrgs);
+      const rorOrgs = mappedOrgs.filter((org) => organizationBucketOf(org) === 'ror');
+      const isniOrgs = mappedOrgs.filter((org) => organizationBucketOf(org) === 'isni');
+      const ringgoldOrgs = mappedOrgs.filter((org) => organizationBucketOf(org) === 'ringgold');
+      setOrganizationsRor(rorOrgs);
+      originalOrganizationsRor.current = snapshotCopy(rorOrgs);
+      setOrganizationsIsni(isniOrgs);
+      originalOrganizationsIsni.current = snapshotCopy(isniOrgs);
+      setOrganizationsRinggold(ringgoldOrgs);
+      originalOrganizationsRinggold.current = snapshotCopy(ringgoldOrgs);
+
+      const mappedResearchResources = (d.research_resources || []).map((r) => ({
+        id: r.id,
+        rrid: r.rrid,
+        rridName: r.rrid_name || '',
+        rridDescription: r.rrid_description || '',
+        rridResourceType: r.rrid_resource_type || '',
+        rridUrl: r.rrid_url || '',
+      }));
+      setResearchResources(mappedResearchResources);
+      originalResearchResources.current = snapshotCopy(mappedResearchResources);
 
       const mappedFunders = (d.publication_funders || []).map(dbToFormFunder);
       setFunders(mappedFunders);
@@ -622,6 +721,9 @@ export default function EditDocidPage() {
     try {
       let result;
       if (stepName === 'creators') {
+        // Regular creators and national-ID creators are disjoint buckets of
+        // the same publication_creators collection (split on identifier_type),
+        // mirroring the create flow's two panels.
         result = await syncEntity({
           endpoint: 'creators',
           current: creators,
@@ -631,16 +733,45 @@ export default function EditDocidPage() {
           compareKeys: ['family_name', 'given_name', 'identifier', 'affiliation', 'role_id'],
           label: 'creator',
         });
-      } else if (stepName === 'organizations') {
-        result = await syncEntity({
-          endpoint: 'organizations',
-          current: organizations,
-          setter: setOrganizations,
-          originalRef: originalOrganizations,
-          toDb: formToDbOrganization,
-          compareKeys: ['name', 'type', 'other_name', 'country', 'identifier', 'rrid'],
-          label: 'organization',
+        const nationalIdResult = await syncEntity({
+          endpoint: 'creators',
+          current: creatorsNationalId,
+          setter: setCreatorsNationalId,
+          originalRef: originalCreatorsNationalId,
+          toDb: formToDbNationalIdCreator,
+          compareKeys: ['family_name', 'identifier'],
+          label: 'national-ID creator',
         });
+        result.added += nationalIdResult.added;
+        result.updated += nationalIdResult.updated;
+        result.deleted += nationalIdResult.deleted;
+        result.errors += nationalIdResult.errors;
+      } else if (stepName === 'organizations') {
+        // One sync per registry bucket, all against the same endpoint. The
+        // buckets are disjoint (every row lives in exactly one), so the three
+        // diffs can't cross-delete each other's rows.
+        const organizationCompareKeys = ['name', 'type', 'other_name', 'country', 'identifier', 'identifier_type', 'isni', 'ringgold_id', 'rrid'];
+        const organizationBuckets = [
+          { bucketType: 'ror', current: organizationsRor, setter: setOrganizationsRor, originalRef: originalOrganizationsRor },
+          { bucketType: 'isni', current: organizationsIsni, setter: setOrganizationsIsni, originalRef: originalOrganizationsIsni },
+          { bucketType: 'ringgold', current: organizationsRinggold, setter: setOrganizationsRinggold, originalRef: originalOrganizationsRinggold },
+        ];
+        result = { added: 0, updated: 0, deleted: 0, errors: 0 };
+        for (const bucket of organizationBuckets) {
+          const bucketResult = await syncEntity({
+            endpoint: 'organizations',
+            current: bucket.current,
+            setter: bucket.setter,
+            originalRef: bucket.originalRef,
+            toDb: makeFormToDbOrganization(bucket.bucketType),
+            compareKeys: organizationCompareKeys,
+            label: `${bucket.bucketType} organization`,
+          });
+          result.added += bucketResult.added;
+          result.updated += bucketResult.updated;
+          result.deleted += bucketResult.deleted;
+          result.errors += bucketResult.errors;
+        }
       } else if (stepName === 'funders') {
         result = await syncEntity({
           endpoint: 'funders',
@@ -676,6 +807,106 @@ export default function EditDocidPage() {
         if (errors === 0) {
           await loadPublication();
         }
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ---- Research Resources (RRID): attach/detach only ----
+  // DocidRrid rows are immutable SciCrunch snapshots, so there is no update
+  // path — removed rows are detached, new rows attached. The baseline ref is
+  // updated after every successful call so a retry after partial failure never
+  // re-DELETEs an already-detached row.
+  const normalizeRridValue = (value) => (value || '').trim().toUpperCase();
+  const saveResearchResources = async () => {
+    setIsSaving(true);
+    let attached = 0, detached = 0, errors = 0;
+    try {
+      const currentResources = researchResources || [];
+      const baseline = originalResearchResources.current || [];
+      const currentRridValues = new Set(currentResources.map((r) => normalizeRridValue(r.rrid)));
+      const workingBaseline = baseline.slice();
+      const dropFromBaseline = (rowId) => {
+        const index = workingBaseline.findIndex((r) => r.id === rowId);
+        if (index !== -1) workingBaseline.splice(index, 1);
+      };
+
+      for (const originalResource of baseline) {
+        if (!originalResource.id || currentRridValues.has(normalizeRridValue(originalResource.rrid))) continue;
+        try {
+          await axios.delete(`/api/rrid/${originalResource.id}`);
+          detached++;
+          dropFromBaseline(originalResource.id);
+        } catch (err) {
+          if (err.response?.status === 404) {
+            // Already detached server-side — reconcile silently.
+            detached++;
+            dropFromBaseline(originalResource.id);
+          } else {
+            errors++;
+            console.error(`Detach RRID ${originalResource.rrid}:`, err);
+          }
+        }
+      }
+
+      const baselineRridValues = new Set(workingBaseline.map((r) => normalizeRridValue(r.rrid)));
+      const workingCurrent = currentResources.slice();
+      for (let i = 0; i < workingCurrent.length; i++) {
+        const resource = workingCurrent[i];
+        if (resource.id || baselineRridValues.has(normalizeRridValue(resource.rrid))) continue;
+        try {
+          const response = await axios.post('/api/rrid/attach', {
+            rrid: resource.rrid,
+            entity_type: 'publication',
+            entity_id: Number(publicationId),
+          });
+          const newId = response?.data?.id;
+          if (newId) workingCurrent[i] = { ...resource, id: newId };
+          attached++;
+          workingBaseline.push({ ...workingCurrent[i] });
+        } catch (err) {
+          if (err.response?.status === 409) {
+            // Already attached server-side. Reconcile the existing row's id
+            // right away — a baseline row without an id could never be
+            // detached later if this save ends in partial failure (no reload).
+            try {
+              const entityResponse = await axios.get('/api/rrid/entity', {
+                params: { entity_type: 'publication', entity_id: Number(publicationId) },
+              });
+              const attachedRows = Array.isArray(entityResponse.data) ? entityResponse.data : [];
+              const existingRow = attachedRows.find(
+                (row) => normalizeRridValue(row.rrid) === normalizeRridValue(resource.rrid)
+              );
+              if (existingRow?.id) {
+                workingCurrent[i] = { ...resource, id: existingRow.id };
+                attached++;
+                workingBaseline.push({ ...workingCurrent[i] });
+              } else {
+                errors++;
+                console.error(`Attach RRID ${resource.rrid}: 409 but row not found in entity listing`);
+              }
+            } catch (reconcileErr) {
+              errors++;
+              console.error(`Attach RRID ${resource.rrid}: 409 reconcile failed:`, reconcileErr);
+            }
+          } else {
+            errors++;
+            console.error(`Attach RRID ${resource.rrid}:`, err);
+          }
+        }
+      }
+
+      setResearchResources(workingCurrent);
+      originalResearchResources.current = snapshotCopy(workingBaseline);
+
+      if (attached + detached + errors === 0) {
+        setFeedbackMessage({ type: 'info', text: 'No research resource changes to save' });
+      } else if (errors === 0) {
+        setFeedbackMessage({ type: 'success', text: `Research resources: ${attached} attached, ${detached} detached.` });
+        await loadPublication();
+      } else {
+        setFeedbackMessage({ type: 'warning', text: `Research resources: ${attached} attached, ${detached} detached, ${errors} error(s).` });
       }
     } finally {
       setIsSaving(false);
@@ -1069,8 +1300,8 @@ export default function EditDocidPage() {
     `DOCiD™`,
     `Publications (${publicationsData.files.length})`,
     `Documents (${documentsData.files.length})`,
-    `Creators (${creators.length})`,
-    `Organizations (${organizations.length})`,
+    `Creators (${creators.length + creatorsNationalId.length})`,
+    `Organizations (${organizationsRor.length + organizationsIsni.length + organizationsRinggold.length})`,
     `Funders (${funders.length})`,
     `Projects (${projects.length})`,
   ];
@@ -1343,36 +1574,80 @@ export default function EditDocidPage() {
         </Paper>
       )}
 
-      {/* Step 3 — Creators */}
+      {/* Step 3 — Creators (same panel structure as the create flow:
+          regular creators, then National ID creators) */}
       {activeStep === 3 && (
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-          <CreatorsForm
-            formData={{ creators }}
-            updateFormData={(next) => setCreators(next.creators || [])}
-          />
-          <Box mt={2}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <CreatorsForm
+              formData={{ creators }}
+              updateFormData={(next) => setCreators(next.creators || [])}
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <CreatorsNationalIdForm
+              formData={{ creators: creatorsNationalId }}
+              updateFormData={(next) => setCreatorsNationalId(next.creators || [])}
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Box>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('creators')} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Creators'}
             </Button>
           </Box>
-        </Paper>
+        </Box>
       )}
 
-      {/* Step 4 — Organizations */}
+      {/* Step 4 — Organizations (same panel structure as the create flow:
+          ROR, ISNI, Ringgold, then Research Resources) */}
       {activeStep === 4 && (
-        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-          <OrganizationsForm
-            formData={{ organizations }}
-            updateFormData={(next) => setOrganizations(next.organizations || [])}
-            type="ror"
-            label="ROR"
-          />
-          <Box mt={2}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <OrganizationsForm
+              formData={{ organizations: organizationsRor }}
+              updateFormData={(next) => setOrganizationsRor(next.organizations || [])}
+              type="ror"
+              label="ROR"
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <OrganizationsForm
+              formData={{ organizations: organizationsIsni }}
+              updateFormData={(next) => setOrganizationsIsni(next.organizations || [])}
+              type="isni"
+              label="ISNI"
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <OrganizationsForm
+              formData={{ organizations: organizationsRinggold }}
+              updateFormData={(next) => setOrganizationsRinggold(next.organizations || [])}
+              type="ringgold"
+              label="Ringgold"
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <RridForm
+              formData={{ resources: researchResources }}
+              updateFormData={(next) => setResearchResources(next.resources || [])}
+              allowedResourceTypes={['core_facility']}
+              loadGeneration={loadGeneration}
+            />
+          </Paper>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('organizations')} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Organizations'}
             </Button>
+            <Button variant="outlined" startIcon={<SaveIcon />} onClick={saveResearchResources} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Research Resources'}
+            </Button>
           </Box>
-        </Paper>
+        </Box>
       )}
 
       {/* Step 5 — Funders */}
@@ -1381,6 +1656,7 @@ export default function EditDocidPage() {
           <FundersForm
             formData={{ funders }}
             updateFormData={(next) => setFunders(next.funders || [])}
+            loadGeneration={loadGeneration}
           />
           <Box mt={2}>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveStep('funders')} disabled={isSaving}>
