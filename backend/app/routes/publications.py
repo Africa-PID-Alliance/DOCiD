@@ -22,6 +22,7 @@ import re
 import json
 from config import Config
 from app.authz import database_user_required
+from app.reference_filters import allowed_resource_type_ids, is_resource_type_allowed
 
 
 def _save_upload_collision_safe(file_storage):
@@ -243,17 +244,22 @@ def _build_rrid_cache(rrid_values):
     return cache
 
 @publications_bp.route('/get-list-resource-types', methods=['GET'])
-# @jwt_required()
+@jwt_required(optional=True)
 def get_resource_types():
 
     """
-    Fetches all publications resource-types
+    Fetches publications resource-types, filtered to the caller's account category.
+
+    Auth is optional. Anonymous callers, callers with no account category, and
+    callers whose category is not restricted receive the full list. A caller whose
+    account category is restricted receives ONLY the resource types mapped to that
+    category (an allowlist) — which may legitimately be an empty list (200 []).
     ---
     tags:
       - Publications
     responses:
       200:
-        description: List of all resource-types
+        description: List of resource-types (possibly filtered / empty)
         schema:
           type: array
           items:
@@ -264,10 +270,31 @@ def get_resource_types():
     """
 
     try:
-        data = ResourceTypes.query.all()
-        if len(data) == 0:
+        # Resolve the caller (if any). A supplied-but-invalid/expired token is
+        # already rejected by flask-jwt-extended before we get here; a None
+        # identity simply means anonymous.
+        user = None
+        identity = get_jwt_identity()
+        if identity is not None:
+            try:
+                user = db.session.get(UserAccount, int(identity))
+            except (TypeError, ValueError):
+                user = None
+
+        # Genuine "not found" only when the base table is empty.
+        if ResourceTypes.query.count() == 0:
             return jsonify({'message': 'No matching resource types found'}), 404
-        data_list = [{ 'resource_type': row.resource_type, 'id': row.id} for row in data]
+
+        allowed_ids = allowed_resource_type_ids(user)
+        query = ResourceTypes.query
+        if allowed_ids is not None:
+            # Restricted account: whitelist only (may yield an empty list -> 200 []).
+            if not allowed_ids:
+                return jsonify([])
+            query = query.filter(ResourceTypes.id.in_(allowed_ids))
+
+        data = query.all()
+        data_list = [{'resource_type': row.resource_type, 'id': row.id} for row in data]
         return jsonify(data_list)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1602,6 +1629,12 @@ def create_publication():
         resource_type_id = resource_type_obj.id
         logger.info(f"Resource type validated: ID={resource_type_id}")
 
+        # Enforce the account-category allowlist: a restricted account may only
+        # mint the resource types mapped to its category.
+        if not is_resource_type_allowed(user, resource_type_id):
+            logger.warning(f"User {user_id} not permitted to mint resource type {resource_type_id}")
+            return jsonify({"message": "Resource type not permitted for your account"}), 403
+
         logger.info(f"User validated: ID={user_id}")
 
         # Handle file uploads if they exist
@@ -2136,7 +2169,9 @@ def create_publication():
                 # primary identifier when types match — so the new ringgold_id/isni columns
                 # stay lossless regardless of which submit path the frontend used.
                 if not isni_val and identifier_type == 'isni' and identifier_value:
-                    isni_val = ''.join(filter(str.isdigit, identifier_value))[-16:] or None
+                    # Keep 'X' — the final ISNI char is a MOD 11-2 check digit
+                    # that can be X, so a digits-only filter would corrupt it.
+                    isni_val = ''.join(ch for ch in identifier_value.upper() if ch.isdigit() or ch == 'X')[-16:] or None
                 if not ringgold_id_val and identifier_type == 'ringgold' and identifier_value:
                     ringgold_id_val = identifier_value
 
@@ -2494,6 +2529,13 @@ def save_draft():
         # Default to resource_type_id=1 if not provided (backward compatibility)
         if not resource_type_id:
             resource_type_id = 1
+
+        # Validate the resource type exists, then enforce the account-category allowlist
+        # so a restricted account cannot stage a draft for a disallowed resource type.
+        if not ResourceTypes.query.filter_by(id=resource_type_id).first():
+            return jsonify({'error': f"Invalid resource type '{resource_type_id}'."}), 400
+        if not is_resource_type_allowed(g.current_user, resource_type_id):
+            return jsonify({'error': 'Resource type not permitted for your account'}), 403
 
         logger.info(f"Saving draft for user: {email}, resource_type_id: {resource_type_id}")
 
@@ -2876,7 +2918,12 @@ def update_publication(publication_id):
                 resource_type_obj = ResourceTypes.query.filter_by(id=resource_type_id).first()
                 if not resource_type_obj:
                     return jsonify({'message': f'Invalid resource type ID: {resource_type_id}'}), 400
-                
+
+                # Enforce the account-category allowlist on the new resource type.
+                if not is_resource_type_allowed(db.session.get(UserAccount, user_id), resource_type_id):
+                    logger.warning(f"User {user_id} not permitted to set resource type {resource_type_id}")
+                    return jsonify({'message': 'Resource type not permitted for your account'}), 403
+
                 if resource_type_id != publication.resource_type_id:
                     old_value = publication.resource_type_id
                     publication.resource_type_id = resource_type_id
@@ -3113,6 +3160,24 @@ def get_publication_for_edit(publication_id):
             } for doc in data.publication_documents
         ]
         
+        # Country for national-ID creators lives only in the NationalIdResearcher
+        # registry (it is not a publication_creators column), so batch-resolve it
+        # for the edit form's National ID panel.
+        _national_id_numbers = [
+            creator.identifier for creator in data.publication_creators
+            if (getattr(creator, 'identifier_type', None) or '') == 'national_id' and creator.identifier
+        ]
+        _national_registry_country = {}
+        if _national_id_numbers:
+            # The registry key is (national_id_number, country); the creator row
+            # stores only the number, so an ID registered in several countries is
+            # ambiguous here. Order by id so the earliest registration wins
+            # deterministically rather than by arbitrary query order.
+            for researcher in NationalIdResearcher.query.filter(
+                NationalIdResearcher.national_id_number.in_(_national_id_numbers)
+            ).order_by(NationalIdResearcher.id).all():
+                _national_registry_country.setdefault(researcher.national_id_number, researcher.country)
+
         publication_dict['publication_creators'] = [
             {
                 'id': creator.id,
@@ -3121,7 +3186,9 @@ def get_publication_for_edit(publication_id):
                 'identifier': creator.identifier,
                 'role': creator.role_id,
                 'identifier_type': getattr(creator, 'identifier_type', None),
-                'affiliation': getattr(creator, 'affiliation', None)
+                'affiliation': getattr(creator, 'affiliation', None),
+                'country': _national_registry_country.get(creator.identifier)
+                if (getattr(creator, 'identifier_type', None) or '') == 'national_id' else None,
             } for creator in data.publication_creators
         ]
         
@@ -3134,6 +3201,8 @@ def get_publication_for_edit(publication_id):
                 'country': org.country,
                 'identifier': getattr(org, 'identifier', None),
                 'identifier_type': getattr(org, 'identifier_type', None),
+                'ringgold_id': getattr(org, 'ringgold_id', None),
+                'isni': getattr(org, 'isni', None),
                 'rrid': getattr(org, 'rrid', None),
                 **(_rrid_cache.get(org.rrid) or {} if org.rrid else {})
             } for org in data.publication_organizations
@@ -3605,6 +3674,11 @@ def create_version():
         resource_type_id = resource_type_obj.id
 
         user = g.current_user
+
+        # Enforce the account-category allowlist on the version's resource type.
+        if not is_resource_type_allowed(user, resource_type_id):
+            logger.warning(f"User {user_id} not permitted to mint resource type {resource_type_id}")
+            return jsonify({'message': 'Resource type not permitted for your account'}), 403
 
         # --- Owner check: only parent owner can create versions ---
         if parent_publication.user_id != user_id:

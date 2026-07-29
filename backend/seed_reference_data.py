@@ -1,6 +1,8 @@
 from app import create_app, db
 from app.models import (
     AccountTypes,
+    AccountCategories,
+    AccountCategoryResourceTypes,
     ResourceTypes,
     FunderTypes,
     PublicationTypes,
@@ -15,6 +17,48 @@ def _upsert(model, field_name, values):
         exists = model.query.filter(getattr(model, field_name) == value).first()
         if not exists:
             db.session.add(model(**{field_name: value}))
+
+
+def _upsert_account_categories():
+    """
+    Seed client categories and their is_restricted flag (idempotent — the generic
+    _upsert only inserts and never updates, so is_restricted is handled explicitly),
+    then map Publisher -> Manuscripts. Resilient when 'Manuscripts' is absent (some
+    envs run the DataCite resource-type set), so it never fails the seed.
+    """
+    categories = [
+        ("Publisher", True),
+        ("Standard", False),
+    ]
+    for category_name, is_restricted in categories:
+        existing = AccountCategories.query.filter_by(category_name=category_name).first()
+        if existing:
+            if existing.is_restricted != is_restricted:
+                existing.is_restricted = is_restricted
+        else:
+            db.session.add(
+                AccountCategories(category_name=category_name, is_restricted=is_restricted)
+            )
+    db.session.flush()  # ensure category ids exist before mapping
+
+    publisher = AccountCategories.query.filter_by(category_name="Publisher").first()
+    manuscripts = ResourceTypes.query.filter_by(resource_type="Manuscripts").first()
+    if publisher and manuscripts:
+        mapping_exists = AccountCategoryResourceTypes.query.filter_by(
+            account_category_id=publisher.id, resource_type_id=manuscripts.id
+        ).first()
+        if not mapping_exists:
+            db.session.add(
+                AccountCategoryResourceTypes(
+                    account_category_id=publisher.id,
+                    resource_type_id=manuscripts.id,
+                )
+            )
+    else:
+        print(
+            "Skipping Publisher->Manuscripts mapping: "
+            "'Manuscripts' resource type not present in this environment."
+        )
 
 
 def _upsert_creator_roles():
@@ -50,6 +94,7 @@ def seed_reference_data():
     )
     _upsert(creatorsIdentifiers, "identifier_name", ["ORCID", "ISNI", "VIAF"])
     _upsert_creator_roles()
+    _upsert_account_categories()
     db.session.commit()
     print("Reference seed complete.")
 

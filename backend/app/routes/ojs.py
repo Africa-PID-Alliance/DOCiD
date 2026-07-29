@@ -7,9 +7,10 @@ from flask import Blueprint, request, jsonify, g
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles
+from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles, UserAccount
 from app.service_ojs import OJSClient, OJSMetadataMapper
 from app.authz import database_user_required
+from app.reference_filters import is_resource_type_allowed_strict
 import os
 import logging
 from datetime import datetime
@@ -768,6 +769,17 @@ def sync_single_submission(submission_id):
         resource_type = ResourceTypes.query.filter_by(resource_type='Text').first()
         resource_type_id = resource_type.id if resource_type else 1
 
+        # Enforce the account-category allowlist for imports: skip (do not mint) a
+        # record whose resource type this account is not permitted to create.
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
+        if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+            logger.info(f"Skipping OJS submission {submission_id}: resource type id {resource_type_id} not permitted for user {current_user_id}")
+            return jsonify({
+                'success': True,
+                'status': 'skipped_not_permitted',
+                'submission_id': submission_id,
+            }), 200
+
         # Generate DOCiD using OJS DOI or create one
         ojs_doi = pub_data.get('doi', '')
         document_docid = ojs_doi if ojs_doi else f"ojs:{submission_id}"
@@ -889,6 +901,7 @@ def sync_batch():
             }), 403
 
         current_user_id = get_jwt_identity()
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
         data = request.get_json() or {}
 
         submission_ids = data.get('submission_ids', [])
@@ -948,6 +961,18 @@ def sync_batch():
                 # Get resource type ID
                 resource_type = ResourceTypes.query.filter_by(resource_type='Text').first()
                 resource_type_id = resource_type.id if resource_type else 1
+
+                # Enforce the account-category allowlist: skip records this account
+                # is not permitted to mint (non-fatal — the batch continues).
+                if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+                    results['skipped'] += 1
+                    results['items'].append({
+                        'ojs_id': submission_id,
+                        'status': 'skipped_not_permitted',
+                        'resource_type_id': resource_type_id,
+                    })
+                    logger.info(f"Skipping OJS submission {submission_id}: resource type id {resource_type_id} not permitted for user {current_user_id}")
+                    continue
 
                 # Generate DOCiD
                 ojs_doi = pub_data.get('doi', '')

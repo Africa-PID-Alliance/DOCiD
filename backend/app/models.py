@@ -39,10 +39,12 @@ class UserAccount(db.Model):
     date_joined = db.Column(DateTime, default=datetime.utcnow, nullable=False)  # Join date
     password = db.Column(db.String(255), nullable=True)  # Hashed password
     account_type_id = db.Column(db.Integer, db.ForeignKey('account_types.id'), nullable=True, index=True)
+    account_category_id = db.Column(db.Integer, db.ForeignKey('account_categories.id'), nullable=True, index=True)  # Client category used to restrict which resource types this account may mint
 
     # Define relationships
     publications = relationship('Publications', back_populates='user_account', cascade="all, delete-orphan", foreign_keys='Publications.user_id')
     account_type = relationship('AccountTypes', backref='users')
+    account_category = relationship('AccountCategories')
 
     def validate_user_id(user_id):
         """
@@ -294,6 +296,42 @@ class AccountTypes(db.Model):
 
     def __repr__(self):
         return f"<AccountTypes(id={self.id}, account_type_name='{self.account_type_name}')>"
+
+
+class AccountCategories(db.Model):
+    """
+    Client-category dimension used for multi-tenant restriction of which resource
+    types an account may mint. Orthogonal to account_types (Individual/Institutional).
+
+    Visibility rule: when is_restricted is True, the account sees/uses ONLY the
+    resource types mapped in account_category_resource_types (an allowlist, even
+    when currently empty). When False (or no category), the full list applies.
+    """
+    __tablename__ = 'account_categories'
+
+    id = db.Column(db.Integer, primary_key=True)
+    category_name = db.Column(db.String(50), nullable=False, unique=True)
+    is_restricted = db.Column(db.Boolean, nullable=False, default=False, server_default='false')
+
+    def __repr__(self):
+        return f"<AccountCategories(id={self.id}, category_name='{self.category_name}', is_restricted={self.is_restricted})>"
+
+
+class AccountCategoryResourceTypes(db.Model):
+    """
+    Allowlist mapping: which resource types a restricted account category may mint.
+    """
+    __tablename__ = 'account_category_resource_types'
+    __table_args__ = (
+        db.UniqueConstraint('account_category_id', 'resource_type_id', name='uq_acct_category_resource_type'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    account_category_id = db.Column(db.Integer, db.ForeignKey('account_categories.id', ondelete='CASCADE'), nullable=False, index=True)
+    resource_type_id = db.Column(db.Integer, db.ForeignKey('resource_types.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    def __repr__(self):
+        return f"<AccountCategoryResourceTypes(category={self.account_category_id}, resource_type={self.resource_type_id})>"
 
 
 class CreatorsRoles(db.Model):

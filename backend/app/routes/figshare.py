@@ -7,9 +7,10 @@ from flask import Blueprint, request, jsonify, g
 from flask_cors import cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles
+from app.models import Publications, ResourceTypes, PublicationCreators, CreatorsRoles, UserAccount
 from app.service_figshare import FigshareClient, FigshareMetadataMapper
 from app.authz import database_user_required
+from app.reference_filters import is_resource_type_allowed_strict
 import os
 import logging
 from datetime import datetime
@@ -749,6 +750,18 @@ def sync_single_article(article_id):
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
+        # Enforce the account-category allowlist for imports: skip (do not mint) a
+        # record whose resource type this account is not permitted to create.
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
+        if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+            logger.info(f"Skipping Figshare article {article_id}: resource type '{resource_type_name}' (id={resource_type_id}) not permitted for user {current_user_id}")
+            return jsonify({
+                'success': True,
+                'status': 'skipped_not_permitted',
+                'figshare_id': article_id,
+                'resource_type': resource_type_name,
+            }), 200
+
         # Resolve author role once
         author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
         author_role_id = author_role.role_id if author_role else None
@@ -927,6 +940,7 @@ def sync_batch():
         resource_types_cache = {rt.resource_type: rt.id for rt in ResourceTypes.query.all()}
         author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
         author_role_id = author_role.role_id if author_role else None
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
 
         results = {
             'total': len(articles_to_import),
@@ -984,6 +998,19 @@ def sync_batch():
                 resource_type_name = pub_data.get('resource_type', 'Dataset')
                 resource_type_id = resource_types_cache.get(resource_type_name, 1)
 
+                # Enforce the account-category allowlist: skip records this account
+                # is not permitted to mint (non-fatal — the batch continues).
+                if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+                    savepoint.rollback()
+                    results['skipped'] += 1
+                    results['items'].append({
+                        'figshare_id': article_id,
+                        'status': 'skipped_not_permitted',
+                        'resource_type': resource_type_name,
+                    })
+                    logger.info(f"Skipping Figshare article {article_id}: resource type '{resource_type_name}' not permitted for user {current_user_id}")
+                    continue
+
                 if existing_publication and update_existing:
                     # Update existing
                     publication = existing_publication
@@ -1028,7 +1055,15 @@ def sync_batch():
                 })
 
             except Exception as e:
-                db.session.rollback()
+                # Roll back only THIS item's savepoint so earlier items already
+                # committed in the outer transaction are preserved. A full
+                # db.session.rollback() here would discard prior successes while
+                # still reporting them as created. Fall back to a full rollback
+                # only if the savepoint itself can't be rolled back.
+                try:
+                    savepoint.rollback()
+                except Exception:
+                    db.session.rollback()
                 results['errors'] += 1
                 results['items'].append({
                     'figshare_id': article_id,

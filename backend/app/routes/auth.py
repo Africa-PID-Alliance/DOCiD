@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, g, redirect, request, session, url_for
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db, limiter
-from app.models import UserAccount, PasswordResets, RegistrationTokens, AccountTypes
+from app.models import UserAccount, PasswordResets, RegistrationTokens, AccountTypes, AccountCategories
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -71,6 +71,40 @@ def get_account_types():
         if len(data) == 0:
             return jsonify({'message': 'No account types found'}), 404
         data_list = [{'id': row.id, 'account_type_name': row.account_type_name} for row in data]
+        return jsonify(data_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route("/get-list-account-categories", methods=["GET"])
+def get_account_categories():
+    """
+    Fetches all client categories for the registration dropdown.
+    ---
+    tags:
+      - Authentication
+    responses:
+      200:
+        description: List of all account categories
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              category_name:
+                type: string
+      404:
+        description: No account categories found
+      500:
+        description: Internal server error
+    """
+    try:
+        data = AccountCategories.query.all()
+        if len(data) == 0:
+            return jsonify({'message': 'No account categories found'}), 404
+        data_list = [{'id': row.id, 'category_name': row.category_name} for row in data]
         return jsonify(data_list)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -775,7 +809,21 @@ def register():
         avator = data.get("avator", None)
         password = data.get("password", None)
         account_type_id = data.get("account_type_id", None)
+        account_category_id = data.get("account_category_id", None)
         registration_token = data.get("registration_token")
+
+        # Validate the client category id server-side (avoid FK-error 500s and id
+        # enumeration). Self-selected and advisory — enforcement of restrictions
+        # ultimately depends on the assigned category, which admins can override.
+        if account_category_id not in (None, ""):
+            try:
+                account_category_id = int(account_category_id)
+            except (TypeError, ValueError):
+                return jsonify({"message": "Invalid account_category_id."}), 400
+            if not db.session.get(AccountCategories, account_category_id):
+                return jsonify({"message": "Invalid account_category_id."}), 400
+        else:
+            account_category_id = None
 
         logger.info(f"Received registration request - Type: {account_type}, Email: {email}, Social ID: {social_id}, Username: {username}")
 
@@ -829,7 +877,8 @@ def register():
             affiliation=affiliation,
             avator=avator,
             password=hashed_password,
-            account_type_id=int(account_type_id) if account_type_id else None
+            account_type_id=int(account_type_id) if account_type_id else None,
+            account_category_id=account_category_id
         )
 
         db.session.add(new_user)

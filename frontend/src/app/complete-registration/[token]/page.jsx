@@ -41,12 +41,14 @@ const CompleteRegistrationPage = () => {
     affiliation: '',
     password: '',
     accountTypeId: '',
+    accountCategoryId: '',
   });
   const [error, setError] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [accountTypesList, setAccountTypesList] = useState([]);
+  const [accountCategoriesList, setAccountCategoriesList] = useState([]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -65,6 +67,21 @@ const CompleteRegistrationPage = () => {
       }
     };
     fetchAccountTypes();
+  }, []);
+
+  useEffect(() => {
+    const fetchAccountCategories = async () => {
+      try {
+        const response = await fetch('/api/auth/get-list-account-categories');
+        if (response.ok) {
+          const data = await response.json();
+          setAccountCategoriesList(data);
+        }
+      } catch (error) {
+        console.error('Error fetching account categories:', error);
+      }
+    };
+    fetchAccountCategories();
   }, []);
 
   useEffect(() => {
@@ -159,7 +176,8 @@ const CompleteRegistrationPage = () => {
           affiliation: formData.affiliation,
           email: formData.email,
           password: formData.password,
-          account_type_id: formData.accountTypeId
+          account_type_id: formData.accountTypeId,
+          account_category_id: formData.accountCategoryId || null
         }),
       });
 
@@ -359,6 +377,34 @@ const CompleteRegistrationPage = () => {
                     </Typography>
                   )}
                 </FormControl>
+
+                {accountCategoriesList.length > 0 && (
+                  <FormControl
+                    fullWidth
+                    sx={{ mb: 2, mt: 1 }}
+                  >
+                    <InputLabel id="accountCategory-label">Client Category</InputLabel>
+                    <Select
+                      labelId="accountCategory-label"
+                      id="accountCategoryId"
+                      name="accountCategoryId"
+                      value={formData.accountCategoryId}
+                      label="Client Category"
+                      onChange={handleChange}
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <AccountCircleIcon color="primary" />
+                        </InputAdornment>
+                      }
+                    >
+                      {accountCategoriesList.map((accountCategory) => (
+                        <MenuItem key={accountCategory.id} value={accountCategory.id}>
+                          {accountCategory.category_name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
 
                 <TextField
                   margin="normal"

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export async function POST(request) {
   try {
-    const { email, name, password, picture, username, affiliation, token, account_type_id } = await request.json();
+    const { email, name, password, picture, username, affiliation, token, account_type_id, account_category_id } = await request.json();
 
     await axios.post(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/complete-registration`,
@@ -23,6 +23,7 @@ export async function POST(request) {
         affiliation,
         password,
         account_type_id,
+        account_category_id,
         registration_token: token,
       },
       { headers: { 'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET } }

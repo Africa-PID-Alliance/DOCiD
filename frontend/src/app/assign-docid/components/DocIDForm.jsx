@@ -47,6 +47,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import axios from 'axios';
 
 const fontFamilies = [
@@ -304,6 +305,7 @@ title={t('assign_docid.docid_form.editor.highlight_color')}
 const DocIDForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
+  const accessToken = useSelector((state) => state.auth?.user?.accessToken);
   const [isGenerated, setIsGenerated] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -357,7 +359,12 @@ const DocIDForm = ({ formData, updateFormData }) => {
   useEffect(() => {
     const fetchResourceTypes = async () => {
       try {
-        const response = await axios.get('/api/publications/get-list-resource-types');
+        // Send the token so the backend can filter resource types to the
+        // account's category. Logged-out users send no header and get the full list.
+        const config = accessToken
+          ? { headers: { Authorization: `Bearer ${accessToken}` } }
+          : {};
+        const response = await axios.get('/api/publications/get-list-resource-types', config);
         setResourceTypes(response.data);
       } catch (error) {
         console.error('Error fetching resource types:', error);
@@ -366,7 +373,7 @@ const DocIDForm = ({ formData, updateFormData }) => {
       }
     };
     fetchResourceTypes();
-  }, []);
+  }, [accessToken]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

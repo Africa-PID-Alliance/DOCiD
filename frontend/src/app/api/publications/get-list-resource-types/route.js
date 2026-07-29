@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
-export async function GET() {
+export async function GET(request) {
   try {
     const baseUrl = getBackendApiV1BaseUrl();
+
+    // Forward the caller's Authorization only when present, so the backend can
+    // filter the list to the account's category. Do not send a null-valued header.
+    const upstreamHeaders = { 'Content-Type': 'application/json' };
+    const authorization = request.headers.get('authorization');
+    if (authorization) {
+      upstreamHeaders['Authorization'] = authorization;
+    }
+
     const response = await fetch(`${baseUrl}/publications/get-list-resource-types`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: upstreamHeaders,
+      // The response is per-account (filtered by category), so it must never be
+      // reused across users by any framework/CDN cache.
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -27,13 +37,16 @@ export async function GET() {
     }
 
     const data = await response.json();
-    
+
     return NextResponse.json(data, {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        // Per-account response: prevent cross-category cache reuse.
+        'Cache-Control': 'no-store',
+        'Vary': 'Authorization',
       },
     });
   } catch (error) {

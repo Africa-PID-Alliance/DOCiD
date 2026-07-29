@@ -5,10 +5,11 @@ DSpace Integration API Endpoints (DSpace 7/8/9)
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles
+from app.models import Publications, DSpaceMapping, ResourceTypes, PublicationCreators, CreatorsRoles, UserAccount
 from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
 from app.service_identifiers import IdentifierService
 from app.authz import admin_required, database_user_required
+from app.reference_filters import is_resource_type_allowed_strict
 import os
 import logging
 
@@ -359,6 +360,18 @@ def sync_single_item(uuid):
         resource_type = ResourceTypes.query.filter_by(resource_type=resource_type_name).first()
         resource_type_id = resource_type.id if resource_type else 1
 
+        # Enforce the account-category allowlist for imports: skip (do not mint) a
+        # record whose resource type this account is not permitted to create.
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
+        if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+            logger.info(f"Skipping DSpace item {uuid}: resource type '{resource_type_name}' (id={resource_type_id}) not permitted for user {current_user_id}")
+            return jsonify({
+                'success': True,
+                'status': 'skipped_not_permitted',
+                'uuid': uuid,
+                'resource_type': resource_type_name,
+            }), 200
+
         # Resolve author role once
         author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
         author_role_id = author_role.role_id if author_role else None
@@ -519,6 +532,7 @@ def sync_batch():
         resource_type_cache = {rt.resource_type: rt.id for rt in ResourceTypes.query.all()}
         author_role = CreatorsRoles.query.filter_by(role_name='Author').first()
         author_role_id = author_role.role_id if author_role else None
+        importer_user = db.session.get(UserAccount, int(current_user_id)) if current_user_id else None
 
         results = {
             'total': len(items),
@@ -571,9 +585,21 @@ def sync_batch():
 
                 mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, current_user_id, collection_name=owning_collection_name)
                 doi = _extract_doi_from_metadata(metadata)
-                resource_type_id = resource_type_cache.get(
-                    mapped_data['publication'].get('resource_type', 'Text'), 1
-                )
+                resource_type_name = mapped_data['publication'].get('resource_type', 'Text')
+                resource_type_id = resource_type_cache.get(resource_type_name, 1)
+
+                # Enforce the account-category allowlist: skip records this account
+                # is not permitted to mint (non-fatal — the harvest continues).
+                if not is_resource_type_allowed_strict(importer_user, resource_type_id):
+                    savepoint.rollback()
+                    results['skipped'] += 1
+                    results['items'].append({
+                        'uuid': item_uuid, 'handle': handle,
+                        'status': 'skipped_not_permitted',
+                        'resource_type': resource_type_name,
+                    })
+                    logger.info(f"Skipping DSpace item {item_uuid}: resource type '{resource_type_name}' not permitted for user {current_user_id}")
+                    continue
 
                 if existing_mapping and update_existing:
                     # Check if metadata changed (skip check if force_remap)
