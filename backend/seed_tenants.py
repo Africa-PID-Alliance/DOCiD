@@ -95,6 +95,33 @@ _UNILAG_BRANDING = {
     "is_active": True,
 }
 
+# Academy of Science of South Africa (assaf.org.za logo):
+#   primary_color       → #203070  ASSAf wordmark / blue swoosh
+#   primary_color_dark  → #141F4A  deep navy for hero / chrome
+#   accent_color        → #D04820  orange spiral dots
+# Logo source: https://www.assaf.org.za/wp-content/uploads/2021/10/logo.png
+# (copied to frontend/public/tenants/assaf/logo.png)
+_ASSAF_BRANDING = {
+    "display_name": "Academy of Science of South Africa",
+    "logo_url": "/tenants/assaf/logo.png",
+    "logo_dark_url": None,
+    "favicon_url": "/favicon.ico",
+    "og_image_url": "/tenants/assaf/logo.png",
+    "primary_color": "#203070",
+    "primary_color_dark": "#141F4A",
+    "accent_color": "#D04820",
+    "page_title": "ASSAf DOCiD",
+    "page_description": (
+        "Academy of Science of South Africa — persistent identifiers for research outputs."
+    ),
+    "hero_tagline": None,
+    "footer_copyright": "Academy of Science of South Africa",
+    "contact_email": "info@assaf.org.za",
+    "email_from_name": "ASSAf",
+    "feature_flags": None,
+    "is_active": True,
+}
+
 # DOCiD / APA default brand — same values as frontend getDefaultTenant().
 # Used for publishers / publishers-demo until custom branding is applied.
 _DOCID_DEFAULT_BRANDING = {
@@ -125,6 +152,9 @@ TENANTS = [
     {**_UNILAG_BRANDING, "slug": "unilag"},
     # Demo/test host: unilag-test.africapidalliance.org
     {**_UNILAG_BRANDING, "slug": "unilag-test"},
+    {**_ASSAF_BRANDING, "slug": "assaf"},
+    # Demo/test host: assaf-test.africapidalliance.org
+    {**_ASSAF_BRANDING, "slug": "assaf-test"},
     # publishers.africapidalliance.org — default DOCiD branding for now
     {**_DOCID_DEFAULT_BRANDING, "slug": "publishers"},
     # Demo/test host: publishers-demo.africapidalliance.org
