@@ -153,8 +153,6 @@ TENANTS = [
     # Demo/test host: unilag-test.africapidalliance.org
     {**_UNILAG_BRANDING, "slug": "unilag-test"},
     {**_ASSAF_BRANDING, "slug": "assaf"},
-    # Demo/test host: assaf-test.africapidalliance.org
-    {**_ASSAF_BRANDING, "slug": "assaf-test"},
     # publishers.africapidalliance.org — default DOCiD branding for now
     {**_DOCID_DEFAULT_BRANDING, "slug": "publishers"},
     # Demo/test host: publishers-demo.africapidalliance.org
