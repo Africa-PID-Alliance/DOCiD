@@ -24,8 +24,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-CORDRA_BASE_URL = os.getenv("CORDRA_BASE_URL", "https://cordra.kenet.or.ke/cordra")
-CORDRA_USERNAME = os.getenv("CORDRA_USERNAME", "admin")
+CORDRA_BASE_URL = os.getenv("CORDRA_BASE_URL")
+CORDRA_USERNAME = os.getenv("CORDRA_USERNAME")
 CORDRA_PASSWORD = os.getenv("CORDRA_PASSWORD")
 
 class CordraService:
