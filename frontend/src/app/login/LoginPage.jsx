@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { loginStart, loginSuccess, loginFailure, logout } from '@/redux/slices/authSlice';
+import { getGoogleRedirectUri } from '@/lib/googleOAuth';
 import {
   Container,
   Box,
@@ -190,17 +191,18 @@ const LoginPage = () => {
           
         case 'Google':
           const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-          const googleRedirectUri = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI;;
-          const googleScope = 'profile email';
-          const googleAuthUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${googleClientId}&redirect_uri=${googleRedirectUri}&scope=${googleScope}&response_type=code`;
+          const googleRedirectUri = getGoogleRedirectUri();
+          const googleScope = 'email profile';
+          const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(googleClientId)}&redirect_uri=${encodeURIComponent(googleRedirectUri)}&scope=${encodeURIComponent(googleScope)}&response_type=code`;
           window.location.href = googleAuthUrl;
           break;
           
         case 'GitHub':
           const githubClientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
           const githubRedirectUri = `${baseUrl}/callback/github`;
-          const githubScope = 'user:email';
-          const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${githubRedirectUri}&scope=${githubScope}`;
+          const githubScope = process.env.NEXT_PUBLIC_GITHUB_SCOPE || 'user:email';
+          const githubAuthorizeUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/login/oauth/authorize';
+          const githubAuthUrl = `${githubAuthorizeUrl}?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(githubRedirectUri)}&scope=${encodeURIComponent(githubScope)}`;
           window.location.href = githubAuthUrl;
           break;
           

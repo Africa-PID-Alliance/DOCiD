@@ -61,7 +61,7 @@ export async function GET(request) {
             "https://github.com/login/oauth/access_token",
             {
               client_id: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
-              client_secret: process.env.GITHUB_CLIENT_SECRET,
+              client_secret: process.env.GITHUB_CLIENT_SECRET || process.env.NEXT_PUBLIC_GITHUB_CLIENT_SECRET,
               code: code,
               redirect_uri:process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI,
             },
@@ -99,68 +99,65 @@ export async function GET(request) {
         },
       });
   
-      const { id, name, avatar_url, login } = userResponse.data;
+      const { id, name, avatar_url, login, email: publicEmail } = userResponse.data;
 
      // Convert social_id to a string (to match the database schema)
     const social_id = id.toString();
+    const uniqueEmail = `${login}@github.com`;
 
-    // Generate a unique email using the GitHub username
-    const uniqueEmail = `${userResponse.data.login}@github.com`;
-
- //Step 10: Send ORCID user details to the database
- const dbResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/register`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET
-    },
-    body: JSON.stringify({
-        social_id: social_id,
-        full_name: name || login,
-        email: uniqueEmail,
-        type: 'github',
-        avatar: avatar_url,
-        timestamp: Date.now().toString(),
-        user_name: login,
-        affiliation: "",
-        password: token, // Ensure tokens are stored securely
-    })
-});
-
-if (!dbResponse.ok) {
-    console.error('\n❌ ERROR: Failed to send GITHUB user details to the database:', await dbResponse.text());
-    return NextResponse.json(
-        { error: 'Failed to register user in database' },
-        { status: dbResponse.status, headers: corsHeaders }
+    const lookupResponse = await fetch(
+        `${getBackendApiV1BaseUrl()}/auth/user/social/${encodeURIComponent(social_id)}`,
+        {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }
     );
-}
 
-const userData = await dbResponse.json();
-console.log("Flask API Response:", userData);
+    if (lookupResponse.status === 404) {
+        console.log('\n=== GitHub user has no DOCiD account, skipping auto-registration ===');
+        return NextResponse.json({
+            needsRegistration: true,
+            code: 'ACCOUNT_NOT_FOUND',
+            message: 'No DOCiD account is linked to this GitHub login',
+        }, {
+            status: 200,
+            headers: corsHeaders
+        });
+    }
 
+    if (!lookupResponse.ok) {
+        console.error('\n❌ ERROR: Failed to look up GitHub user:', await lookupResponse.text());
+        return NextResponse.json(
+            { error: 'Failed to look up user in database' },
+            { status: lookupResponse.status, headers: corsHeaders }
+        );
+    }
 
- //Step 11: Return successful response with ORCID data including person details
- const formattedResponse = {
-    affiliation: userData.affiliation || "",
-    avatar: userData.avator || avatar_url,
-    email: userData.email || uniqueEmail,
-    first_time: userData.first_time || 0,
-    full_name: userData.full_name || name || login,
-    message: userData.message || "User already exists",
-    status: userData.status || false,
-    type: "github",
-    user_id: userData.user_id || null,
-    user_name: userData.user_name || login,
-    social_id: userData.social_id || social_id,
-}
+    const userData = await lookupResponse.json();
+    console.log("Flask API Response:", userData);
 
+    const formattedResponse = {
+        affiliation: userData.affiliation || "",
+        avatar: userData.avator || avatar_url,
+        email: userData.email || publicEmail || uniqueEmail,
+        first_time: userData.first_time || 0,
+        full_name: userData.full_name || name || login,
+        message: userData.message || "User already exists",
+        status: true,
+        type: userData.type || "github",
+        user_id: userData.user_id || null,
+        user_name: userData.user_name || login,
+        social_id: userData.social_id || social_id,
+    };
 
-console.log("Successfully registered user in database", formattedResponse);
+    console.log("GitHub login matched existing DOCiD account", formattedResponse);
 
-return NextResponse.json(formattedResponse, {
-    status: 200,
-    headers: corsHeaders
-});
+    return NextResponse.json(formattedResponse, {
+        status: 200,
+        headers: corsHeaders
+    });
 
     } catch (error) {
         console.error("Error during callback", error);

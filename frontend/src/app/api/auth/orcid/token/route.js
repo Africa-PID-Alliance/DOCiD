@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
 // Create a Map to store recently used codes with timestamps
 const recentlyUsedCodes = new Map();
@@ -173,58 +174,57 @@ export async function GET(request) {
             console.log('\n=== STEP 8: ORCID Person Details ===');
             console.log('Person Data:', personData);
 
-            //Step 9:generate unique email
             const uniqueEmail = `${orcid}@orcid.org`;
+            const orcidAvatar = "https://orcid.org/sites/default/files/images/orcid_16x16.png";
 
-            //Step 10: Send ORCID user details to the database
-            const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET
-                },
-                body: JSON.stringify({
-                    social_id: orcid,
-                    full_name: name,
-                    email: uniqueEmail,
-                    type: 'orcid',
-                    avatar: "https://orcid.org/sites/default/files/images/orcid_16x16.png",
-                    timestamp: Date.now().toString(),
-                    user_name: name,
-                    affiliation: "",
-                    password: access_token, // Ensure tokens are stored securely
-                })
-            });
+            const lookupResponse = await fetch(
+                `${getBackendApiV1BaseUrl()}/auth/user/social/${encodeURIComponent(orcid)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
 
-            if (!dbResponse.ok) {
-                console.error('\n❌ ERROR: Failed to send ORCID user details to the database:', await dbResponse.text());
+            if (lookupResponse.status === 404) {
+                console.log('\n=== ORCID user has no DOCiD account, skipping auto-registration ===');
+                return NextResponse.json({
+                    needsRegistration: true,
+                    code: 'ACCOUNT_NOT_FOUND',
+                    message: 'No DOCiD account is linked to this ORCID login',
+                }, {
+                    status: 200,
+                    headers: corsHeaders
+                });
+            }
+
+            if (!lookupResponse.ok) {
+                console.error('\n❌ ERROR: Failed to look up ORCID user:', await lookupResponse.text());
                 return NextResponse.json(
-                    { error: 'Failed to register user in database' },
-                    { status: dbResponse.status, headers: corsHeaders }
+                    { error: 'Failed to look up user in database' },
+                    { status: lookupResponse.status, headers: corsHeaders }
                 );
             }
 
-            const userData = await dbResponse.json();
+            const userData = await lookupResponse.json();
             console.log("Flask API Response:", userData);
 
-
-            //Step 11: Return successful response with ORCID data including person details
             const formattedResponse = {
                 affiliation: userData.affiliation || "",
-                avatar: userData.avatar || "https://orcid.org/sites/default/files/images/orcid_16x16.png",
+                avatar: userData.avator || userData.avatar || orcidAvatar,
                 email: userData.email || uniqueEmail,
                 first_time: userData.first_time || 0,
                 full_name: userData.full_name || name,
                 message: userData.message || "User already exists",
-                status: userData.status || false,
-                type: "orcid",
+                status: true,
+                type: userData.type || "orcid",
                 user_id: userData.user_id || null,
                 user_name: userData.user_name || name,
                 social_id: userData.social_id || orcid,
-            }
+            };
 
-
-            console.log("Successfully registered user in database", formattedResponse);
+            console.log("ORCID login matched existing DOCiD account", formattedResponse);
 
             return NextResponse.json(formattedResponse, {
                 status: 200,

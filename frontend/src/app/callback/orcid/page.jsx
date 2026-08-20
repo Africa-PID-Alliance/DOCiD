@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { Backdrop, CircularProgress, TextField, Button, Box, Container, Avatar, Link, Grid, Typography, IconButton, InputAdornment, Snackbar, Alert, Paper, LinearProgress } from "@mui/material";
+import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,6 +15,7 @@ const CallbackOrcid = ({ onCallback }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
   const [response1, setResponse1] = useState();
   const [email, setEmail] = useState("");
   const [dbID, setDbID] = useState("");
@@ -83,10 +85,19 @@ const CallbackOrcid = ({ onCallback }) => {
       const userData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to exchange code for token');
-    }
+        throw new Error(userData.error || 'Failed to exchange code for token');
+      }
 
-    console.log('Token exchange successful:', data);
+      if (userData.needsRegistration || userData.code === 'ACCOUNT_NOT_FOUND') {
+        setLoading(false);
+        setNeedsRegistration(true);
+        setTimeout(() => {
+          router.push('/register');
+        }, 2500);
+        return;
+      }
+
+      console.log('Token exchange successful:', userData);
 
       // Store user data in localStorage
       localStorage.setItem('user', JSON.stringify(userData));
@@ -157,12 +168,20 @@ const CallbackOrcid = ({ onCallback }) => {
                 gap: 3
             }}
         >
-            <CircularProgress size={60} />
-            <Typography variant="h4" component="h1" fontWeight="bold" color="text.primary">
-                Processing Login
+            {needsRegistration ? (
+                <PersonAddOutlined sx={{ fontSize: 60, color: 'primary.main' }} />
+            ) : (
+                <CircularProgress size={60} />
+            )}
+            <Typography variant="h4" component="h1" fontWeight="bold" color="text.primary" textAlign="center">
+                {needsRegistration
+                  ? "You don't have a DOCiD™ account yet!"
+                  : 'Processing Login'}
             </Typography>
-            <Typography variant="body1" color="text.secondary">
-                Please wait while we complete your authentication
+            <Typography variant="body1" color="text.secondary" textAlign="center">
+                {needsRegistration
+                  ? "We're redirecting you to set one up in just a few quick steps"
+                  : 'Please wait while we complete your authentication'}
             </Typography>
             <Box sx={{ width: '100%', mt: 2 }}>
                 <LinearProgress />

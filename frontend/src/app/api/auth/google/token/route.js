@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
+import { getGoogleRedirectUri } from '@/lib/googleOAuth';
 
 // Create a Map to store recently used codes with timestamps
 const recentlyUsedCodes = new Map();
@@ -77,8 +78,8 @@ export async function GET(request) {
 
         // Google OAuth Configuration
         const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-        const redirectUri = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET;
+        const redirectUri = getGoogleRedirectUri();
         const tokenUrl = 'https://oauth2.googleapis.com/token';
 
         console.log('\n=== STEP 3: Fetching Google token ===');
@@ -130,268 +131,41 @@ export async function GET(request) {
         );
 
         const { sub, name, email, picture } = userResponse.data;
-
-        // Generate a unique ID
         const social_id = sub.toString();
 
-        // First check if user already exists by both social_id and email
         console.log('\n=== STEP 4: Checking if user exists ===');
-        
-        // Try to get user by email first, which is more reliable
-        const getUserByEmailResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email: email
-            })
-        });
-        
-        // If we found the user by email
-        if (getUserByEmailResponse.ok) {
-            const existingUser = await getUserByEmailResponse.json();
-            
-            if (existingUser && existingUser.user_id) {
-                console.log('\n=== User found by email, returning existing user data ===');
-                
-                // If user has a different social_id, consider updating it
-                if (existingUser.social_id !== social_id && existingUser.type === 'google') {
-                    // Update user's social_id to match their current Google ID
-                    try {
-                        const updateResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/update-social-id`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                user_id: existingUser.user_id,
-                                social_id: social_id,
-                                type: 'google'
-                            })
-                        });
-                        
-                        if (updateResponse.ok) {
-                            console.log('\n=== Updated user social_id ===');
-                        }
-                    } catch (updateError) {
-                        console.error('\n❌ ERROR: Failed to update social_id:', updateError);
-                    }
-                }
-                
-                const formattedResponse = {
-                    affiliation: existingUser.affiliation || "",
-                    avatar: existingUser.avatar || picture,
-                    email: existingUser.email || email,
-                    first_time: 0, // Not first time since user exists
-                    full_name: existingUser.full_name || name,
-                    message: "User already exists",
-                    status: true,
-                    type: "google",
-                    user_id: existingUser.user_id,
-                    user_name: existingUser.user_name || name,
-                    social_id: social_id, // Use the current social_id
-                };
+        const existingUser = await lookupExistingGoogleUser(social_id, email);
 
-                return NextResponse.json(formattedResponse, {
-                    status: 200,
-                    headers: corsHeaders
-                });
-            }
-        }
-        
-        // If we didn't find the user by email, proceed with regular check
-        const checkUserResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/check-user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                social_id: social_id,
-                email: email,
-                type: 'google'
-            })
-        });
-
-        if (checkUserResponse.ok) {
-            const existingUser = await checkUserResponse.json();
-            
-            // If user exists, return their details
-            if (existingUser && existingUser.exists) {
-                console.log('\n=== User already exists, returning existing user data ===');
-                
-                const formattedResponse = {
-                    affiliation: existingUser.affiliation || "",
-                    avatar: existingUser.avatar || picture,
-                    email: existingUser.email || email,
-                    first_time: 0, // Not first time since user exists
-                    full_name: existingUser.full_name || name,
-                    message: "User already exists",
-                    status: true,
-                    type: "google",
-                    user_id: existingUser.user_id,
-                    user_name: existingUser.user_name || name,
-                    social_id: existingUser.social_id || social_id,
-                };
-
-                return NextResponse.json(formattedResponse, {
-                    status: 200,
-                    headers: corsHeaders
-                });
-            }
-        }
-
-        // If user doesn't exist, register them
-        console.log('\n=== STEP 5: Registering new user ===');
-        try {
-            const dbResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET
-                },
-                body: JSON.stringify({
-                    social_id: social_id,
-                    full_name: name,
-                    email: email,
-                    type: 'google',
-                    avatar: picture,
-                    timestamp: Date.now().toString(),
-                    user_name: name,
-                    affiliation: "",
-                    password: access_token, // Ensure tokens are stored securely
-                })
-            });
-
-            if (!dbResponse.ok) {
-                const errorText = await dbResponse.text();
-                console.error('\n❌ ERROR: Failed to send Google user details to the database:', errorText);
-                
-                // Check if this is a duplicate key error
-                if (errorText.includes('duplicate key') && errorText.includes('email')) {
-                    console.log('\n=== Email already exists, trying to retrieve user ===');
-                    
-                    // Try to get user by email as a fallback
-                    const getUserFallbackResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            email: email
-                        })
-                    });
-                    
-                    if (getUserFallbackResponse.ok) {
-                        const existingUser = await getUserFallbackResponse.json();
-                        
-                        if (existingUser && existingUser.user_id) {
-                            console.log('\n=== User found by email after error, returning existing user data ===');
-                            
-                            const formattedResponse = {
-                                affiliation: existingUser.affiliation || "",
-                                avatar: existingUser.avatar || picture,
-                                email: existingUser.email || email,
-                                first_time: 0,
-                                full_name: existingUser.full_name || name,
-                                message: "User found with this email",
-                                status: true,
-                                type: existingUser.type || "google",
-                                user_id: existingUser.user_id,
-                                user_name: existingUser.user_name || name,
-                                social_id: existingUser.social_id || social_id,
-                            };
-
-                            return NextResponse.json(formattedResponse, {
-                                status: 200,
-                                headers: corsHeaders
-                            });
-                        }
-                    }
-                    
-                    // If we still can't find the user, return an appropriate error
-                    return NextResponse.json(
-                        { error: 'Email already exists but cannot retrieve user account' },
-                        { status: 409, headers: corsHeaders }
-                    );
-                }
-                
-                return NextResponse.json(
-                    { error: 'Failed to register user in database' },
-                    { status: dbResponse.status, headers: corsHeaders }
-                );
-            }
-
-            const userData = await dbResponse.json();
-            console.log("Flask API Response:", userData);
-
-            // Return successful response with Google data
-            const formattedResponse = {
-                affiliation: userData.affiliation || "",
-                avatar: userData.avatar || picture,
-                email: userData.email || email,
-                first_time: userData.first_time || 1, // First time since this is a new user
-                full_name: userData.full_name || name,
-                message: userData.message || "User registered successfully",
-                status: userData.status || true,
-                type: "google",
-                user_id: userData.user_id || null,
-                user_name: userData.user_name || name,
-                social_id: userData.social_id || social_id,
-            }
-
-            console.log("Successfully registered user in database", formattedResponse);
-
-            return NextResponse.json(formattedResponse, {
+        if (!existingUser) {
+            console.log('\n=== Google user has no DOCiD account, skipping auto-registration ===');
+            return NextResponse.json({
+                needsRegistration: true,
+                code: 'ACCOUNT_NOT_FOUND',
+                message: 'No DOCiD account is linked to this Google login',
+            }, {
                 status: 200,
                 headers: corsHeaders
             });
-        } catch (registrationError) {
-            console.error('\n❌ ERROR: Exception during registration:', registrationError);
-            
-            // Handle database errors more gracefully
-            if (registrationError.message && registrationError.message.includes('duplicate key')) {
-                // Try to get user by email as a fallback
-                const getUserFallbackResponse = await fetch(`${getBackendApiV1BaseUrl()}/auth/get-user-by-email`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email
-                    })
-                });
-                
-                if (getUserFallbackResponse.ok) {
-                    const existingUser = await getUserFallbackResponse.json();
-                    
-                    if (existingUser && existingUser.user_id) {
-                        console.log('\n=== User found by email after exception, returning existing user data ===');
-                        
-                        const formattedResponse = {
-                            affiliation: existingUser.affiliation || "",
-                            avatar: existingUser.avatar || picture,
-                            email: existingUser.email || email,
-                            first_time: 0,
-                            full_name: existingUser.full_name || name,
-                            message: "User found with this email",
-                            status: true,
-                            type: existingUser.type || "google",
-                            user_id: existingUser.user_id,
-                            user_name: existingUser.user_name || name,
-                            social_id: existingUser.social_id || social_id,
-                        };
-
-                        return NextResponse.json(formattedResponse, {
-                            status: 200,
-                            headers: corsHeaders
-                        });
-                    }
-                }
-            }
-            
-            throw registrationError;
         }
+
+        const formattedResponse = {
+            affiliation: existingUser.affiliation || "",
+            avatar: existingUser.avator || existingUser.avatar || picture,
+            email: existingUser.email || email,
+            first_time: existingUser.first_time || 0,
+            full_name: existingUser.full_name || name,
+            message: existingUser.message || "User already exists",
+            status: true,
+            type: existingUser.type || "google",
+            user_id: existingUser.user_id,
+            user_name: existingUser.user_name || name,
+            social_id: existingUser.social_id || social_id,
+        };
+
+        return NextResponse.json(formattedResponse, {
+            status: 200,
+            headers: corsHeaders
+        });
 
     } catch (error) {
         console.error("Error during Google authentication:", error);
@@ -403,4 +177,28 @@ export async function GET(request) {
             headers: corsHeaders
         });
     }
+}
+
+async function lookupExistingGoogleUser(socialId, email) {
+    const baseUrl = getBackendApiV1BaseUrl();
+
+    const socialResponse = await fetch(
+        `${baseUrl}/auth/user/social/${encodeURIComponent(socialId)}`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+    );
+    if (socialResponse.ok) {
+        return socialResponse.json();
+    }
+
+    if (email) {
+        const emailResponse = await fetch(
+            `${baseUrl}/auth/user/email/${encodeURIComponent(email)}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+        );
+        if (emailResponse.ok) {
+            return emailResponse.json();
+        }
+    }
+
+    return null;
 }

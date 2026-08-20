@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CircularProgress, Box, Container, LinearProgress, Paper, Typography } from "@mui/material";
+import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "@/redux/dataSlice";
 import { loginSuccess } from "@/redux/slices/authSlice";
@@ -11,6 +12,7 @@ const CallbackGoogle = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
   const dispatch = useDispatch();
   const exchangeAttempted = useRef(false);
   const [snackbar, setSnackbar] = useState({
@@ -60,6 +62,15 @@ const CallbackGoogle = () => {
       if (!response.ok) {
         console.error('Token exchange failed:', userData);
         throw new Error(userData.error || 'Failed to exchange code for token');
+      }
+
+      if (userData.needsRegistration || userData.code === 'ACCOUNT_NOT_FOUND') {
+        setLoading(false);
+        setNeedsRegistration(true);
+        setTimeout(() => {
+          router.push('/register');
+        }, 2500);
+        return;
       }
 
       console.log('Token exchange successful:', userData);
@@ -139,12 +150,20 @@ const CallbackGoogle = () => {
             gap: 3
           }}
         >
-          <CircularProgress size={60} />
-          <Typography variant="h4" component="h1" fontWeight="bold" color="text.primary">
-            Processing Login
+          {needsRegistration ? (
+            <PersonAddOutlined sx={{ fontSize: 60, color: 'primary.main' }} />
+          ) : (
+            <CircularProgress size={60} />
+          )}
+          <Typography variant="h4" component="h1" fontWeight="bold" color="text.primary" textAlign="center">
+            {needsRegistration
+              ? "You don't have a DOCiD™ account yet!"
+              : 'Processing Login'}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Please wait while we complete your authentication
+          <Typography variant="body1" color="text.secondary" textAlign="center">
+            {needsRegistration
+              ? "We're redirecting you to set one up in just a few quick steps"
+              : 'Please wait while we complete your authentication'}
           </Typography>
           <Box sx={{ width: '100%', mt: 2 }}>
             <LinearProgress />
