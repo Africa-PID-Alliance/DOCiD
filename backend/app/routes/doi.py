@@ -12,6 +12,7 @@ from flasgger import swag_from
 
 # App-specific imports
 from app import db
+from app.routes.publications import _redact_national_ids
 from app.models import (
     DocIdLookup,
     Publications,
@@ -143,9 +144,12 @@ def handle_doi(prefix, suffix):
                 'family_name': creator.family_name,
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
+                'identifier_type': getattr(creator, 'identifier_type', None),
                 'role': creator.role_id
             } for creator in data.publication_creators
         ]
+
+        _redact_national_ids(publication_dict, data)
 
         publication_dict['publication_organizations'] = [
             {

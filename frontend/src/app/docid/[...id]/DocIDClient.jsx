@@ -2120,7 +2120,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                   value={item.identifier || ''}
                                   revealed={!!revealedNationalIds[index]}
                                   onToggleReveal={() => toggleRevealedNationalId(index)}
-                                  showToggle={isDocidOwner}
+                                  showToggle={isDocidOwner && !item.identifier_masked}
                                   readOnly
                                   variant="filled"
                                   size="small"

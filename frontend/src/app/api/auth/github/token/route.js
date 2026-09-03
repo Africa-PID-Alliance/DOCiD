@@ -61,7 +61,7 @@ export async function GET(request) {
             "https://github.com/login/oauth/access_token",
             {
               client_id: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
-              client_secret: process.env.GITHUB_CLIENT_SECRET || process.env.NEXT_PUBLIC_GITHUB_CLIENT_SECRET,
+              client_secret: process.env.GITHUB_CLIENT_SECRET,
               code: code,
               redirect_uri:process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI,
             },

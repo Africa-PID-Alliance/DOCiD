@@ -7,6 +7,7 @@ from flask import jsonify, request, Response, abort
 from sqlalchemy.orm import joinedload
 from app.models import Publications, DocidRrid
 from app import db
+from app.routes.publications import _redact_national_ids
 
 logger = logging.getLogger(__name__)
 
@@ -122,9 +123,12 @@ def setup_docid_root_route(app):
                     'family_name': creator.family_name,
                     'given_name': creator.given_name,
                     'identifier': creator.identifier,
+                    'identifier_type': getattr(creator, 'identifier_type', None),
                     'role': creator.role_id
                 } for creator in data.publication_creators
             ]
+
+            _redact_national_ids(publication_dict, data)
 
             publication_dict['publication_organizations'] = [
                 {

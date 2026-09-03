@@ -90,6 +90,53 @@ def _resolve_publication_poster(pub):
     return None
 
 
+NATIONAL_ID_IDENTIFIER_TYPE = 'national_id'
+
+
+def _mask_national_id(raw_national_id):
+    """Keep the first and last character, replace the middle with asterisks.
+
+    Mirrors maskWithAsterisks() in frontend/src/components/MaskedNationalIdField.jsx
+    so a masked value looks the same wherever it is rendered.
+    """
+    national_id = str(raw_national_id or '')
+    if len(national_id) <= 2:
+        return national_id
+    return f"{national_id[0]}{'*' * (len(national_id) - 2)}{national_id[-1]}"
+
+
+def _viewer_owns_publication(pub):
+    """True when the caller presents a valid JWT belonging to the publication owner.
+
+    Used on the public detail endpoints, which carry no auth decorator, so the
+    token is optional and an anonymous caller is simply not the owner.
+    """
+    try:
+        verify_jwt_in_request(optional=True)
+        viewer_user_id = get_jwt_identity()
+    except Exception:
+        return False
+    if viewer_user_id is None or pub is None:
+        return False
+    return str(viewer_user_id) == str(getattr(pub, 'user_id', None))
+
+
+def _redact_national_ids(publication_dict, pub):
+    """Mask national-ID creator identifiers unless the caller owns the publication.
+
+    Masking in the UI alone is cosmetic - the raw number still reaches anyone who
+    reads the network response - so the redaction has to happen server side.
+    """
+    if _viewer_owns_publication(pub):
+        return publication_dict
+    for creator in publication_dict.get('publication_creators') or []:
+        identifier_type = (creator.get('identifier_type') or '').strip().lower()
+        if identifier_type == NATIONAL_ID_IDENTIFIER_TYPE and creator.get('identifier'):
+            creator['identifier'] = _mask_national_id(creator['identifier'])
+            creator['identifier_masked'] = True
+    return publication_dict
+
+
 def _normalize_publication_dict(publication_dict, pub=None):
     """In-place rewrite of poster/avatar URLs on a detail-endpoint response dict.
 
@@ -955,6 +1002,7 @@ def get_publication(publication_id):
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
                 'role': creator.role_id,
+                'identifier_type': getattr(creator, 'identifier_type', None),
                 'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
@@ -1010,6 +1058,7 @@ def get_publication(publication_id):
         # Normalize /uploads URLs to this server's UPLOADS_BASE_URL
         # (see module-level _normalize_publication_dict for the rules).
         _normalize_publication_dict(publication_dict, pub=data)
+        _redact_national_ids(publication_dict, pub=data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -1151,6 +1200,7 @@ def get_publication_by_docid_prefix():
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
                 'role': creator.role_id,
+                'identifier_type': getattr(creator, 'identifier_type', None),
                 'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
@@ -1205,6 +1255,7 @@ def get_publication_by_docid_prefix():
 
         # Normalize /uploads URLs (see module-level _normalize_publication_dict).
         _normalize_publication_dict(publication_dict, pub=data)
+        _redact_national_ids(publication_dict, pub=data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -1353,6 +1404,7 @@ def get_publication_by_docid_simple(document_docid):
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
                 'role': creator.role_id,
+                'identifier_type': getattr(creator, 'identifier_type', None),
                 'affiliation': creator.affiliation
             } for creator in data.publication_creators
         ]
@@ -1407,6 +1459,7 @@ def get_publication_by_docid_simple(document_docid):
 
         # Normalize /uploads URLs (see module-level _normalize_publication_dict).
         _normalize_publication_dict(publication_dict, pub=data)
+        _redact_national_ids(publication_dict, pub=data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()

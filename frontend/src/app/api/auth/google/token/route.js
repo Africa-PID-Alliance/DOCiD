@@ -78,7 +78,7 @@ export async function GET(request) {
 
         // Google OAuth Configuration
         const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-        const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
         const redirectUri = getGoogleRedirectUri();
         const tokenUrl = 'https://oauth2.googleapis.com/token';
 

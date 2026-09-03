@@ -4,22 +4,33 @@ import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const targetUrl = `${getBackendApiV1BaseUrl()}/auth/login`;
-    console.log('[login-debug] target URL:', targetUrl);
-    console.log('[login-debug] request email:', body.email, 'password length:', (body.password || '').length);
-    const response = await fetch(targetUrl, {
+    const backendLoginUrl = `${getBackendApiV1BaseUrl()}/auth/login`;
+    const backendResponse = await fetch(backendLoginUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
 
-    const rawText = await response.text();
-    console.log('[login-debug] backend status:', response.status);
-    console.log('[login-debug] backend raw body:', rawText);
-    const data = rawText ? JSON.parse(rawText) : {};
-    return NextResponse.json(data, { status: response.status });
+    const rawResponseBody = await backendResponse.text();
+    let parsedResponseBody;
+    try {
+      parsedResponseBody = rawResponseBody ? JSON.parse(rawResponseBody) : {};
+    } catch {
+      // Backend returned non-JSON (nginx 502 page, proxy timeout, ...).
+      // Pass the real status through instead of masking it as a 500.
+      console.error(
+        `[login] non-JSON response from backend (status ${backendResponse.status})`,
+      );
+      parsedResponseBody = { error: 'Login service is unavailable' };
+    }
+
+    if (!backendResponse.ok) {
+      console.error(`[login] backend rejected login with status ${backendResponse.status}`);
+    }
+
+    return NextResponse.json(parsedResponseBody, { status: backendResponse.status });
   } catch (error) {
-    console.error('[login-debug] error:', error);
+    console.error('[login] request failed:', error.message);
     return NextResponse.json(
       { error: 'Failed to login', details: error.message },
       { status: 500 },
