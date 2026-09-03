@@ -80,3 +80,4 @@ Pillow>=10.0.0
 
 # OAI-PMH XML parsing (service_oai_pmh.py)
 lxml>=4.9.0
+bleach==6.2.0

@@ -6,6 +6,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from flask import Blueprint, jsonify, request, Response, abort, g
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
+from app.utils.sanitize_html import sanitize_rich_text
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
@@ -1619,7 +1620,7 @@ def create_publication():
         # Access form data from request.form and files from request.files
         document_docid = request.form.get('documentDocid')
         document_title = request.form.get('documentTitle')
-        document_description = request.form.get('documentDescription')
+        document_description = sanitize_rich_text(request.form.get('documentDescription'))
         resource_type = request.form.get('resourceType')
         # Identity comes from the JWT, not the payload. Any submitted `user_id`
         # field is intentionally ignored (would otherwise allow spoofing).
@@ -1739,7 +1740,7 @@ def create_publication():
             if file_title is None:
                 break
 
-            file_description = clean_undefined_string(request.form.get(f'filesPublications[{index}][description]'))
+            file_description = sanitize_rich_text(clean_undefined_string(request.form.get(f'filesPublications[{index}][description]')))
             publication_type = request.form.get(f'filesPublications[{index}][publication_type]')
             file_type = request.form.get(f'filesPublications[{index}][file_type]')
             identifier = request.form.get(f'filesPublications[{index}][identifier]')
@@ -1845,7 +1846,7 @@ def create_publication():
           if file_title is None:
               break
           
-          file_description = clean_undefined_string(request.form.get(f'filesDocuments[{index}][description]'))
+          file_description = sanitize_rich_text(clean_undefined_string(request.form.get(f'filesDocuments[{index}][description]')))
           publication_type = request.form.get(f'filesDocuments[{index}][publication_type]')
           identifier_type_id = request.form.get(f'filesDocuments[{index}][identifier]')
           generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
@@ -2375,7 +2376,7 @@ def create_publication():
                 break
 
             raid_id = request.form.get(f'projects[{index}][raid_id]')
-            description = clean_undefined_string(request.form.get(f'projects[{index}][description]'))
+            description = sanitize_rich_text(clean_undefined_string(request.form.get(f'projects[{index}][description]')))
             # For NOT NULL columns, use empty string instead of None
             if description is None:
                 description = ""
@@ -2951,7 +2952,7 @@ def update_publication(publication_id):
             logger.info(f"Title updated from '{old_value}' to '{new_title}'")
         
         # Update description if provided  
-        new_description = request.form.get('documentDescription')
+        new_description = sanitize_rich_text(request.form.get('documentDescription'))
         if new_description and new_description != publication.document_description:
             old_value = publication.document_description
             publication.document_description = new_description
@@ -3698,7 +3699,7 @@ def create_version():
         # --- Extract and validate common fields ---
         document_docid = request.form.get('documentDocid')
         document_title = request.form.get('documentTitle')
-        document_description = request.form.get('documentDescription')
+        document_description = sanitize_rich_text(request.form.get('documentDescription'))
         resource_type = request.form.get('resourceType')
         user_id = g.current_user.user_id
         doi = coerce_real_doi(clean_undefined_string(request.form.get('doi')))
@@ -3806,7 +3807,7 @@ def create_version():
             if file_title is None:
                 break
 
-            file_description = clean_undefined_string(request.form.get(f'filesPublications[{index}][description]'))
+            file_description = sanitize_rich_text(clean_undefined_string(request.form.get(f'filesPublications[{index}][description]')))
             publication_type = request.form.get(f'filesPublications[{index}][publication_type]')
             file_type = request.form.get(f'filesPublications[{index}][file_type]')
             identifier = request.form.get(f'filesPublications[{index}][identifier]')
@@ -3848,7 +3849,7 @@ def create_version():
             if doc_title is None:
                 break
 
-            doc_description = clean_undefined_string(request.form.get(f'filesDocuments[{index}][description]'))
+            doc_description = sanitize_rich_text(clean_undefined_string(request.form.get(f'filesDocuments[{index}][description]')))
             doc_type = request.form.get(f'filesDocuments[{index}][publication_type]')
             doc_identifier = request.form.get(f'filesDocuments[{index}][identifier]')
             doc_generated_identifier = request.form.get(f'filesDocuments[{index}][generated_identifier]')
@@ -3991,7 +3992,7 @@ def create_version():
             if project_title is None:
                 break
 
-            project_description = clean_undefined_string(request.form.get(f'projects[{index}][description]'))
+            project_description = sanitize_rich_text(clean_undefined_string(request.form.get(f'projects[{index}][description]')))
             project_raid_id = clean_undefined_string(request.form.get(f'projects[{index}][raid_id]'))
 
             project = PublicationProjects(

@@ -66,6 +66,7 @@ import { useTranslation } from 'react-i18next';
 
 import LocalContextsLabels from '@/components/LocalContexts/LocalContextsLabels';
 import MaskedNationalIdField from '@/components/MaskedNationalIdField';
+import { sanitizeRichText } from '@/lib/sanitizeRichText';
 
 const IDENTIFIER_TYPE_LABELS = {
   ror: 'ROR',
@@ -1156,7 +1157,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                 />
               </Box>
               {/* Description */}
-              <Typography align="left" mb={2} dangerouslySetInnerHTML={{ __html: docData.document_description }} />
+              <Typography align="left" mb={2} dangerouslySetInnerHTML={{ __html: sanitizeRichText(docData.document_description) }} />
               {/* Abstract (from Semantic Scholar / OpenAlex enrichment) */}
               {docData.abstract_text && (
                 <Box mb={2} p={2} bgcolor="grey.50" borderRadius={2}>
@@ -1818,7 +1819,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                   '& p': { m: 0, mb: 1, '&:last-child': { mb: 0 } },
                                   '& ul, & ol': { pl: 3, my: 0.5 },
                                 }}
-                                dangerouslySetInnerHTML={{ __html: item.description || '' }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeRichText(item.description) }}
                               />
 
                               <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -2490,7 +2491,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                   '& p': { m: 0, mb: 1, '&:last-child': { mb: 0 } },
                                   '& ul, & ol': { pl: 3, my: 0.5 },
                                 }}
-                                dangerouslySetInnerHTML={{ __html: item.description || '' }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeRichText(item.description) }}
                               />
                             </Grid>
 
@@ -2543,7 +2544,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                   <Box 
                                     component="span" 
                                     sx={{ display: 'block', color: 'text.secondary' }}
-                                    dangerouslySetInnerHTML={{ __html: item.description }} 
+                                    dangerouslySetInnerHTML={{ __html: sanitizeRichText(item.description) }} 
                                   />
                                 )}
                                 {item.country && (
