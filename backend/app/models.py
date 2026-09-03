@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, DateTime, Enum, Boolean, event
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import relationship
 from app import db
 
@@ -1018,12 +1019,28 @@ class PublicationDrafts(db.Model):
             # Update existing draft
             draft.form_data = form_data
             draft.updated_at = datetime.utcnow()
-        else:
-            # Create new draft
-            draft = cls(email=email, resource_type_id=resource_type_id, form_data=form_data)
-            db.session.add(draft)
+            db.session.commit()
+            return draft
 
-        db.session.commit()
+        # No existing row — insert. The frontend auto-saves, so a concurrent
+        # request may create the row between the SELECT above and this INSERT.
+        # That collides with uq_publication_drafts_email_resource_type; catch
+        # it, roll back the poisoned transaction, and update the row the other
+        # request just created. Without the rollback the scoped session stays
+        # broken and every later save on this worker fails with
+        # PendingRollbackError.
+        draft = cls(email=email, resource_type_id=resource_type_id, form_data=form_data)
+        db.session.add(draft)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            draft = cls.query.filter_by(
+                email=email, resource_type_id=resource_type_id
+            ).one()
+            draft.form_data = form_data
+            draft.updated_at = datetime.utcnow()
+            db.session.commit()
         return draft
 
     @classmethod

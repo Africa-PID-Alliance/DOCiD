@@ -2604,6 +2604,10 @@ def save_draft():
         }), 200
 
     except Exception as e:
+        # Roll back so a failed save cannot leave the pooled session in a
+        # PendingRollbackError state that breaks every subsequent request on
+        # this worker.
+        db.session.rollback()
         logger.error(f"Error saving draft: {str(e)}")
         return jsonify({'error': 'Failed to save draft'}), 500
 
