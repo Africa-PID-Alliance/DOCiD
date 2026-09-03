@@ -36,6 +36,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
+import RichTextEditor from '@/components/RichTextEditor';
 
 const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
@@ -517,26 +518,12 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
+                  <RichTextEditor
+                    key={`pub-desc-${file.id || file.url || index}`}
                     label={t('assign_docid.publications_form.description_field')}
-                    multiline
-                    rows={3}
-                    value={file.metadata.description}
-                    onChange={(e) => handleMetadataChange(index, 'description', e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                          borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider
-                        },
-                        '&:hover fieldset': {
-                          borderColor: theme.palette.primary.main
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: theme.palette.primary.main
-                        }
-                      }
-                    }}
+                    value={file.metadata?.description || ''}
+                    onChange={(html) => handleMetadataChange(index, 'description', html)}
+                    minHeight={160}
                   />
                 </Grid>
                 <Grid item xs={6}>

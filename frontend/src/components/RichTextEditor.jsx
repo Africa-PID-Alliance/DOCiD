@@ -293,9 +293,8 @@ const RichTextEditor = ({ value, onChange, label = 'Description', minHeight = 20
         }}
       >
         <MenuBar editor={editor} />
-        <EditorContent
-          editor={editor}
-          style={{
+        <Box
+          sx={{
             minHeight: `${minHeight}px`,
             '& .ProseMirror': {
               minHeight: `${minHeight}px`,
@@ -304,8 +303,13 @@ const RichTextEditor = ({ value, onChange, label = 'Description', minHeight = 20
               color: theme.palette.text.primary,
               padding: '16px 8px',
             },
+            '& .ProseMirror p': { margin: 0, marginBottom: '0.5em' },
+            '& .ProseMirror p:last-child': { marginBottom: 0 },
+            '& .ProseMirror ul, & .ProseMirror ol': { paddingLeft: '1.5em' },
           }}
-        />
+        >
+          <EditorContent editor={editor} />
+        </Box>
       </Paper>
     </Box>
   );

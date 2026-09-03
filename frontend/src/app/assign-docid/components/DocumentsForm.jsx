@@ -47,6 +47,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
 import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 import { useSelector } from 'react-redux';
+import RichTextEditor from '@/components/RichTextEditor';
 
 const documentTypes = [
   { id: 1, type: 'Video', extensions: '.mp4, .mov, .avi, .mkv', icon: VideoIcon, enabled: true },
@@ -748,13 +749,12 @@ const DocumentsForm = ({ formData, updateFormData }) => {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
+                  <RichTextEditor
+                    key={`doc-desc-${file.id || file.url || index}`}
                     label={t('assign_docid.documents_form.description_field')}
-                    multiline
-                    rows={3}
-                    value={file.metadata.description}
-                    onChange={(e) => handleMetadataChange(index, 'description', e.target.value)}
+                    value={file.metadata?.description || ''}
+                    onChange={(html) => handleMetadataChange(index, 'description', html)}
+                    minHeight={160}
                   />
                 </Grid>
                 <Grid item xs={6}>

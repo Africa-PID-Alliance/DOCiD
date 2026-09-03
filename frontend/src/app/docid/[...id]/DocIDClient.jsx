@@ -65,6 +65,7 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import LocalContextsLabels from '@/components/LocalContexts/LocalContextsLabels';
+import MaskedNationalIdField from '@/components/MaskedNationalIdField';
 
 const IDENTIFIER_TYPE_LABELS = {
   ror: 'ROR',
@@ -72,6 +73,18 @@ const IDENTIFIER_TYPE_LABELS = {
   ringgold: 'Ringgold',
   grid: 'GRID',
   viaf: 'VIAF',
+};
+
+const isNationalIdCreator = (item) => {
+  const type = String(item?.identifier_type || '').trim().toLowerCase();
+  if (type === 'national_id') return true;
+  if (type === 'orcid') return false;
+  const identifier = String(item?.identifier || '');
+  if (!identifier) return false;
+  if (/orcid\.org/i.test(identifier)) return false;
+  if (/^https?:\/\//i.test(identifier)) return false;
+  if (/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i.test(identifier.trim())) return false;
+  return true;
 };
 
 const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
@@ -84,6 +97,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [revealedNationalIds, setRevealedNationalIds] = useState({});
   const [creatorRoles, setCreatorRoles] = useState([]);
   const [featureModal, setFeatureModal] = useState(false);
   const [comments, setComments] = useState([]);
@@ -726,12 +740,14 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
 
   const handleViewSection = (section) => {
     setSelectedSection(section);
+    setRevealedNationalIds({});
     setModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedSection(null);
+    setRevealedNationalIds({});
   };
 
   // Helper function to get download count for a specific file or document
@@ -968,7 +984,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
         const name = c.family_name || c.given_name || c.creator_name;
         if (!name) return null;
         const author = { '@type': 'Person', name };
-        if (c.identifier) author.sameAs = c.identifier;
+        if (c.identifier && !isNationalIdCreator(c)) author.sameAs = c.identifier;
         return author;
       })
       .filter(Boolean);
@@ -1002,6 +1018,19 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const jsonLdSerialised = jsonLdData
     ? JSON.stringify(jsonLdData).replace(/<\//g, '<\\/')
     : null;
+
+  const isDocidOwner = Boolean(
+    isAuthenticated &&
+    docData?.user_id &&
+    (String(user?.id) === String(docData.user_id) || String(user?.user_id) === String(docData.user_id))
+  );
+
+  const toggleRevealedNationalId = (index) => {
+    setRevealedNationalIds((prev) => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   return (
     <Box sx={{  minHeight: '100vh', backgroundColor: 'background.content' }}>
@@ -1780,18 +1809,16 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                                 {t('docid_page.modal.description_field')}
               </Typography>
-                              <TextField
-                                fullWidth
-                                multiline
-                                rows={4}
-                                value={item.description?.replace(/<[^>]+>/g, '') || ''}
-                                InputProps={{
-                                  readOnly: true,
-                                  disableUnderline: true,
+                              <Box
+                                sx={{
+                                  mb: 2,
+                                  p: 1.5,
+                                  bgcolor: 'action.hover',
+                                  borderRadius: 1,
+                                  '& p': { m: 0, mb: 1, '&:last-child': { mb: 0 } },
+                                  '& ul, & ol': { pl: 3, my: 0.5 },
                                 }}
-                                variant="filled"
-                                size="small"
-                                sx={{ mb: 2, '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                dangerouslySetInnerHTML={{ __html: item.description || '' }}
                               />
 
                               <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -2087,14 +2114,29 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                                 {t('docid_page.modal.identifier_field')}
                               </Typography>
-                              <TextField
-                                fullWidth
-                                value={item.identifier || 'ORCID'}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
+                              {isNationalIdCreator(item) ? (
+                                <MaskedNationalIdField
+                                  fullWidth
+                                  value={item.identifier || ''}
+                                  revealed={!!revealedNationalIds[index]}
+                                  onToggleReveal={() => toggleRevealedNationalId(index)}
+                                  showToggle={isDocidOwner}
+                                  readOnly
+                                  variant="filled"
+                                  size="small"
+                                  InputProps={{ disableUnderline: true }}
+                                  sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                />
+                              ) : (
+                                <TextField
+                                  fullWidth
+                                  value={item.identifier || 'ORCID'}
+                                  InputProps={{ readOnly: true, disableUnderline: true }}
+                                  variant="filled"
+                                  size="small"
+                                  sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                />
+                              )}
                             </Grid>
 
                             <Grid item xs={12} sm={6}>
@@ -2439,15 +2481,16 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                                 {t('docid_page.modal.description_field')}
                               </Typography>
-                              <TextField
-                                fullWidth
-                                multiline
-                                rows={3}
-                                value={item.description?.replace(/<[^>]+>/g, '') || ''}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' }, mb: 2 }}
+                              <Box
+                                sx={{
+                                  mb: 2,
+                                  p: 1.5,
+                                  bgcolor: 'action.hover',
+                                  borderRadius: 1,
+                                  '& p': { m: 0, mb: 1, '&:last-child': { mb: 0 } },
+                                  '& ul, & ol': { pl: 3, my: 0.5 },
+                                }}
+                                dangerouslySetInnerHTML={{ __html: item.description || '' }}
                               />
                             </Grid>
 

@@ -26,6 +26,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
+import MaskedNationalIdField from '@/components/MaskedNationalIdField';
 
 const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
@@ -39,6 +40,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
     if (lastSeededGenerationRef.current === loadGeneration) return;
     lastSeededGenerationRef.current = loadGeneration;
     setCreators(formData?.creators || []);
+    setRevealedCreatorIndexes({});
   }, [loadGeneration, formData]);
   const [newCreator, setNewCreator] = useState({
     name: '',
@@ -56,6 +58,9 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
   const [lookupId, setLookupId] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
+  const [showLookupId, setShowLookupId] = useState(false);
+  const [showManualId, setShowManualId] = useState(false);
+  const [revealedCreatorIndexes, setRevealedCreatorIndexes] = useState({});
 
   const handleModalOpen = () => {
     setIsModalOpen(true);
@@ -67,6 +72,8 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
     setSearchError('');
     setLookupId('');
     setLookupError('');
+    setShowLookupId(false);
+    setShowManualId(false);
   };
 
   const handleModalClose = () => {
@@ -76,6 +83,8 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
     setSearchResults([]);
     setSearchError('');
     setLookupError('');
+    setShowLookupId(false);
+    setShowManualId(false);
   };
 
   const handleInputChange = (field) => (event) => {
@@ -109,6 +118,19 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
     const updatedCreators = creators.filter((_, i) => i !== index);
     setCreators(updatedCreators);
     updateFormData({ ...formData, creators: updatedCreators });
+    setRevealedCreatorIndexes((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((key) => {
+        const revealedIndex = Number(key);
+        if (!prev[revealedIndex] || revealedIndex === index) return;
+        if (revealedIndex > index) {
+          next[revealedIndex - 1] = true;
+        } else {
+          next[revealedIndex] = true;
+        }
+      });
+      return next;
+    });
   };
 
   // Lookup by National ID Number
@@ -176,6 +198,13 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
     });
     setSearchResults([]);
     setActiveTab(1);
+  };
+
+  const toggleRevealedCreator = (index) => {
+    setRevealedCreatorIndexes((prev) => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   const readOnlyInputSx = {
@@ -283,11 +312,14 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <MaskedNationalIdField
                     fullWidth
                     label="National ID Number"
                     value={creator.nationalIdNumber}
-                    InputProps={{ readOnly: true, sx: readOnlyInputSx }}
+                    revealed={!!revealedCreatorIndexes[index]}
+                    onToggleReveal={() => toggleRevealedCreator(index)}
+                    readOnly
+                    InputProps={{ sx: readOnlyInputSx }}
                     sx={readOnlyFieldSx}
                   />
                 </Grid>
@@ -368,10 +400,12 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
               <Box>
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   <Grid item xs={12} sm={8}>
-                    <TextField
+                    <MaskedNationalIdField
                       fullWidth
                       label="National ID or Passport Number"
                       value={lookupId}
+                      revealed={showLookupId}
+                      onToggleReveal={() => setShowLookupId((prev) => !prev)}
                       onChange={(event) => {
                         setLookupId(event.target.value);
                         setLookupError('');
@@ -485,10 +519,12 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
+                    <MaskedNationalIdField
                       fullWidth
                       label="National ID Number"
                       value={newCreator.nationalIdNumber}
+                      revealed={showManualId}
+                      onToggleReveal={() => setShowManualId((prev) => !prev)}
                       onChange={handleInputChange('nationalIdNumber')}
                       required
                       error={!!errors.nationalIdNumber}

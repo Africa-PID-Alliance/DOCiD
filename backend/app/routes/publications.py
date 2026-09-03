@@ -3244,6 +3244,8 @@ def get_publication_for_edit(publication_id):
             } for project in data.publication_projects
         ]
         
+        _normalize_publication_dict(publication_dict, pub=data)
+
         logger.info(f"Publication data for edit retrieved successfully: ID={publication_id}, User={user_id}")
         return jsonify(publication_dict), 200
 

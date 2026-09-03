@@ -8,7 +8,7 @@ import {
   Box, Container, Paper, Typography, TextField, Button,
   Stepper, Step, StepLabel, Alert, CircularProgress, Stack, useTheme,
   useMediaQuery,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -16,6 +16,8 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import CustomStepIcon from '../../assign-docid/components/CustomStepIcon';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -316,6 +318,14 @@ function hasChanged(a, b, keys) {
   return keys.some((k) => (a[k] ?? null) !== (b[k] ?? null));
 }
 
+function resolveMediaUrl(url) {
+  if (!url) return '';
+  if (/^(https?:|blob:|data:)/i.test(url)) return url;
+  const base = (process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || '').replace(/\/$/, '');
+  if (url.startsWith('/')) return base ? `${base}${url}` : url;
+  return base ? `${base}/${url}` : `/${url}`;
+}
+
 // ---------- page ----------
 
 export default function EditDocidPage() {
@@ -342,6 +352,21 @@ export default function EditDocidPage() {
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [posterUrl, setPosterUrl] = useState('');
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(null);
+  const thumbnailInputRef = useRef(null);
+  const thumbnailPreviewUrlRef = useRef(null);
+
+  const clearPendingThumbnail = useCallback(() => {
+    if (thumbnailPreviewUrlRef.current) {
+      URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      thumbnailPreviewUrlRef.current = null;
+    }
+    setThumbnailPreviewUrl(null);
+    setThumbnailFile(null);
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = '';
+  }, []);
 
   // Per-entity state + originals
   const [creators, setCreators] = useState([]);
@@ -408,6 +433,14 @@ export default function EditDocidPage() {
       setDocumentTitle(d.document_title || '');
       setDocumentDescription(d.document_description || '');
       setAvatarUrl(d.avatar || '');
+      setPosterUrl(d.publication_poster_url || '');
+      if (thumbnailPreviewUrlRef.current) {
+        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+        thumbnailPreviewUrlRef.current = null;
+      }
+      setThumbnailPreviewUrl(null);
+      setThumbnailFile(null);
+      if (thumbnailInputRef.current) thumbnailInputRef.current.value = '';
 
       // Deep-clone the baseline so forms' in-place mutations on state
       // don't poison the originalRef comparison. Codex v3 H1.
@@ -529,6 +562,26 @@ export default function EditDocidPage() {
 
   useEffect(() => { loadPublication(); }, [loadPublication]);
 
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreviewUrlRef.current) {
+        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handleThumbnailChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (thumbnailPreviewUrlRef.current) {
+      URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    thumbnailPreviewUrlRef.current = objectUrl;
+    setThumbnailPreviewUrl(objectUrl);
+    setThumbnailFile(file);
+  };
+
   // ---- OpenAlex enrichment (Phase 2/3) ----
   // A "real" DOI is a CrossRef/DataCite-style 10.xxxx/yyyy identifier — NOT a
   // DOCiD/Handle prefix (e.g. 20.500.14351/...). OpenAlex only indexes real DOIs,
@@ -634,6 +687,9 @@ export default function EditDocidPage() {
       formData.append('documentTitle', documentTitle);
       formData.append('documentDescription', documentDescription);
       formData.append('avatar', avatarUrl);
+      if (thumbnailFile instanceof File) {
+        formData.append('publicationPoster', thumbnailFile);
+      }
       await axios.put(`/api/publications/update-publication/${publicationId}`, formData);
       setFeedbackMessage({ type: 'success', text: 'Details saved' });
       loadPublication();
@@ -1501,6 +1557,90 @@ export default function EditDocidPage() {
             <Stack spacing={2}>
               <TextField label="Title" fullWidth value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} />
               <RichTextEditor label="Description" value={documentDescription} onChange={setDocumentDescription} />
+              <Box>
+                <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 500 }}>
+                  Upload Thumbnail (Optional)
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<CloudUploadIcon />}
+                    disabled={isSaving}
+                  >
+                    Choose Image
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleThumbnailChange}
+                    />
+                  </Button>
+                  {thumbnailFile && (
+                    <Typography variant="body2" color="text.primary">
+                      {thumbnailFile.name}
+                    </Typography>
+                  )}
+                </Box>
+                {(thumbnailPreviewUrl || posterUrl) && (
+                  <Box sx={{ mt: 2, position: 'relative', width: 'fit-content' }}>
+                    <Paper
+                      elevation={2}
+                      sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        position: 'relative',
+                        width: 'fit-content',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 200,
+                          height: 200,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={thumbnailPreviewUrl || resolveMediaUrl(posterUrl)}
+                          alt="Thumbnail preview"
+                          onError={(e) => { e.currentTarget.src = '/assets/images/logo2.png'; }}
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </Box>
+                      {thumbnailFile && (
+                        <IconButton
+                          onClick={clearPendingThumbnail}
+                          aria-label="Remove selected thumbnail"
+                          sx={{
+                            position: 'absolute',
+                            top: -16,
+                            right: -16,
+                            bgcolor: 'background.paper',
+                            boxShadow: 1,
+                            '&:hover': { bgcolor: 'action.hover' },
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      )}
+                    </Paper>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {thumbnailFile
+                        ? 'This image will replace the current thumbnail when you save.'
+                        : 'Current thumbnail. Choose a new image to replace it.'}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
               <TextField label="Avatar URL" fullWidth value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
               <Box>
                 <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveTopLevel} disabled={isSaving}>
