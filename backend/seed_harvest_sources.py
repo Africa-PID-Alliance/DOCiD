@@ -69,6 +69,43 @@ SOURCES = [
             {'docid_field': 'doi', 'source_field': 'dc.identifier.other', 'priority': 1},
         ],
     },
+    {
+        # Rhodes University OJS platform — journal "The Coelacanth" (Border Historical Society).
+        #
+        # Registration only: harvest_repositories.py currently dispatches on 'legacy' and
+        # 'modern' (DSpace) only, so an 'ojs' source is skipped with "Unsupported api_type".
+        # Seeded inactive until an OJS/OAI ingest path exists. See
+        # meeting-notes/clients/rhodes-university/2026-09-01-ojs-coelacanth-integration.md
+        #
+        # base_url is the OAI-PMH endpoint, not the REST API: the REST endpoint we were given
+        # (.../api/v1/submissions) returns HTTP 403 api.403.unauthorized without an API key we
+        # do not hold. The OAI-PMH feed is open and exposes 138 records (verified 2026-09-01).
+        'name': 'Rhodes University — The Coelacanth (OJS)',
+        'base_url': 'https://journal.ru.ac.za/index.php/Coelacanth/oai',
+        'ui_base_url': 'https://journal.ru.ac.za/index.php/Coelacanth',
+        'dspace_version': None,
+        'api_type': 'ojs',
+        'auth_required': False,
+        'username': None,
+        'password': None,
+        'owner_name': 'Rhodes University',
+        'owner_email': None,  # journal admin is border.historical.society@gmail.com; RU contact TBC
+        'harvest_frequency': 'weekly',
+        'is_active': False,
+        # OJS serves unqualified Dublin Core (dc:creator, dc:date), not DSpace-qualified DC
+        # (dc.contributor.author, dc.date.issued), so the DEFAULT_FIELD_MAPPINGS above do not
+        # apply. Recorded for completeness only — nothing reads these rows today.
+        'extra_mappings': [
+            {'docid_field': 'document_title', 'source_field': 'dc:title', 'priority': 0},
+            {'docid_field': 'document_description', 'source_field': 'dc:description', 'priority': 0},
+            {'docid_field': 'authors', 'source_field': 'dc:creator', 'priority': 0},
+            {'docid_field': 'published_date', 'source_field': 'dc:date', 'priority': 0},
+            {'docid_field': 'resource_type', 'source_field': 'dc:type', 'priority': 0},
+            {'docid_field': 'language', 'source_field': 'dc:language', 'priority': 0},
+            {'docid_field': 'handle', 'source_field': 'dc:identifier', 'priority': 0},
+            {'docid_field': 'publisher', 'source_field': 'dc:publisher', 'priority': 0},
+        ],
+    },
 ]
 
 
@@ -111,7 +148,7 @@ def seed_sources(dry_run=False):
             owner_name=source_config['owner_name'],
             owner_email=source_config.get('owner_email'),
             harvest_frequency=source_config.get('harvest_frequency', 'weekly'),
-            is_active=True,
+            is_active=source_config.get('is_active', True),
         )
         db.session.add(harvest_source)
         db.session.flush()  # Get the ID for field mappings
