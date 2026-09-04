@@ -22,6 +22,25 @@ const nextConfig = {
       { protocol: 'http', hostname },
     ])),
   },
+  async redirects() {
+    return [
+      // v1.0 of the schema docs lived at /docs/. v2.0 lives at /docs/metadata/.
+      // Send old links to the new site. The negative lookahead is essential:
+      // without it /docs/metadata/x would match and redirect to itself forever.
+      // It must anchor on 'metadata/' and 'metadata$' rather than the bare prefix,
+      // or /docs/metadata-schema.html is wrongly treated as part of the new site.
+      {
+        source: '/docs',
+        destination: '/docs/metadata',
+        permanent: false,
+      },
+      {
+        source: '/docs/:path((?!metadata/|metadata$).*)',
+        destination: '/docs/metadata/:path',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return {
       // beforeFiles runs ahead of static-file resolution, so these map the
