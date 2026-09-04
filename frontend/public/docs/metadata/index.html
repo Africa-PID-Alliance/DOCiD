@@ -138,6 +138,12 @@
                         <li class="nav-item">
                             <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
                         </li>
+                        <li class="nav-item">
+                            <a href="local-contexts.html" class="nav-link">Local Contexts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="research-resources-rrid.html" class="nav-link">Research Resources (RRID)</a>
+                        </li>
                     </ul>
                 </div>
 
@@ -196,12 +202,12 @@
                 <!-- Table of Contents -->
                 <div class="notice notice-info">
                     <h4>About version 2.0</h4>
-                    <p>This revision realigns the documentation with the deployed system. It adds the <a href="integration-contract.html">Integration Contract</a>, <a href="identifiers-and-minting.html">Identifiers &amp; PID Minting</a> and <a href="integrity-checksums.html">Integrity &amp; Checksums</a>, documents national identity numbers and their server-side masking under <a href="properties-creator.html#national-id">Property: Creator</a>, and records which schema fields are actually readable through the API under <a href="metadata-schema.html#serialisation">Serialisation Status</a>.</p>
+                    <p>This revision realigns the documentation with the deployed system. It adds the <a href="integration-contract.html">Integration Contract</a>, <a href="identifiers-and-minting.html">Identifiers &amp; PID Minting</a> and <a href="integrity-checksums.html">Integrity &amp; Checksums</a>, documents national identity numbers and their server-side masking under <a href="properties-creator.html#national-id">Property: Creator</a>, records which schema fields are actually readable through the API under <a href="metadata-schema.html#serialisation">Serialisation Status</a>, and documents the <a href="local-contexts.html">Local Contexts</a> and <a href="research-resources-rrid.html">research resource (RRID)</a> subsystems for the first time.</p>
                 </div>
 
                 <div class="notice notice-warning">
                     <h4>Not yet documented</h4>
-                    <p>These subsystems are implemented but not yet covered in depth. Until they are, treat the API as authoritative rather than assuming absence here means absence from the system: <strong>Local Contexts</strong> (TK/BC labels and Notices — the <a href="cultural-protocols.html">Cultural Protocols</a> appendix describes the concepts, not the implementation), <strong>research resources (RRID)</strong>, <strong>versioning</strong>, <strong>repository harvesting</strong> (DSpace and OAI-PMH), <strong>tenant branding</strong>, and <strong>metadata enrichment</strong>. Their endpoints are summarised in the <a href="api-reference.html#subsystem-endpoints">API Reference</a>.</p>
+                    <p>These subsystems are implemented but not yet covered in depth. Until they are, treat the API as authoritative rather than assuming absence here means absence from the system: <strong>versioning</strong>, <strong>repository harvesting</strong> (DSpace and OAI-PMH), <strong>tenant branding</strong>, and <strong>metadata enrichment</strong>. Their endpoints are summarised in the <a href="api-reference.html#subsystem-endpoints">API Reference</a>.</p>
                 </div>
 
                 <section class="toc">
@@ -417,6 +423,22 @@
                                 <div class="toc-title">Integrity &amp; Checksums</div>
                             </a>
                             <div class="toc-description">SHA-256 fixity for deposited files and the public verification endpoint</div>
+                        </li>
+
+                        <li class="toc-item">
+                            <a href="local-contexts.html" class="toc-link">
+                                <span class="toc-number">9.</span>
+                                <div class="toc-title">Local Contexts</div>
+                            </a>
+                            <div class="toc-description">TK and BC Labels and Notices, how they are cached from the Local Contexts Hub, and how they attach to a record</div>
+                        </li>
+
+                        <li class="toc-item">
+                            <a href="research-resources-rrid.html" class="toc-link">
+                                <span class="toc-number">10.</span>
+                                <div class="toc-title">Research Resources (RRID)</div>
+                            </a>
+                            <div class="toc-description">Identifying antibodies, cell lines, organisms and software via SciCrunch RRIDs</div>
                         </li>
 
                         <li class="toc-item">

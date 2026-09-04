@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Local Contexts</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="local-contexts.html" class="nav-link active">Local Contexts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="research-resources-rrid.html" class="nav-link">Research Resources (RRID)</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Local Contexts</h1>
+                    <div class="subtitle">Traditional Knowledge and Biocultural Labels, and Notices, attached to a DOCiD</div>
+                </header>
+
+                <section id="overview">
+                    <h2>Overview</h2>
+                    <p class="lead">Local Contexts Labels let Indigenous communities express their own rules for how knowledge about them may be used — provenance, permission, and protocol expressed by the community itself rather than inferred by a repository.</p>
+
+                    <p>DOCiD integrates with the Local Contexts Hub. It does <strong>not</strong> author Labels and does not own them: the community does, through the Hub. DOCiD stores a reference plus a cached copy of the display metadata, so a record can render its Labels without depending on the Hub being reachable at that moment.</p>
+
+                    <div class="notice notice-info">
+                        <h4>The Hub is authoritative</h4>
+                        <p>Every Label shown in DOCiD is a cached copy of Hub data. Where the two disagree, the Hub is correct and DOCiD's copy is stale. Labels can be changed or withdrawn by the community that issued them, and DOCiD must reflect that — which is why the cache expires rather than persisting indefinitely.</p>
+                    </div>
+
+                    <p>The conceptual background — what TK Labels mean and how to act on them — is in <a href="cultural-protocols.html">Cultural Protocols</a>. This page documents the implementation.</p>
+                </section>
+
+                <section id="types">
+                    <h2>The three context types</h2>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><code>context_type</code></th>
+                                    <th>Meaning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>TK_LABEL</code></td>
+                                    <td>Traditional Knowledge Label — community expectations for using knowledge held by that community</td>
+                                </tr>
+                                <tr>
+                                    <td><code>BC_LABEL</code></td>
+                                    <td>Biocultural Label — applied to biological and genetic resources and associated knowledge</td>
+                                </tr>
+                                <tr>
+                                    <td><code>NOTICE</code></td>
+                                    <td>Notice — asserted by an institution rather than a community, such as Open to Collaborate</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>The distinction matters: <strong>Labels are authored by communities; Notices are authored by institutions.</strong> A Notice is an institution stating its intent, not a community granting permission. Do not present the two as equivalent in an interface.</p>
+                </section>
+
+                <section id="storage">
+                    <h2>Storage model</h2>
+
+                    <p>Three tables, mirroring the separation between what the Hub owns and what DOCiD records.</p>
+
+                    <h3><code>local_contexts</code> — the cache</h3>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>external_id</code></td><td>String(255), NOT NULL, unique, indexed</td><td>The Hub's identifier — the join key to the outside world</td></tr>
+                                <tr><td><code>context_type</code></td><td>String(50), NOT NULL</td><td>One of the three values above</td></tr>
+                                <tr><td><code>title</code>, <code>summary</code></td><td>String(255), Text</td><td>Cached verbatim from the Hub</td></tr>
+                                <tr><td><code>community_name</code></td><td>String(255)</td><td>The community asserting the Label</td></tr>
+                                <tr><td><code>source_url</code>, <code>image_url</code></td><td>Text</td><td>Hub links and Label artwork</td></tr>
+                                <tr><td><code>is_active</code></td><td>Boolean, default true</td><td>Cleared when a Label is withdrawn upstream</td></tr>
+                                <tr><td><code>is_authoritative</code>, <code>needs_review</code></td><td>Boolean, default false</td><td>Declared but <strong>never set by the backend</strong> — see Known gaps</td></tr>
+                                <tr><td><code>cached_at</code>, <code>last_sync_attempt</code>, <code>sync_error</code></td><td>DateTime, DateTime, Text</td><td>Cache freshness and last failure</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3><code>publication_local_contexts</code> — the attachment</h3>
+
+                    <p>Joins a publication to a cached Label, optionally recording the Hub <em>project</em> the Label came from, plus <code>display_order</code>, <code>attached_at</code> and <code>attached_by</code>.</p>
+
+                    <div class="notice notice-info">
+                        <h4>Two partial unique indexes, not one constraint</h4>
+                        <p>Uniqueness is enforced by a pair of PostgreSQL partial indexes: one over (publication, label) <code>WHERE project_external_id IS NULL</code>, and one over (publication, label, project) <code>WHERE project_external_id IS NOT NULL</code>. The effect is that the same Label may be attached under two different projects, but never twice within the same project — and a legacy attachment with no project cannot be duplicated either. Both are Postgres-specific.</p>
+                    </div>
+
+                    <h3><code>local_context_audit_log</code></h3>
+
+                    <p>Every change is recorded with an action of <code>ATTACH</code>, <code>DETACH</code>, <code>PROJECT_ATTACH</code>, <code>SYNC</code> or <code>MARK_INACTIVE</code>, alongside the publication, the label, the external id, the acting user, a JSON detail payload, the IP address, and a timestamp. Attaching a cultural Label to a record is a consequential act, and the log exists so it can be reconstructed later.</p>
+                </section>
+
+                <section id="caching">
+                    <h2>Caching and freshness</h2>
+
+                    <p>Cached Label metadata expires after <strong>30 days</strong>. When a stale entry is read, DOCiD attempts a blocking resync against the Hub with a <strong>10-second timeout</strong>, and falls back to the stale copy if the Hub does not answer in time — a slow Hub degrades freshness, never availability.</p>
+
+                    <p>Where a resync cannot be attempted at all (for example, no Hub API key is configured), the response carries <code>_cache_stale: true</code> and a <code>_cache_note</code> explaining why. Clients should surface that rather than silently presenting month-old data as current.</p>
+
+                    <p>Project display re-fetches the Hub in bulk and falls back to the cached shape per project, so one unreachable project does not blank the others.</p>
+                </section>
+
+                <section id="endpoints">
+                    <h2>Endpoints</h2>
+
+                    <p>All under <code>/api/v1/localcontexts</code>.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr><th>Method &amp; path</th><th>Auth</th><th>Purpose</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>GET /projects</code></td><td>None</td><td>List Hub projects</td></tr>
+                                <tr><td><code>GET /projects/search</code></td><td>None</td><td>Search Hub projects</td></tr>
+                                <tr><td><code>GET /projects/&lt;project_id&gt;</code></td><td>None</td><td>One project with its Labels</td></tr>
+                                <tr><td><code>GET /projects/multi/&lt;ids&gt;</code></td><td>None</td><td>Bulk fetch several projects</td></tr>
+                                <tr><td><code>GET /projects/multi/date-modified/&lt;ids&gt;</code></td><td>None</td><td>Modification dates only — cheap staleness check</td></tr>
+                                <tr><td><code>GET /notices/open-to-collaborate</code></td><td>None</td><td>The Open to Collaborate Notice</td></tr>
+                                <tr><td><code>GET /publications/&lt;id&gt;/contexts</code></td><td>None</td><td>Labels attached to a publication</td></tr>
+                                <tr><td><code>POST /publications/&lt;id&gt;/contexts</code></td><td>JWT</td><td>Attach a single Label</td></tr>
+                                <tr><td><code>DELETE /publications/&lt;id&gt;/contexts/&lt;context_id&gt;</code></td><td>JWT</td><td>Detach a Label</td></tr>
+                                <tr><td><code>POST /publications/&lt;id&gt;/projects</code></td><td>JWT</td><td>Attach every Label of a Hub project at once</td></tr>
+                                <tr><td><code>DELETE /publications/&lt;id&gt;/projects/&lt;external_id&gt;</code></td><td>JWT</td><td>Detach a whole project</td></tr>
+                                <tr><td><code>GET /publications/&lt;id&gt;/projects-display</code></td><td>None</td><td>Display-ready project view with cache fallback</td></tr>
+                                <tr><td><code>GET /cache/&lt;external_id&gt;</code></td><td>None</td><td>Inspect one cached entry</td></tr>
+                                <tr><td><code>POST /cache/&lt;external_id&gt;/sync</code></td><td>JWT</td><td>Force a resync from the Hub</td></tr>
+                                <tr><td><code>GET /audit-log</code></td><td>JWT</td><td>Attachment history</td></tr>
+                                <tr><td><code>GET /health</code>, <code>GET /api-info</code></td><td>None</td><td>Integration status</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Attaching a project</h3>
+
+                    <p>The project attach endpoint is the one most integrations want: it attaches every TK Label, BC Label and Notice belonging to a Hub project in a <strong>single savepoint</strong>, using <code>INSERT ... ON CONFLICT DO NOTHING</code> so a partial re-attach is harmless. It returns the number attached and the project title. Label body text is taken from the first available of the Hub's <code>label_text</code>, <code>default_text</code>, or <code>description</code> fields.</p>
+                </section>
+
+                <section id="known-gaps">
+                    <h2>Known gaps</h2>
+
+                    <div class="notice notice-warning">
+                        <h4>Local Contexts data is absent from publication responses</h4>
+                        <p>Neither <code>get-publication</code> nor either DOCiD resolver nor the DOI resolver includes attached Labels. A client rendering a record must call <code>/publications/&lt;id&gt;/contexts</code> or <code>/projects-display</code> separately. <strong>A consumer that reads only the publication payload will not know a record carries cultural Labels at all</strong> — which is the failure mode Labels exist to prevent. Treat this as required reading for anyone building a display surface.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4><code>is_authoritative</code> and <code>needs_review</code> are never set</h4>
+                        <p>Both columns exist and default to false, and no backend code sets either to true. Do not branch on them; they carry no meaning today.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>PostgreSQL-only</h4>
+                        <p>The partial unique indexes and the conflict-tolerant bulk attach are Postgres-specific. This subsystem will not behave correctly on another database engine.</p>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="cultural-protocols.html" class="nav-prev">Cultural Protocols</a>
+                    <a href="research-resources-rrid.html" class="nav-next">Research Resources (RRID)</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Local Contexts • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) { scrollTop.classList.add('visible'); }
+            else { scrollTop.classList.remove('visible'); }
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

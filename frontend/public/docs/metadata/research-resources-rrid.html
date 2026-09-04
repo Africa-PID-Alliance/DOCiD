@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Research Resources (RRID)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="local-contexts.html" class="nav-link">Local Contexts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="research-resources-rrid.html" class="nav-link active">Research Resources (RRID)</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Research Resources (RRID)</h1>
+                    <div class="subtitle">Identifying the antibodies, cell lines, organisms, software and tools a study used</div>
+                </header>
+
+                <section id="overview">
+                    <h2>Overview</h2>
+                    <p class="lead">A Research Resource Identifier names the specific reagent, organism, cell line, or piece of software a study depended on, so that another researcher can obtain the same thing rather than guess from a prose description.</p>
+
+                    <p>RRIDs are issued and resolved by <strong>SciCrunch</strong>. DOCiD attaches them to records and caches the resolved metadata; it does not mint them. An RRID looks like <code>RRID:AB_2298772</code> or <code>RRID:SCR_002798</code>, where the prefix after the colon indicates the resource class.</p>
+
+                    <p>This matters for reproducibility in exactly the way a citation does not: "we used an anti-GFP antibody" is unreproducible, while an RRID names the catalogue item.</p>
+                </section>
+
+                <section id="attachment">
+                    <h2>What an RRID can attach to</h2>
+
+                    <p>Attachment is polymorphic across three entity types:</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr><th><code>entity_type</code></th><th>Meaning</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>publication</code></td><td>A resource the work as a whole used</td></tr>
+                                <tr><td><code>organization</code></td><td>A resource associated with a contributing organization — for example an identified lab or facility</td></tr>
+                                <tr><td><code>document</code></td><td>A resource specific to one attached document</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>The link is polymorphic by design and carries <strong>no foreign key</strong>: <code>entity_id</code> is a plain integer interpreted according to <code>entity_type</code>. Deleting the referenced entity therefore does not cascade to its RRID rows.</p>
+                </section>
+
+                <section id="storage">
+                    <h2>Storage model</h2>
+
+                    <h3><code>docid_rrids</code></h3>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>entity_type</code></td><td>String(50), NOT NULL</td><td><code>publication</code> | <code>organization</code> | <code>document</code></td></tr>
+                                <tr><td><code>entity_id</code></td><td>Integer, NOT NULL</td><td>Polymorphic; no FK</td></tr>
+                                <tr><td><code>rrid</code></td><td>String(50), NOT NULL</td><td>The identifier as issued</td></tr>
+                                <tr><td><code>rrid_name</code></td><td>String(500)</td><td>Resolved name. An empty value is treated as a cache miss</td></tr>
+                                <tr><td><code>rrid_description</code></td><td>Text</td><td>Resolved description</td></tr>
+                                <tr><td><code>rrid_resource_type</code></td><td>String(100)</td><td>Antibody, cell line, software, organism, …</td></tr>
+                                <tr><td><code>rrid_url</code></td><td>String(500)</td><td>Resolver URL</td></tr>
+                                <tr><td><code>resolved_json</code></td><td>JSON</td><td>The full SciCrunch payload as resolved</td></tr>
+                                <tr><td><code>last_resolved_at</code></td><td>DateTime</td><td>When resolution last succeeded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Unique on (<code>entity_type</code>, <code>entity_id</code>, <code>rrid</code>), with a lookup index on (<code>entity_type</code>, <code>entity_id</code>).</p>
+
+                    <p>Two tables also carry a denormalised <code>rrid</code> string column — <code>publication_documents</code> and <code>publication_organizations</code> — which is what lets a document or organization record an RRID entered as free text without going through the resolution flow.</p>
+                </section>
+
+                <section id="cache-sentinel">
+                    <h2>The shared metadata cache</h2>
+
+                    <p>Resolved RRID metadata is global: <code>RRID:AB_2298772</code> means the same thing on every record, so DOCiD resolves it once and reuses it. Detail endpoints gather every RRID referenced by a record and satisfy them from one bulk query. Anything still unresolved is fetched from SciCrunch on demand and written back for next time.</p>
+
+                    <div class="notice notice-warning">
+                        <h4><code>docid_rrids</code> mixes attachments with cache entries</h4>
+                        <p>A lazily-resolved RRID is written back with <code>entity_type='publication'</code> and <code>entity_id=0</code> — a <strong>sentinel meaning "global metadata cache", not an attachment to publication 0</strong>. Any query that counts RRID attachments, or joins <code>docid_rrids</code> to publications, must exclude <code>entity_id = 0</code> or it will both over-count attachments and try to join against a publication that does not exist.</p>
+                    </div>
+
+                    <p>A row whose <code>rrid_name</code> is empty is treated as a cache miss and re-resolved, which lets records written by an earlier, broken normalisation path heal themselves on next read.</p>
+                </section>
+
+                <section id="endpoints">
+                    <h2>Endpoints</h2>
+
+                    <p>All under <code>/api/v1/rrid</code>.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr><th>Method &amp; path</th><th>Auth</th><th>Purpose</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>GET /search</code></td><td>JWT</td><td>Search SciCrunch for a resource</td></tr>
+                                <tr><td><code>GET /resolve</code></td><td>JWT</td><td>Resolve one RRID to its metadata</td></tr>
+                                <tr><td><code>POST /attach</code></td><td>JWT + registered user</td><td>Attach an RRID to a publication, organization or document</td></tr>
+                                <tr><td><code>GET /entity</code></td><td>None</td><td>RRIDs attached to a given entity</td></tr>
+                                <tr><td><code>DELETE /&lt;id&gt;</code></td><td>JWT</td><td>Detach an RRID</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Search and resolve require authentication because they proxy an upstream service; reading what is already attached to a public record does not.</p>
+                </section>
+
+                <section id="responses">
+                    <h2>How RRIDs appear in publication responses</h2>
+
+                    <p>Unlike Local Contexts, RRID data <em>is</em> included in publication detail responses, in two places.</p>
+
+                    <p>First, as a dedicated collection:</p>
+
+                    <div class="code-example">
+                        <div class="code-header">research_resources[]</div>
+                        <div class="code-content"><pre><code>"research_resources": [
+  {
+    "id": 12,
+    "rrid": "RRID:SCR_002798",
+    "rrid_name": "...",
+    "rrid_description": "...",
+    "rrid_resource_type": "software",
+    "rrid_url": "https://scicrunch.org/resolver/RRID:SCR_002798"
+  }
+]</code></pre></div>
+                    </div>
+
+                    <p>Second, resolved metadata is merged inline into each entry of <code>publication_documents[]</code> and <code>publication_organizations[]</code> that carries an RRID, so those entries gain the same <code>rrid_name</code>, <code>rrid_description</code>, <code>rrid_resource_type</code> and <code>rrid_url</code> keys. The same resource can therefore appear twice in one response — once in the collection and once inline. That is expected; deduplicate on the <code>rrid</code> value if you are listing resources.</p>
+                </section>
+
+                <section id="known-gaps">
+                    <h2>Known gaps</h2>
+
+                    <div class="notice notice-warning">
+                        <h4>No referential integrity</h4>
+                        <p>Because the link is polymorphic with no foreign key, deleting a document or organization leaves its RRID rows behind. Consumers should not assume every row in <code>docid_rrids</code> points at something that still exists.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>Resolution depends on an upstream service</h4>
+                        <p>When SciCrunch is unreachable, lazy resolution fails quietly and the RRID is returned with its identifier but no resolved name. Render the bare identifier rather than an empty label — the identifier is still citable on its own.</p>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="local-contexts.html" class="nav-prev">Local Contexts</a>
+                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Research Resources (RRID) • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) { scrollTop.classList.add('visible'); }
+            else { scrollTop.classList.remove('visible'); }
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
