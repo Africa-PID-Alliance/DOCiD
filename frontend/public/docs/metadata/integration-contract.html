@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Integration Contract</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link active">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Integration Contract</h1>
+                    <div class="subtitle">What a client must know before calling the DOCiD API</div>
+                </header>
+
+                <section id="scope">
+                    <h2>Scope</h2>
+                    <p class="lead">The rest of this documentation describes the <em>schema</em> — what a DOCiD record contains. This page describes the <em>contract</em> — how to reach it, what you are allowed to see, and what the API guarantees.</p>
+
+                    <p>Read this page first if you are building an integration. The behaviours documented here (particularly the authorization matrix) are not visible from the field definitions alone, and several of them will change what your client receives without changing any HTTP status code.</p>
+                </section>
+
+                <section id="environments">
+                    <h2>Environments</h2>
+
+                    <p>DOCiD runs on three deployments. They do not share a database: a DOCiD that resolves on one will generally not exist on another.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Environment</th>
+                                    <th>Base URL</th>
+                                    <th>Use for</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Production</td>
+                                    <td><code>https://docid.africapidalliance.org</code></td>
+                                    <td>Live integrations and citable identifiers</td>
+                                </tr>
+                                <tr>
+                                    <td>Core</td>
+                                    <td><code>https://docid-core.africapidalliance.org</code></td>
+                                    <td>The deployment that physically hosts the historical uploads</td>
+                                </tr>
+                                <tr>
+                                    <td>Demo</td>
+                                    <td><code>https://docid-demo.africapidalliance.org</code></td>
+                                    <td>Evaluation and integration testing</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>Demo is not a sandbox for identifiers</h4>
+                        <p>The demo deployment mints <strong>live</strong> Handles in the production <code>20.500.14351</code> namespace. Identifiers created there are real and permanent. Do not use it for throwaway load or fuzz testing that mints records.</p>
+                    </div>
+
+                    <p>All API paths are prefixed <code>/api/v1</code>, with two deliberate exceptions: the verification endpoint and the DOCiD root resolver, both documented in their own pages. Request and response bodies are <code>application/json</code>; deposit and edit endpoints accept <code>multipart/form-data</code> because they carry files.</p>
+                </section>
+
+                <section id="authentication">
+                    <h2>Authentication</h2>
+
+                    <p>Authentication is a bearer JWT obtained from the login endpoint.</p>
+
+                    <div class="code-example">
+                        <div class="code-header">POST /api/v1/auth/login</div>
+                        <div class="code-content"><pre><code>{
+  "email": "researcher@example.ac.ke",
+  "password": "..."
+}</code></pre></div>
+                    </div>
+
+                    <div class="code-example">
+                        <div class="code-header">200 OK (abridged)</div>
+                        <div class="code-content"><pre><code>{
+  "status": true,
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user_id": 143,
+  "user_name": "...",
+  "email": "researcher@example.ac.ke"
+}</code></pre></div>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>The access token is returned as <code>token</code>, not <code>access_token</code></h4>
+                        <p>This trips up clients written against the OAuth convention. The refresh token <em>is</em> named <code>refresh_token</code>. Present the access token as <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+                    </div>
+
+                    <p>Access tokens expire after <strong>24 hours</strong> by default (deployment-configurable). Exchange a refresh token at <code>POST /api/v1/auth/refresh</code>. The token's identity claim is the user id as a <strong>string</strong> — compare it as such when matching ownership.</p>
+
+                    <p>Social login (Google, GitHub, ORCID) authenticates existing accounts only. Since the change of August 2026 it <strong>no longer auto-creates accounts</strong>: an unrecognised social identity returns a payload indicating registration is required rather than silently provisioning a user.</p>
+                </section>
+
+                <section id="authorization-matrix">
+                    <h2>Authorization matrix</h2>
+
+                    <p>Several endpoints return <strong>different content</strong> to different callers with the same 200 status. A client that tests only for success will not notice.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Capability</th>
+                                    <th>Anonymous</th>
+                                    <th>Authenticated</th>
+                                    <th>Record owner</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Resolve a DOCiD, read metadata</td>
+                                    <td>Yes</td>
+                                    <td>Yes</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Read national-ID creator identifiers</td>
+                                    <td>Masked</td>
+                                    <td>Masked</td>
+                                    <td><strong>Full value</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Read checksums (<code>/api/v1/verify</code>)</td>
+                                    <td>Yes</td>
+                                    <td>Yes</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Deposit a publication</td>
+                                    <td>No</td>
+                                    <td>Yes</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Edit or delete a record</td>
+                                    <td>No</td>
+                                    <td>Owner only</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Create a new version of a record</td>
+                                    <td>No</td>
+                                    <td>Owner only — 403 otherwise</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>List available resource types</td>
+                                    <td>Full list</td>
+                                    <td>Filtered if the account category is restricted</td>
+                                    <td>Same as authenticated</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>National-ID masking</h3>
+
+                    <p>Where a creator carries <code>identifier_type: "national_id"</code>, the identifier is returned masked — first and last character preserved, the rest replaced with asterisks — to every caller <strong>except the owner of the record presenting a valid JWT</strong>. Masked entries carry <code>identifier_masked: true</code>.</p>
+
+                    <div class="code-example">
+                        <div class="code-header">Same creator, two callers</div>
+                        <div class="code-content"><pre><code>// anonymous, or any non-owner
+{ "identifier": "4*******8", "identifier_type": "national_id", "identifier_masked": true }
+
+// owner, with Authorization: Bearer &lt;token&gt;
+{ "identifier": "455765838", "identifier_type": "national_id" }</code></pre></div>
+                    </div>
+
+                    <p>Masking applies to the publication detail endpoints, both DOCiD resolvers, and the DOI resolver. Values of two characters or fewer are returned unchanged, since masking them would convey nothing. Do not cache a masked value and later treat it as the identifier.</p>
+
+                    <h3>Account-category resource-type filtering</h3>
+
+                    <p>An account may belong to a category flagged <em>restricted</em>. Such an account may only use the resource types explicitly mapped to its category — and the mapping is an <strong>allowlist even when empty</strong>, so a restricted category with no mappings can use none.</p>
+
+                    <p>Read and write paths behave differently, deliberately:</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Path</th>
+                                    <th>No category / unrestricted</th>
+                                    <th>Anonymous</th>
+                                    <th>Unresolvable identity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Reading the resource-type list</td>
+                                    <td>Full list</td>
+                                    <td>Full list (backward compatible)</td>
+                                    <td>Full list</td>
+                                </tr>
+                                <tr>
+                                    <td>Depositing or versioning</td>
+                                    <td>Unrestricted</td>
+                                    <td>Cannot reach these paths — a JWT is required</td>
+                                    <td><strong>Denied</strong> — fail-closed</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>The asymmetry is intentional: an anonymous reader browsing the vocabulary is harmless, while a valid token whose user no longer exists must never be treated as unrestricted.</p>
+                </section>
+
+                <section id="pagination">
+                    <h2>Pagination</h2>
+
+                    <p>List endpoints take <code>page</code> (1-based, default 1) and <code>page_size</code> (default 10), and return the envelope alongside the results:</p>
+
+                    <div class="code-example">
+                        <div class="code-header">Pagination envelope</div>
+                        <div class="code-content"><pre><code>{
+  "publications": [ ... ],
+  "total": 3598,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 360
+}</code></pre></div>
+                    </div>
+
+                    <p>Note the parameter is <code>page_size</code>, not the more common <code>per_page</code> or <code>limit</code>.</p>
+                </section>
+
+                <section id="errors">
+                    <h2>Errors and status codes</h2>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Meaning in DOCiD</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>200</code></td>
+                                    <td>Success. <strong>Content may still be redacted</strong> — see the authorization matrix</td>
+                                </tr>
+                                <tr>
+                                    <td><code>400</code></td>
+                                    <td>Malformed request — a missing identifier, or an identifier failing a route's format rule</td>
+                                </tr>
+                                <tr>
+                                    <td><code>401</code></td>
+                                    <td>Missing, malformed, or expired token</td>
+                                </tr>
+                                <tr>
+                                    <td><code>403</code></td>
+                                    <td>Authenticated but not permitted — most often versioning or editing a record you do not own, or a resource type outside your account category</td>
+                                </tr>
+                                <tr>
+                                    <td><code>404</code></td>
+                                    <td>No such record</td>
+                                </tr>
+                                <tr>
+                                    <td><code>410</code></td>
+                                    <td><strong>Retired.</strong> The DOCiD existed and has been soft-deleted. Identifiers are permanent, so a retired record returns 410 rather than 404 — treat it as "was here, deliberately withdrawn", and do not purge your local copy's identifier</td>
+                                </tr>
+                                <tr>
+                                    <td><code>500</code></td>
+                                    <td>Server error</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Error bodies carry an <code>error</code> key with a human-readable message. Do not parse those messages; branch on the status code.</p>
+                </section>
+
+                <section id="stability">
+                    <h2>Stability and reporting problems</h2>
+
+                    <p>The <code>/api/v1</code> prefix denotes the current stable surface. Fields may be <em>added</em> to responses without notice, so clients must tolerate unknown keys. Fields will not be removed or have their meaning changed within <code>v1</code>.</p>
+
+                    <p>Administrative and internal endpoints exist but are deliberately not documented here; they are not part of the integration surface and may change without notice.</p>
+
+                    <p>Where this documentation and the API disagree, <strong>the API is authoritative and the documentation is a bug</strong>. Report discrepancies to the African PID Alliance so they can be corrected — the v2.0 revision of these pages exists because a year of schema changes went unrecorded.</p>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="architecture.html" class="nav-prev">System Architecture</a>
+                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Integration Contract • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) { scrollTop.classList.add('visible'); }
+            else { scrollTop.classList.remove('visible'); }
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

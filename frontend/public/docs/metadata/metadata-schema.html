@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Mirrored from docid.africapidalliance.org/docs/metadata-schema.html by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 08 Oct 2025 09:58:37 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD™ Metadata Schema - Technical Documentation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD™ Technical Docs</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link active">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>DOCiD™ Metadata Schema</h1>
+                    <div class="subtitle">Technical specification for publication and document identifier management system</div>
+                </header>
+
+                <!-- Overview -->
+                <section id="overview">
+                    <h2>Schema Overview</h2>
+                    <p>The DOCiD™ metadata schema implements a comprehensive framework for managing digital publications with persistent identifiers. Built on PostgreSQL with SQLAlchemy ORM, it provides robust data management with full referential integrity.</p>
+
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Key Features</h3>
+                            <ul>
+                                <li>7-step workflow for publication registration</li>
+                                <li>Multi-identifier support (DOI, Handle, CSTR, ARK)</li>
+                                <li>Hierarchical comment system with threading</li>
+                                <li>Comprehensive audit trail</li>
+                                <li>JSON metadata extensions</li>
+                                <li>External service integrations</li>
+                            </ul>
+                        </div>
+
+                        <div class="card">
+                            <h3>Database Architecture</h3>
+                            <ul>
+                                <li>PostgreSQL backend (JSON support required)</li>
+                                <li>SQLAlchemy ORM with migrations</li>
+                                <li>Cascading relationships</li>
+                                <li>Comprehensive indexing</li>
+                                <li>Soft delete support</li>
+                                <li>Audit logging</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Core Data Models -->
+                <section id="data-models">
+                    <h2>Core Data Models</h2>
+                    <p>DOCiD™ implements the following primary database models for managing publications and related entities:</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Table Name</th>
+                                    <th>Purpose</th>
+                                    <th>Key Relationships</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Publications</strong></td>
+                                    <td>publications</td>
+                                    <td>Central publication entity</td>
+                                    <td>→ Files, Documents, Creators, Organizations, Funders, Projects</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationFiles</strong></td>
+                                    <td>publications_files</td>
+                                    <td>Uploaded publication files</td>
+                                    <td>← Publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationDocuments</strong></td>
+                                    <td>publication_documents</td>
+                                    <td>Document metadata</td>
+                                    <td>← Publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationCreators</strong></td>
+                                    <td>publication_creators</td>
+                                    <td>Authors/contributors</td>
+                                    <td>← Publications, → CreatorsRoles</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationOrganization</strong></td>
+                                    <td>publication_organizations</td>
+                                    <td>Institutional affiliations</td>
+                                    <td>← Publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationFunders</strong></td>
+                                    <td>publication_funders</td>
+                                    <td>Funding information</td>
+                                    <td>← Publications, → FunderTypes</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationProjects</strong></td>
+                                    <td>publication_projects</td>
+                                    <td>Research projects</td>
+                                    <td>← Publications</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationComments</strong></td>
+                                    <td>publication_comments</td>
+                                    <td>Hierarchical comments</td>
+                                    <td>← Publications, UserAccount, self-referential</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PublicationAuditTrail</strong></td>
+                                    <td>publication_audit_trail</td>
+                                    <td>Change tracking</td>
+                                    <td>← Publications, UserAccount</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Publications Model -->
+                <section id="publications-model">
+                    <h2>Publications Model</h2>
+                    <p>The central entity managing all publication metadata:</p>
+
+                    <div class="code-example">
+                        <h4>Publications Table Schema</h4>
+                        <pre><code>class Publications(db.Model):
+    __tablename__ = 'publications'
+
+    # Primary Key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # User Association
+    user_id = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=False, index=True)
+
+    # Core Identifiers
+    document_docid = Column(String(255), nullable=False)  # DOCiD identifier
+    doi = Column(String(50), nullable=False)              # DOI
+
+    # Metadata Fields
+    document_title = Column(String(255), nullable=False)
+    document_description = Column(Text)
+    avatar = Column(String(255))                          # Publication thumbnail
+    owner = Column(String(255))                           # Owner name
+    publication_poster_url = Column(String(255))          # Poster/cover image
+
+    # Classification
+    resource_type_id = Column(Integer, ForeignKey('resource_types.id'), nullable=False, index=True)
+
+    # Timestamps
+    timestamp = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()))
+    published = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
+
+    # Relationships (cascade="all, delete-orphan")
+    user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
+    publications_files = relationship('PublicationFiles', cascade="all, delete-orphan")
+    publication_documents = relationship('PublicationDocuments', cascade="all, delete-orphan")
+    publication_creators = relationship('PublicationCreators', cascade="all, delete-orphan")
+    publication_organizations = relationship('PublicationOrganization', cascade="all, delete-orphan")
+    publication_funders = relationship('PublicationFunders', cascade="all, delete-orphan")
+    publication_projects = relationship('PublicationProjects', cascade="all, delete-orphan")</code></pre>
+                    </div>
+                </section>
+
+                <!-- Creators Model -->
+                <section id="creators-model">
+                    <h2>PublicationCreators Model</h2>
+                    <p>Manages authors and contributors with ORCID integration:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationCreators Schema</h4>
+                        <pre><code>class PublicationCreators(db.Model):
+    __tablename__ = 'publication_creators'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+
+    # Name Fields
+    family_name = Column(String(255), nullable=False)
+    given_name = Column(String(255))
+
+    # Identifiers
+    identifier = Column(String(500))       # Full URL (e.g., https://orcid.org/0000-0002-1981-4157)
+    identifier_type = Column(String(50))   # Type: 'orcid', 'isni', 'viaf'
+
+    # Role
+    role_id = Column(String(255), nullable=False)  # References CreatorsRoles
+
+    # Relationship
+    publication = relationship('Publications', back_populates='publication_creators')</code></pre>
+                    </div>
+
+                    <div class="feature">
+                        <h4>Supported Creator Roles</h4>
+                        <ul>
+                            <li><strong>Innovator</strong> - Innovation lead</li>
+                            <li><strong>Director</strong> - Project director</li>
+                            <li><strong>Researcher</strong> - Research contributor</li>
+                            <li><strong>Principal Investigator</strong> - Lead researcher</li>
+                            <li><strong>Librarian</strong> - Information specialist</li>
+                            <li><strong>Vice Chancellor</strong> - Academic leadership</li>
+                            <li><strong>Deputy Vice Chancellor</strong> - Academic administration</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Organizations Model -->
+                <section id="organizations-model">
+                    <h2>PublicationOrganization Model</h2>
+                    <p>Institutional affiliations with ROR (Research Organization Registry) integration:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationOrganization Schema</h4>
+                        <pre><code>class PublicationOrganization(db.Model):
+    __tablename__ = 'publication_organizations'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+
+    # Organization Details
+    name = Column(String(255), nullable=False)
+    type = Column(String(255), nullable=False)
+    other_name = Column(String(255))              # Alternative names
+    country = Column(String(255))
+
+    # Identifiers
+    identifier = Column(String(500))              # Full URL (e.g., https://ror.org/02nr0ka47)
+    identifier_type = Column(String(50))          # Type: 'ror', 'grid', 'isni'
+
+    # Relationship
+    publication = relationship('Publications', back_populates='publication_organizations')</code></pre>
+                    </div>
+                </section>
+
+                <!-- Funders Model -->
+                <section id="funders-model">
+                    <h2>PublicationFunders Model</h2>
+                    <p>Funding information with ROR and Crossref Funder Registry integration:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationFunders Schema</h4>
+                        <pre><code>class PublicationFunders(db.Model):
+    __tablename__ = 'publication_funders'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+
+    # Funder Details
+    name = Column(String(255), nullable=False)
+    type = Column(String(255), nullable=False)
+    funder_type_id = Column(Integer, ForeignKey('funder_types.id'), nullable=False, index=True)
+    other_name = Column(String(255))
+    country = Column(String(255))
+
+    # Identifiers
+    identifier = Column(String(500))              # Full URL (e.g., https://ror.org/01ej9dk98)
+    identifier_type = Column(String(50))          # Type: 'ror', 'fundref', 'isni'
+
+    # Relationships
+    publication = relationship('Publications', back_populates='publication_funders')</code></pre>
+                    </div>
+                </section>
+
+                <!-- Projects Model -->
+                <section id="projects-model">
+                    <h2>PublicationProjects Model</h2>
+                    <p>Research projects with RAiD (Research Activity Identifier) integration:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationProjects Schema</h4>
+                        <pre><code>class PublicationProjects(db.Model):
+    __tablename__ = 'publication_projects'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+
+    # Project Details
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+
+    # Identifiers
+    raid_id = Column(String(255))                 # Legacy RAiD ID
+    identifier = Column(String(500))              # Full URL (e.g., https://app.demo.raid.org.au/raids/10.80368/b1adfb3a)
+    identifier_type = Column(String(50))          # Type: 'raid'
+
+    # Relationship
+    publication = relationship('Publications', back_populates='publication_projects')</code></pre>
+                    </div>
+                </section>
+
+                <!-- Files and Documents -->
+                <section id="files-documents">
+                    <h2>Files and Documents Management</h2>
+
+                    <div class="grid">
+                        <div class="card">
+                            <h3>PublicationFiles</h3>
+                            <pre><code>class PublicationFiles(db.Model):
+    __tablename__ = 'publications_files'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'))
+
+    # File Metadata
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    publication_type_id = Column(Integer, ForeignKey('publication_types.id'))
+
+    # File Details
+    file_name = Column(String(255), nullable=False)
+    file_type = Column(String(100), nullable=False)
+    file_url = Column(String(255), nullable=False)
+
+    # Identifiers
+    identifier = Column(String(100), nullable=False)
+    generated_identifier = Column(String(100), nullable=False)
+    handle_identifier = Column(String(100))       # CORDRA Handle
+    external_identifier = Column(String(100))     # DataCite/Crossref DOI
+    external_identifier_type = Column(String(50))</code></pre>
+                        </div>
+
+                        <div class="card">
+                            <h3>PublicationDocuments</h3>
+                            <pre><code>class PublicationDocuments(db.Model):
+    __tablename__ = 'publication_documents'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'))
+
+    # Document Metadata
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    publication_type_id = Column(Integer, ForeignKey('publication_types.id'))
+
+    # File Reference
+    file_url = Column(String(255), nullable=False)
+
+    # Identifiers
+    identifier_type_id = Column(Integer, ForeignKey('identifier_types.id'))
+    generated_identifier = Column(String(255))
+    identifier_cstr = Column(String(100))         # CSTR identifier
+    handle_identifier = Column(String(100))       # CORDRA Handle
+    external_identifier = Column(String(100))     # External DOI
+    external_identifier_type = Column(String(50))</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Identifiers -->
+                <section id="identifiers">
+                    <h2>Identifier Management</h2>
+                    <p>DOCiD™ supports multiple persistent identifier schemes:</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Identifier Type</th>
+                                    <th>Format</th>
+                                    <th>Example</th>
+                                    <th>Integration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>DOCiD™</strong></td>
+                                    <td>20.500.[prefix]/[suffix]</td>
+                                    <td>20.500.14351/b23a80ce9b1a6ef21588</td>
+                                    <td>Internal generation</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>DOI</strong></td>
+                                    <td>10.[prefix]/[suffix]</td>
+                                    <td>10.1234/example.doi</td>
+                                    <td>Crossref/DataCite</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Handle</strong></td>
+                                    <td>[prefix]/[suffix]</td>
+                                    <td>20.500.14351/e7d1b5c9a30a45bc2858</td>
+                                    <td>CORDRA</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CSTR</strong></td>
+                                    <td>31253.11.[suffix]</td>
+                                    <td>31253.11.sciencedh.2024.123</td>
+                                    <td>CSTR Service</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>ORCID</strong></td>
+                                    <td>0000-0000-0000-000X</td>
+                                    <td>0000-0002-1981-4157</td>
+                                    <td>ORCID API</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>ROR</strong></td>
+                                    <td>https://ror.org/[id]</td>
+                                    <td>https://ror.org/02nr0ka47</td>
+                                    <td>ROR API</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>RAiD</strong></td>
+                                    <td>10.[prefix]/[suffix]</td>
+                                    <td>10.80368/b1adfb3a</td>
+                                    <td>RAiD Service</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Comments System -->
+                <section id="comments-system">
+                    <h2>Comments System</h2>
+                    <p>Hierarchical commenting with threading and moderation:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationComments Model</h4>
+                        <pre><code>class PublicationComments(db.Model):
+    __tablename__ = 'publication_comments'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=False, index=True)
+
+    # Hierarchical Structure
+    parent_comment_id = Column(Integer, ForeignKey('publication_comments.id'), nullable=True, index=True)
+
+    # Comment Content
+    comment_text = Column(Text, nullable=False)
+    comment_type = Column(String(50), default='general')  # general, review, question, suggestion
+
+    # Status Management
+    status = Column(String(20), default='active')         # active, edited, deleted, flagged
+    is_edited = Column(Boolean, default=False)
+    edit_count = Column(Integer, default=0)
+    likes_count = Column(Integer, default=0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    publication = relationship('Publications', backref=backref('comments', lazy='dynamic'))
+    user = relationship('UserAccount', backref=backref('comments', lazy='dynamic'))
+    parent_comment = relationship('PublicationComments', remote_side=[id], backref='replies')</code></pre>
+                    </div>
+                </section>
+
+                <!-- Audit Trail -->
+                <section id="audit-trail">
+                    <h2>Audit Trail</h2>
+                    <p>Comprehensive change tracking for compliance and history:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationAuditTrail Model</h4>
+                        <pre><code>class PublicationAuditTrail(db.Model):
+    __tablename__ = 'publication_audit_trail'
+
+    id = Column(Integer, primary_key=True)
+    publication_id = Column(Integer, ForeignKey('publications.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=False, index=True)
+
+    # Action Tracking
+    action = Column(String(50), nullable=False)           # 'CREATE', 'UPDATE', 'DELETE'
+    field_name = Column(String(100))                      # Field changed
+    old_value = Column(Text)                              # Previous value (JSON)
+    new_value = Column(Text)                              # New value (JSON)
+
+    # Context
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    ip_address = Column(String(45))                       # IPv4/IPv6
+    user_agent = Column(Text)                             # Browser/client info
+
+    # Relationships
+    publication = relationship('Publications', backref='audit_entries')
+    user = relationship('UserAccount', backref='audit_actions')</code></pre>
+                    </div>
+                </section>
+
+                <!-- Draft Management -->
+                <section id="draft-management">
+                    <h2>Draft Management</h2>
+                    <p>Session persistence for multi-step workflow:</p>
+
+                    <div class="code-example">
+                        <h4>PublicationDrafts Model</h4>
+                        <pre><code>class PublicationDrafts(db.Model):
+    __tablename__ = 'publication_drafts'
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(100), nullable=False, unique=True, index=True)  # One draft per user
+    form_data = Column(JSON, nullable=False)              # Complete form state as JSON
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)</code></pre>
+                    </div>
+                </section>
+
+                <!-- Reference Tables -->
+                <section id="reference-tables">
+                    <h2>Reference Tables (Controlled Vocabularies)</h2>
+
+                    <div class="grid">
+                        <div class="card">
+                            <h3>ResourceTypes</h3>
+                            <ul>
+                                <li>Indigenous Knowledge</li>
+                                <li>Patent</li>
+                                <li>Cultural Heritage</li>
+                                <li>Project</li>
+                                <li>Funder</li>
+                                <li>DMP (Data Management Plan)</li>
+                            </ul>
+                        </div>
+
+                        <div class="card">
+                            <h3>PublicationTypes</h3>
+                            <ul>
+                                <li>Article</li>
+                                <li>Book Chapter</li>
+                                <li>Proceeding</li>
+                                <li>Monograph</li>
+                                <li>Preprint</li>
+                                <li>Edited Book</li>
+                                <li>Seminar</li>
+                                <li>Research Chapter</li>
+                                <li>Review Article</li>
+                                <li>Book Review</li>
+                                <li>Conference Abstract</li>
+                                <li>Letter to Editor</li>
+                                <li>Editorial</li>
+                                <li>Other Book Content</li>
+                                <li>Correction Erratum</li>
+                            </ul>
+                        </div>
+
+                        <div class="card">
+                            <h3>FunderTypes</h3>
+                            <ul>
+                                <li>Government</li>
+                                <li>Foundation</li>
+                                <li>Corporate</li>
+                                <li>Academic Institution</li>
+                                <li>International Organization</li>
+                                <li>Non-profit</li>
+                            </ul>
+                        </div>
+
+                        <div class="card">
+                            <h3>IdentifierTypes</h3>
+                            <ul>
+                                <li>APA Handle ID</li>
+                                <li>Crossref</li>
+                                <li>Datacite</li>
+                                <li>CSTR</li>
+                                <li>DOI</li>
+                                <li>ARK Keys</li>
+                                <li>ArXiv ID</li>
+                                <li>Handle ID</li>
+                                <li>Hand iD</li>
+                                <li>dPID</li>
+                                <li>ORCID</li>
+                                <li>ISNI</li>
+                                <li>Ringgold</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- User Management -->
+                <section id="user-management">
+                    <h2>User Account Management</h2>
+                    <p>Comprehensive user profile with social authentication:</p>
+
+                    <div class="code-example">
+                        <h4>UserAccount Model (Key Fields)</h4>
+                        <pre><code>class UserAccount(db.Model):
+    __tablename__ = "user_accounts"
+
+    user_id = Column(Integer, primary_key=True)
+
+    # Authentication
+    email = Column(String(100), unique=True, nullable=False)
+    password = Column(String(255), nullable=True)         # For local auth
+    social_id = Column(String(100), nullable=True)        # Social auth ID
+    type = Column(String(20), nullable=False)             # google, orcid, github
+
+    # Profile Information
+    user_name = Column(String(50), nullable=False)
+    full_name = Column(String(100), nullable=False)
+    avator = Column(String(255), nullable=True)
+
+    # Professional Information
+    affiliation = Column(String(100), nullable=True)
+    role = Column(String(50), nullable=True)
+    orcid_id = Column(String(50), nullable=True)
+    ror_id = Column(String(50), nullable=True)
+
+    # Location
+    country = Column(String(50), nullable=True)
+    city = Column(String(50), nullable=True)
+    location = Column(String(100), nullable=True)
+
+    # Social Profiles
+    linkedin_profile_link = Column(String(255), nullable=True)
+    facebook_profile_link = Column(String(255), nullable=True)
+    x_profile_link = Column(String(255), nullable=True)
+    instagram_profile_link = Column(String(255), nullable=True)
+    github_profile_link = Column(String(255), nullable=True)
+
+    # Timestamps
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    date_joined = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    publications = relationship('Publications', cascade="all, delete-orphan")</code></pre>
+                    </div>
+                </section>
+
+                <!-- Database Constraints -->
+                <section id="constraints">
+                    <h2>Database Constraints & Indexes</h2>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Constraint Type</th>
+                                    <th>Tables</th>
+                                    <th>Purpose</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Primary Keys</strong></td>
+                                    <td>All tables</td>
+                                    <td>Unique record identification</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Foreign Keys</strong></td>
+                                    <td>All relationship fields</td>
+                                    <td>Referential integrity</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Unique Constraints</strong></td>
+                                    <td>email (user_accounts), doi (publications)</td>
+                                    <td>Prevent duplicates</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Not Null</strong></td>
+                                    <td>Required fields</td>
+                                    <td>Data completeness</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Indexes</strong></td>
+                                    <td>Foreign keys, timestamp fields</td>
+                                    <td>Query performance</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cascading Delete</strong></td>
+                                    <td>Publication relationships</td>
+                                    <td>Maintain integrity on deletion</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Migration Strategy -->
+                <section id="migrations">
+                    <h2>Database Migrations</h2>
+                    <p>Alembic-based migration management:</p>
+
+                    <div class="code-example">
+                        <h4>Migration Commands</h4>
+                        <pre><code># Initialize migrations
+python run.py db init
+
+# Create a new migration
+python run.py db migrate -m "Description of changes"
+
+# Apply migrations
+python run.py db upgrade
+
+# Rollback migration
+python run.py db downgrade
+
+# View migration history
+python run.py db history
+
+# Create database and seed data
+python manage.py create-db
+python manage.py seed-db</code></pre>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <section id="serialisation">
+                    <h2>Serialisation status</h2>
+
+                    <p class="lead">A column existing in the schema does not mean it reaches an API response. Several fields on <code>publications</code> are populated internally and never serialised — a client cannot read them, and should not model them.</p>
+
+                    <div class="notice notice-info">
+                        <h4>Why this section exists</h4>
+                        <p>The v1.0 documentation described the schema as a data model, which led integrators to expect fields the API does not return. This table is the authoritative statement of what is actually readable.</p>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Purpose</th>
+                                    <th>Readable via API?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>timestamp</code></td>
+                                    <td>Unix deposit time, distinct from <code>published</code></td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>updated_at</code>, <code>updated_by</code></td>
+                                    <td>Last modification audit</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>cordra_synced</code>, <code>cordra_synced_at</code>, <code>cordra_status</code>, <code>cordra_error</code>, <code>cordra_object_id</code></td>
+                                    <td>PID minting state — see <a href="identifiers-and-minting.html">Identifiers &amp; PID Minting</a></td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>parent_id</code>, <code>version_number</code></td>
+                                    <td>Version lineage</td>
+                                    <td>Not in detail responses; available from the versions endpoint</td>
+                                </tr>
+                                <tr>
+                                    <td><code>figshare_article_id</code>, <code>figshare_url</code>, <code>ojs_submission_id</code>, <code>ojs_url</code></td>
+                                    <td>Provenance of harvested records</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>lens_patent_id</code>, <code>lens_scholar_id</code></td>
+                                    <td>Enrichment cross-references</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>deleted_at</code>, <code>deleted_by</code>, <code>deletion_reason</code></td>
+                                    <td>Soft deletion. A retired record answers <code>410</code></td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td>Checksum columns on files and documents</td>
+                                    <td>Fixity — see <a href="integrity-checksums.html">Integrity &amp; Checksums</a></td>
+                                    <td>Only via <code>/api/v1/verify</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Funder <code>identifier</code> / <code>identifier_type</code></td>
+                                    <td>Funder PIDs</td>
+                                    <td>No — responses carry only name, type, funder type, other name, country</td>
+                                </tr>
+                                <tr>
+                                    <td>Project <code>identifier</code> / <code>identifier_type</code></td>
+                                    <td>Project PIDs beyond RAiD</td>
+                                    <td>No — responses carry only id, title, RAiD id, description</td>
+                                </tr>
+                                <tr>
+                                    <td><code>publication_documents.identifier_cstr</code></td>
+                                    <td>CSTR identifier for an attached document</td>
+                                    <td>No</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Response key traps</h3>
+
+                    <div class="notice notice-warning">
+                        <h4><code>identifier</code> on an attached document is an integer</h4>
+                        <p>In <code>publication_documents[]</code>, the database column <code>identifier_type_id</code> is serialised under the key <strong><code>identifier</code></strong>. It is a foreign key into the identifier-types vocabulary, <em>not</em> an identifier string. The actual identifier value lives in <code>generated_identifier</code>. Client code that treats <code>identifier</code> as a DOI or Handle will silently mis-handle every document.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>Creator <code>country</code> appears only on the edit endpoint</h4>
+                        <p>For national-ID creators, the country is held in a separate registry rather than on the creator row. It is resolved and returned only by the owner-only edit endpoint; public detail responses omit it. Where the same national-ID number is registered under more than one country the earliest registration wins, which is a known ambiguity.</p>
+                    </div>
+                </section>
+
+                <div class="page-nav">
+                    <a href="architecture.html" class="nav-prev">System Architecture</a>
+                    <a href="api-reference.html" class="nav-next">API Reference</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD™ Technical Documentation v2.0</strong></p>
+                <p>Database Schema Specification • African PID Alliance</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll button
+        window.onscroll = function() {
+            const scrollButton = document.getElementById('scrollTop');
+            if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                scrollButton.style.display = 'block';
+            } else {
+                scrollButton.style.display = 'none';
+            }
+        };
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+
+<!-- Mirrored from docid.africapidalliance.org/docs/metadata-schema.html by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 08 Oct 2025 09:58:38 GMT -->
+</html>

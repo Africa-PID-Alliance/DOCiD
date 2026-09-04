@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Integrity &amp; Checksums</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link active">Integrity &amp; Checksums</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Integrity &amp; Checksums</h1>
+                    <div class="subtitle">Fixity information for the research objects attached to a DOCiD</div>
+                </header>
+
+                <section id="overview">
+                    <h2>Overview</h2>
+                    <p class="lead">DOCiD stores a SHA-256 fingerprint of the <strong>bytes</strong> of every file it hosts, so that anyone who downloads a research object can prove their copy is identical to the one registered against the DOCiD.</p>
+
+                    <p>Checksums cover file content only. DOCiD metadata is intentionally mutable — a title can be corrected and a creator added without invalidating the fingerprint of the deposited file. The fingerprint answers one question: <em>are these the same bytes?</em></p>
+
+                    <div class="notice notice-info">
+                        <h4>What this is, and what it is not</h4>
+                        <p>The public verification endpoint is a <strong>view-and-compare</strong> facility. It returns the fingerprint DOCiD recorded; it does not re-read the stored file at request time. Server-side tamper detection is a separate, offline job (<code>backfill_checksums.py --recheck</code>). Do not describe the endpoint to end users as "live verification".</p>
+                    </div>
+                </section>
+
+                <section id="storage">
+                    <h2>Where checksums are stored</h2>
+
+                    <p>Seven columns carry fixity information. They exist identically on <strong>both</strong> object tables — <code>publications_files</code> (uploaded files) and <code>publication_documents</code> (documents and external references).</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Type</th>
+                                    <th>Meaning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>checksum</code></td>
+                                    <td>String(64), nullable</td>
+                                    <td>Lowercase hex SHA-256 digest of the stored bytes</td>
+                                </tr>
+                                <tr>
+                                    <td><code>checksum_algorithm</code></td>
+                                    <td>String(20), nullable</td>
+                                    <td>Always <code>SHA-256</code> at present; the column exists so the algorithm can be migrated without a schema change</td>
+                                </tr>
+                                <tr>
+                                    <td><code>file_size</code></td>
+                                    <td>BigInteger, nullable</td>
+                                    <td>Size in bytes, counted during hashing</td>
+                                </tr>
+                                <tr>
+                                    <td><code>checksum_status</code></td>
+                                    <td>String(30), nullable</td>
+                                    <td>One of the five values in the table below</td>
+                                </tr>
+                                <tr>
+                                    <td><code>checksum_error</code></td>
+                                    <td>Text, nullable</td>
+                                    <td>Diagnostic message when hashing failed</td>
+                                </tr>
+                                <tr>
+                                    <td><code>checksum_generated_at</code></td>
+                                    <td>DateTime, nullable</td>
+                                    <td>When the digest was first computed</td>
+                                </tr>
+                                <tr>
+                                    <td><code>checksum_last_checked_at</code></td>
+                                    <td>DateTime, nullable</td>
+                                    <td>When the object was last examined, whether or not a digest resulted</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>None of these columns carry an index, a constraint, or a server default. A row created before this subsystem existed has <code>NULL</code> throughout.</p>
+                </section>
+
+                <section id="status-vocabulary">
+                    <h2>The <code>checksum_status</code> vocabulary</h2>
+
+                    <p>Five values are defined. Treat <strong>only <code>verified</code></strong> as a trustworthy fingerprint.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Value</th>
+                                    <th>Meaning</th>
+                                    <th>Is <code>checksum</code> populated?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>verified</code></td>
+                                    <td>Digest computed from stored bytes and recorded</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td><code>pending</code></td>
+                                    <td>Row exists but has not been hashed yet</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>external_not_supported</code></td>
+                                    <td>The bytes live off-platform (a video URL, a repository link), so DOCiD never had them to hash</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>missing_bytes</code></td>
+                                    <td>The row references a local file that could not be found on disk</td>
+                                    <td>No</td>
+                                </tr>
+                                <tr>
+                                    <td><code>failed</code></td>
+                                    <td>Hashing raised an error, <em>or</em> a re-check found a digest that no longer matches the stored bytes</td>
+                                    <td>Possibly — but the value is stale and must not be trusted</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4><code>failed</code> can carry a checksum</h4>
+                        <p>A row whose re-check detected a mismatch keeps its <em>original</em> digest and moves to <code>failed</code>. Clients must therefore branch on <code>checksum_status</code>, never on the mere presence of a <code>checksum</code> value. This is why the API reports <code>verifiable_object_count</code> separately from <code>object_count</code>.</p>
+                    </div>
+                </section>
+
+                <section id="how-computed">
+                    <h2>How the digest is computed</h2>
+
+                    <p>Files are streamed from disk in 1 MiB chunks, so an arbitrarily large deposit never loads into memory in full. The function returns the hex digest and the byte count together, and the byte count recorded in <code>file_size</code> is the one observed during hashing rather than a separately reported value.</p>
+
+                    <p>Only files this deployment actually hosts can be hashed. A stored URL is resolved to a path under the uploads directory, guarded against path traversal, and only when its host matches this deployment's configured base URLs. Anything else — an external video, a link to another repository — is recorded as <code>external_not_supported</code>. <strong>DOCiD never fetches remote bytes in order to fingerprint them.</strong></p>
+
+                    <p>Checksums are generated at <strong>deposit time</strong>, not only by backfill: the publish path, the edit path, and version creation all hash newly attached objects. The backfill script exists for rows predating the subsystem, defaults to a dry run, and on <code>--recheck</code> never silently overwrites an existing digest — a mismatch is recorded as an integrity event.</p>
+                </section>
+
+                <section id="verify-endpoint">
+                    <h2>The verification endpoint</h2>
+
+                    <p>Two equivalent forms are exposed, both unauthenticated:</p>
+
+                    <div class="code-example">
+                        <div class="code-header">Request</div>
+                        <div class="code-content"><pre><code>GET /api/v1/verify?identifier=20.500.14351/e7d1b5c9a30a45bc2858
+GET /api/v1/verify/20.500.14351/e7d1b5c9a30a45bc2858</code></pre></div>
+                    </div>
+
+                    <p>Prefer the query form when scripting: a DOCiD contains a slash, and the query parameter avoids any ambiguity about path segments.</p>
+
+                    <p>A live response follows. It shows the two states an integrator must handle side by side — an uploaded file with a usable digest, and an external object that can never have one.</p>
+
+                    <div class="code-example">
+                        <div class="code-header">200 OK</div>
+                        <div class="code-content"><pre><code>{
+    "algorithm": "SHA-256",
+    "docid": "20.500.14351/e7d1b5c9a30a45bc2858",
+    "note": "Compare these stored fingerprints against your downloaded files (e.g. `shasum -a 256 &lt;file&gt;`). A match confirms the file is identical to the version registered in DOCiD.",
+    "object_count": 2,
+    "objects": [
+        {
+            "checksum": "a9cc46dc31ff8a39c9bfdc33f76f308a3cf0b190676630d79f0087c495d4eb8a",
+            "checksum_algorithm": "SHA-256",
+            "checksum_generated_at": "2026-07-08T13:54:01.095359",
+            "checksum_last_checked_at": "2026-07-08T13:54:01.095359",
+            "checksum_status": "verified",
+            "file_name": "c6930b0a35d1_abstract_1_1.docx",
+            "file_size": 20475,
+            "handle_identifier": "20.500.14351/9ba16c85d34594d212f2",
+            "id": 271,
+            "object_class": "file",
+            "title": "Publication title"
+        },
+        {
+            "checksum": null,
+            "checksum_algorithm": "SHA-256",
+            "checksum_generated_at": null,
+            "checksum_last_checked_at": "2026-07-08T13:54:01.104038",
+            "checksum_status": "external_not_supported",
+            "file_name": null,
+            "file_size": null,
+            "handle_identifier": "20.500.14351/a7b8e32199bcdbf899cf",
+            "id": 190,
+            "object_class": "document",
+            "title": "vid title"
+        }
+    ],
+    "title": "Collection title",
+    "verifiable_object_count": 1
+}</code></pre></div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Condition</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>200</code></td>
+                                    <td>DOCiD resolved; <code>objects[]</code> may still be empty</td>
+                                </tr>
+                                <tr>
+                                    <td><code>400</code></td>
+                                    <td>No identifier supplied</td>
+                                </tr>
+                                <tr>
+                                    <td><code>404</code></td>
+                                    <td>No publication with that <code>document_docid</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>410</code></td>
+                                    <td>The DOCiD has been retired (soft-deleted); file metadata is withheld</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Drafts are stored in a separate table and are never reachable through this endpoint.</p>
+                </section>
+
+                <section id="verifying">
+                    <h2>Verifying a downloaded file</h2>
+
+                    <div class="code-example">
+                        <div class="code-header">Compare a local copy</div>
+                        <div class="code-content"><pre><code>$ shasum -a 256 abstract_1_1.docx
+a9cc46dc31ff8a39c9bfdc33f76f308a3cf0b190676630d79f0087c495d4eb8a  abstract_1_1.docx</code></pre></div>
+                    </div>
+
+                    <p>A match confirms the file is byte-identical to the version registered against the DOCiD. A mismatch means the copy differs — through truncation, transcoding, or modification — and should not be cited as the registered object.</p>
+                </section>
+
+                <section id="known-gaps">
+                    <h2>Known gaps</h2>
+
+                    <p>Stated plainly so integrators are not surprised. These are current limitations, not design intentions.</p>
+
+                    <div class="notice notice-warning">
+                        <h4>Checksums are absent from publication metadata responses</h4>
+                        <p>The publication detail endpoints — <code>get-publication</code>, the DOCiD resolvers, and the DOI resolver — do <strong>not</strong> include any checksum field. Their file entries stop at <code>generated_identifier</code>. Fixity information is available only from <code>/api/v1/verify</code> and the owner-only edit endpoint. A client that needs both metadata and fixity must make two calls.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>Downloads are not verified in transit</h4>
+                        <p>The upload-serving route is a plain static file serve with no checksum logic. Nothing recomputes or compares a digest while a file is being delivered; verification is an action the recipient takes afterwards using the endpoint above.</p>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>External objects can never be verified</h4>
+                        <p>Because DOCiD does not fetch remote bytes, any object hosted elsewhere is permanently <code>external_not_supported</code>. For collections dominated by external references, <code>verifiable_object_count</code> will legitimately be far below <code>object_count</code>.</p>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="identifiers-and-minting.html" class="nav-prev">Identifiers &amp; PID Minting</a>
+                    <a href="metadata-schema.html" class="nav-next">Metadata Properties</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Integrity &amp; Checksums • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) { scrollTop.classList.add('visible'); }
+            else { scrollTop.classList.remove('visible'); }
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

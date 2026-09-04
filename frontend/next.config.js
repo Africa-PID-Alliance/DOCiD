@@ -23,7 +23,19 @@ const nextConfig = {
     ])),
   },
   async rewrites() {
-    return [
+    return {
+      // beforeFiles runs ahead of static-file resolution, so these map the
+      // documentation directory URLs onto their index.html. Without them,
+      // nginx 301s /docs -> /docs/ while Next (trailingSlash:false) 308s
+      // /docs/ -> /docs, producing a redirect loop; only the explicit
+      // /docs/index.html URL worked.
+      beforeFiles: [
+        { source: '/docs', destination: '/docs/index.html' },
+        { source: '/docs/', destination: '/docs/index.html' },
+        { source: '/docs/metadata', destination: '/docs/metadata/index.html' },
+        { source: '/docs/metadata/', destination: '/docs/metadata/index.html' },
+      ],
+      afterFiles: [
       {
         // Keep browser traffic same-origin while serving backend uploads.
         source: '/uploads/:path*',
@@ -34,7 +46,8 @@ const nextConfig = {
         source: '/docid/:slug*',
         destination: '/docid/:slug*',
       },
-    ];
+      ],
+    };
   },
   // Use this to handle special characters in URL paths
   trailingSlash: false,

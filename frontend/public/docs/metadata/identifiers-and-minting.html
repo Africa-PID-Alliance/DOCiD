@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Identifiers &amp; PID Minting</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link active">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Identifiers &amp; PID Minting</h1>
+                    <div class="subtitle">How a DOCiD is assigned, stored, and resolved</div>
+                </header>
+
+                <section id="three-fields">
+                    <h2>Three fields, three meanings</h2>
+
+                    <p class="lead">The single most common integration error is treating a DOCiD, a DOI, and a Handle URL as interchangeable. They are stored in three separate columns on <code>publications</code>, each with a distinct contract.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Holds</th>
+                                    <th>Example</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>document_docid</code></td>
+                                    <td>The primary resolvable identifier — a <strong>bare Handle</strong> with no URL prefix. Unique across the platform and indexed. For harvested records this may instead carry the source DOI.</td>
+                                    <td><code>20.500.14351/e7d1b5c9a30a45bc2858</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>doi</code></td>
+                                    <td>A <strong>real Crossref or DataCite DOI only</strong>. Never a DOCiD Handle.</td>
+                                    <td><code>10.1234/example.5678</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>handle_url</code></td>
+                                    <td>A <strong>full resolvable URL</strong> for a handle held by an external repository, typically a harvested DSpace item. Distinct from <code>document_docid</code>.</td>
+                                    <td><code>https://hdl.handle.net/10539/12345</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>The <code>doi</code> field rejects Handles</h4>
+                        <p>Values submitted to <code>doi</code> pass through a coercion step that strips any <code>https://doi.org/</code> prefix and then requires the result to match <code>^10.\d+/</code>. A DOCiD Handle beginning <code>20.</code> is <strong>rejected and discarded</strong>, with a warning logged identifying the caller as one that still confuses the two columns. If you populate <code>doi</code> with a DOCiD, the value will silently not be stored.</p>
+                    </div>
+                </section>
+
+                <section id="prefix">
+                    <h2>The DOCiD Handle prefix</h2>
+
+                    <p>DOCiD mints Handles under the prefix <strong><code>20.500.14351</code></strong>, administered by the African PID Alliance. Every natively minted DOCiD takes the form:</p>
+
+                    <div class="code-example">
+                        <div class="code-header">DOCiD structure</div>
+                        <div class="code-content"><pre><code>20.500.14351/e7d1b5c9a30a45bc2858
+└────┬─────┘ └─────────┬──────────┘
+   prefix            suffix
+ (APA-wide)   (opaque, per-object)</code></pre></div>
+                    </div>
+
+                    <p>Suffixes are opaque. They carry no encoded meaning — not the year, not the resource type, not the depositor — and must not be parsed. Attached objects (individual files and documents) receive their own Handles in the same prefix, recorded in their <code>handle_identifier</code> column, so a file can be cited independently of the collection that contains it.</p>
+
+                    <div class="notice notice-info">
+                        <h4>Documentation prior to v2.0 used a placeholder prefix</h4>
+                        <p>Earlier revisions of these pages illustrated Handles with <code>20.500.12345</code>, which is not a real DOCiD prefix. Any integration built against that example should be rechecked.</p>
+                    </div>
+                </section>
+
+                <section id="minting">
+                    <h2>The minting lifecycle</h2>
+
+                    <p>Identifier assignment happens in two stages: a synchronous per-object step at deposit time, and an asynchronous publication-level push to CORDRA.</p>
+
+                    <h3>Stage 1 — per-object Handle assignment</h3>
+
+                    <p>When an object is deposited with an existing identifier, that identifier is classified:</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Supplied identifier</th>
+                                    <th>Outcome</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>A DOI (begins <code>10.</code>)</td>
+                                    <td>A new DOCiD Handle is minted for it; the DOI is retained as <code>external_identifier</code> with type <code>DOI</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Already a Handle (contains <code>/</code>, does not begin <code>10.</code>)</td>
+                                    <td>Used as-is; no new Handle is minted</td>
+                                </tr>
+                                <tr>
+                                    <td>Anything else</td>
+                                    <td>Retained as an external identifier of unknown type</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Minting itself is a create operation against the CORDRA DOIP service, requesting an object of type <code>APA_Handle_ID</code>; CORDRA returns the generated identifier.</p>
+
+                    <h3>Stage 2 — asynchronous CORDRA push</h3>
+
+                    <p>Publication-level registration is deferred to a background task queued roughly a minute after deposit, so a slow or unavailable CORDRA never blocks a submission. Progress is tracked in five columns on <code>publications</code>: <code>cordra_synced</code>, <code>cordra_synced_at</code>, <code>cordra_status</code>, <code>cordra_error</code>, and <code>cordra_object_id</code>. The CORDRA object id is the <code>document_docid</code> itself.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><code>cordra_status</code></th>
+                                    <th>Meaning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>PENDING</code></td>
+                                    <td>Default on insert; queued or not yet attempted</td>
+                                </tr>
+                                <tr>
+                                    <td><code>MINTED</code></td>
+                                    <td>Registered in CORDRA, or already carrying a minted identifier</td>
+                                </tr>
+                                <tr>
+                                    <td><code>SKIPPED</code></td>
+                                    <td>The record already has a real DOI (typically a Figshare import), so DOCiD does not mint a competing identifier</td>
+                                </tr>
+                                <tr>
+                                    <td><code>FAILED</code></td>
+                                    <td>The push failed; see <code>cordra_error</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Two idempotency guards run before any push: a record with a non-empty <code>doi</code> becomes <code>SKIPPED</code>, and one already carrying a minted identifier becomes <code>MINTED</code>. Re-running the task is therefore safe.</p>
+
+                    <div class="notice notice-warning">
+                        <h4>None of the <code>cordra_*</code> fields are exposed in the API</h4>
+                        <p>Minting state is internal. No publication endpoint serialises <code>cordra_status</code> or its siblings, so a client cannot currently distinguish "minted" from "pending" through the public API.</p>
+                    </div>
+                </section>
+
+                <section id="minting-controls">
+                    <h2>Minting controls and audit</h2>
+
+                    <p>The explicit minting API — Handle assignment, the various DOI types, metadata deposit — is gated by the deployment flag <code>PID_MINTING_ENABLED</code>, which defaults to <strong>false</strong>. On a deployment where it has not been enabled, those routes are unavailable regardless of the caller's permissions.</p>
+
+                    <p>Every mint write is recorded in an audit table capturing the acting user, operation, resource type, idempotency key, request id, a SHA-256 of the payload, the response status and body, the resulting identifier, error code, IP address, user agent, and timestamps. A unique constraint on request id, and another on the combination of user, operation and idempotency key, makes a retried mint request safe to submit twice.</p>
+
+                    <div class="notice notice-info">
+                        <h4>Not a minting endpoint</h4>
+                        <p><code>GET /api/v1/docid/get-doi</code> returns a random seven-character string from a lookup table. It is a suffix generator used during composition and performs no registration. Do not treat its output as an assigned identifier.</p>
+                    </div>
+                </section>
+
+                <section id="resolution">
+                    <h2>Resolution</h2>
+
+                    <p>A DOCiD resolves at the application root. Four routes serve resolution, with different tolerances:</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th>Accepts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>GET /&lt;docid&gt;</code></td>
+                                    <td>Root catch-all. The identifier must match <code>^\d+(\.\d+)+/.+$</code>; anything else falls through to a 404 so other routes are unaffected. Supports <code>?type=xml</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>GET /doi/&lt;prefix&gt;/&lt;suffix&gt;</code></td>
+                                    <td>Prefix must match <code>^\d+(\.\d+)+$</code> <strong>and the suffix must be strictly alphanumeric</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><code>GET /api/v1/publications/docid?docid=</code></td>
+                                    <td>Query form; the safest choice when scripting</td>
+                                </tr>
+                                <tr>
+                                    <td><code>GET /api/v1/publications/&lt;docid&gt;</code></td>
+                                    <td>Path form, slash-tolerant</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice notice-warning">
+                        <h4>The <code>/doi/</code> route rejects non-alphanumeric suffixes</h4>
+                        <p>Its suffix check is a strict alphanumeric test, so a DOCiD whose suffix contains a hyphen or a dot returns <strong>400</strong> there while resolving perfectly through the other three routes. Prefer the query form for general-purpose resolution.</p>
+                    </div>
+                </section>
+
+                <section id="other-schemes">
+                    <h2>Other identifier schemes</h2>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Scheme</th>
+                                    <th>Status in DOCiD</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>DOI, CSTR, Handle, ARK</td>
+                                    <td>The four seeded values of the <code>identifier_types</code> reference table, selectable for attached documents</td>
+                                </tr>
+                                <tr>
+                                    <td>CSTR</td>
+                                    <td>Has its own column on <code>publication_documents</code> — which is <strong>never serialised</strong> in any API response — plus a dedicated set of registration endpoints</td>
+                                </tr>
+                                <tr>
+                                    <td>RAiD</td>
+                                    <td>Stored against projects, with dedicated mint and lookup endpoints. <strong>Project identifiers are not serialised</strong>: publication responses expose only id, title, raid id and description</td>
+                                </tr>
+                                <tr>
+                                    <td>ARK</td>
+                                    <td>Create, resolve and metadata endpoints exist, but there is no ARK column on <code>publications</code>; an ARK can only be held as an attached document's identifier</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>Creator and organization identifier schemes are covered in <a href="properties-creator.html">Property 2: Creator</a> and <a href="properties-publisher.html">Property 4: Publisher</a>.</p>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="architecture.html" class="nav-prev">System Architecture</a>
+                    <a href="integrity-checksums.html" class="nav-next">Integrity &amp; Checksums</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Identifiers &amp; PID Minting • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) { scrollTop.classList.add('visible'); }
+            else { scrollTop.classList.remove('visible'); }
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

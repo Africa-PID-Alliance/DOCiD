@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Mirrored from docid.africapidalliance.org/docs/controlled-vocabularies.html by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 08 Oct 2025 09:58:38 GMT -->
+<!-- Added by HTTrack -->
+<meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCiD Metadata Schema - Controlled Vocabularies</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="doc-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>DOCiD Schema</h2>
+                <div class="version-info">Version 2.0</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Documentation</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="index.html" class="nav-link">Introduction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="architecture.html" class="nav-link">System Architecture</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integration-contract.html" class="nav-link">Integration Contract</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#environments" class="nav-link">Environments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authentication" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#authorization-matrix" class="nav-link">Authorization Matrix</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="integration-contract.html#errors" class="nav-link">Errors &amp; Status Codes</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="metadata-schema.html" class="nav-link">Metadata Properties</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#data-models" class="nav-link">Core Properties (1-20)</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#publications-model" class="nav-link">Publication Model</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#creators-model" class="nav-link">Creator Management</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="metadata-schema.html#reference-tables" class="nav-link">Controlled Vocabularies</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="api-reference.html" class="nav-link">API Reference</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="api-reference.html#authentication-endpoints" class="nav-link">Authentication</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#publication-endpoints" class="nav-link">Publications</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="api-reference.html#comments-endpoints" class="nav-link">Comments System</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="external-services.html" class="nav-link">External Services</a>
+                            <ul class="nav-sublist">
+                                <li class="nav-item">
+                                    <a href="external-services.html#cordra-integration" class="nav-link">CORDRA</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#crossref-integration" class="nav-link">Crossref</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#apa-handle-integration" class="nav-link">APA Handle ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#datacite-integration" class="nav-link">Datacite</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#cstr-integration" class="nav-link">CSTR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ror-integration" class="nav-link">ROR</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#orcid-integration" class="nav-link">ORCID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ark-keys-integration" class="nav-link">ARK Keys</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="cultural-protocols.html" class="nav-link">Local Contexts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#arxiv-integration" class="nav-link">ArXiv ID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Handle iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#handle-id-integration" class="nav-link">Hand iD</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#dpid-integration" class="nav-link">dPID</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#isni-integration" class="nav-link">ISNI</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="external-services.html#ringgold-integration" class="nav-link">Ringgold</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Subsystems</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="identifiers-and-minting.html" class="nav-link">Identifiers &amp; PID Minting</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="integrity-checksums.html" class="nav-link">Integrity &amp; Checksums</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Properties</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="properties-identifier.html" class="nav-link">Identifier</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-creator.html" class="nav-link">Creator</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-title.html" class="nav-link">Title</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-publisher.html" class="nav-link">Publisher</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="properties-resource-type.html" class="nav-link">Resource Type</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Appendices</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="controlled-vocabularies.html" class="nav-link active">Controlled Vocabularies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="cultural-protocols.html" class="nav-link">Cultural Protocols</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="validation-rules.html" class="nav-link">Validation Rules</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <header class="doc-header">
+                    <h1>Controlled Vocabularies</h1>
+                    <div class="subtitle">Standardized terms and values used throughout the DOCiD metadata schema</div>
+                </header>
+
+                <!-- Resource Types -->
+                <section id="resource-types">
+                    <h2>Resource Types</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Resource Type Classification</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Table: resource_types</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Controlled vocabulary for classifying different types of research outputs and
+                                publications:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>African Context Examples</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Indigenous Knowledge</td>
+                                            <td>Community-based traditional knowledge and practices</td>
+                                            <td>Herbal medicine, Farming methods, Oral traditions, Craft skills</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Patent</td>
+                                            <td>Legally protected inventions or designs.</td>
+                                            <td>Energy devices, Medical formulations, Water filters, Mobile apps</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Cultural Heritage</td>
+                                            <td>Tangible and intangible cultural expressions preserved across
+                                                generations</td>
+                                            <td>Monuments, Traditional dances, Rituals, Oral histories</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Image</td>
+                                            <td>Visual materials</td>
+                                            <td>Satellite imagery, Cultural artifacts, Medical scans</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>Project</td>
+                                            <td>Organized research or development activity with defined goals.</td>
+                                            <td>Community health initiatives, Conservation projects, Education programs,
+                                                Innovation hubs</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Funder</td>
+                                            <td>Entities providing financial support for research and development.</td>
+                                            <td>Government grants, NGO funding, Corporate partnerships</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>DMP (Data Management Plan)</td>
+                                            <td>Plans for managing data throughout its lifecycle</td>
+                                            <td>Data storage, Data sharing, Data security</td>
+                                        </tr>
+
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Creator Roles -->
+                <section id="creator-roles">
+                    <h2>Creator Roles</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Creator Role Types</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Optional</span>
+                                <span>Table: creators_roles</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Standardized roles for publication creators and contributors:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Role</th>
+                                            <th>Description</th>
+                                            <th>African Research Context</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Innovator</td>
+                                            <td>Leads development of new ideas, products, or methods.</td>
+                                            <td>Tech startup founder, Social entrepreneur, Agricultural innovator</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Director</td>
+                                            <td>Provides overall leadership and coordination for a project.</td>
+                                            <td>Research institute director, NGO project leader</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Researcher</td>
+                                            <td>Conducts or contributes to academic and applied research.</td>
+                                            <td>Field researcher, Policy analyst, Academic staff</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Principal Investigator</td>
+                                            <td>Leads the research design, execution, and reporting.</td>
+                                            <td>University research lead, Health study PI, Grant project head</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>Librarian</td>
+                                            <td>Manages and curates information resources.</td>
+                                            <td>University librarian, Repository manager, Knowledge officer</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Vice Chancellor</td>
+                                            <td>Provides strategic academic and institutional leadership.</td>
+                                            <td>University head, Institutional executive leader</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>Deputy Vice Chancellor</td>
+                                            <td>Oversees academic and research administration functions.</td>
+                                            <td>Deputy VC for Research, Academic affairs administrator</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- Publication Types -->
+                <section id="publication-types">
+                    <h2>Publication Types</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Publication Categories</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Required</span>
+                                <span>Table: publication_types</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Classification of publication types for African research contexts:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Examples in African Context</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Article</td>
+                                            <td>Peer-reviewed or scholarly paper.</td>
+                                            <td>African Science Journal, Kenya Medical Research papers</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Book Chapter</td>
+                                            <td>Section within an edited book.</td>
+                                            <td>Chapters in African policy or education volumes</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Proceeding</td>
+                                            <td>Paper presented at a conference.</td>
+                                            <td>Papers from African Union research summits or AIMS conferences</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Monograph</td>
+                                            <td>Scholarly standalone research work.</td>
+                                            <td>Studies on African linguistics, heritage, or governance</td>
+                                        </tr>
+                                        <tr>
+                                            <td>5</td>
+                                            <td>Preprint</td>
+                                            <td>Unreviewed version of a research paper.</td>
+                                            <td>Working papers on AfricArXiv, institutional repositories</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6</td>
+                                            <td>Edited Book</td>
+                                            <td>Book with chapters by multiple contributors.</td>
+                                            <td>Regional academic anthologies, edited cultural studies</td>
+                                        </tr>
+                                        <tr>
+                                            <td>7</td>
+                                            <td>Seminar</td>
+                                            <td>Presentation or paper from a seminar event.</td>
+                                            <td>University seminar series, policy roundtables</td>
+                                        </tr>
+                                        <tr>
+                                            <td>8</td>
+                                            <td>Research Chapter</td>
+                                            <td>Chapter presenting specific research findings.</td>
+                                            <td>Research chapters in institutional project reports</td>
+                                        </tr>
+                                        <tr>
+                                            <td>9</td>
+                                            <td>Review Article</td>
+                                            <td>Critical summary of existing research.</td>
+                                            <td>Reviews on climate change, public health, or education</td>
+                                        </tr>
+                                        <tr>
+                                            <td>10</td>
+                                            <td>Book Review</td>
+                                            <td>Evaluation of a published book.</td>
+                                            <td>Reviews in African Studies journals</td>
+                                        </tr>
+                                        <tr>
+                                            <td>11</td>
+                                            <td>Conference Abstract</td>
+                                            <td>Summary of research presented at a conference.</td>
+                                            <td>Abstracts from African science or health symposiums</td>
+                                        </tr>
+                                        <tr>
+                                            <td>12</td>
+                                            <td>Letter to Editor</td>
+                                            <td>Short commentary or response to a publication.</td>
+                                            <td>Correspondence in African academic journals</td>
+                                        </tr>
+                                        <tr>
+                                            <td>13</td>
+                                            <td>Editorial</td>
+                                            <td>Opinion or perspective from editors.</td>
+                                            <td>Editorials in African policy or development journals</td>
+                                        </tr>
+                                        <tr>
+                                            <td>14</td>
+                                            <td>Other Book Content</td>
+                                            <td>Non-chapter book sections or content.</td>
+                                            <td>Forewords, prefaces, or appendices in African books</td>
+                                        </tr>
+                                        <tr>
+                                            <td>15</td>
+                                            <td>Correction Erratum</td>
+                                            <td>Correction to a published work.</td>
+                                            <td>Errata in African research or institutional publications</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- Subject Classifications -->
+                <section id="subject-classifications">
+                    <h2>Subject Classifications</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">Research Subject Areas</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Optional</span>
+                                <span>Multiple classification schemes</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Subject classification schemes relevant to African research:</p>
+
+                            <h4>African-Focused Subject Areas:</h4>
+                            <div class="grid">
+                                <div class="card">
+                                    <h3> African Studies</h3>
+                                    <ul>
+                                        <li>African History</li>
+                                        <li>African Languages</li>
+                                        <li>African Literature</li>
+                                        <li>African Politics</li>
+                                        <li>Pan-African Studies</li>
+                                    </ul>
+                                </div>
+
+                                <div class="card">
+                                    <h3> Agriculture & Environment</h3>
+                                    <ul>
+                                        <li>Sustainable Agriculture</li>
+                                        <li>Climate Change</li>
+                                        <li>Biodiversity Conservation</li>
+                                        <li>Water Resources</li>
+                                        <li>Food Security</li>
+                                    </ul>
+                                </div>
+
+                                <div class="card">
+                                    <h3> Health & Medicine</h3>
+                                    <ul>
+                                        <li>Traditional Medicine</li>
+                                        <li>Public Health</li>
+                                        <li>Tropical Diseases</li>
+                                        <li>Community Health</li>
+                                        <li>Maternal Health</li>
+                                    </ul>
+                                </div>
+
+                                <div class="card">
+                                    <h3> Culture & Society</h3>
+                                    <ul>
+                                        <li>Indigenous Knowledge</li>
+                                        <li>Cultural Heritage</li>
+                                        <li>Traditional Arts</li>
+                                        <li>Oral Traditions</li>
+                                        <li>Community Development</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <h4>Standard Classification Schemes:</h4>
+                            <ul>
+                                <li><strong>UNESCO:</strong> UNESCO Nomenclature for fields of science and technology
+                                </li>
+                                <li><strong>Fields of Research (FoR):</strong> Australian Research Council
+                                    classification</li>
+                                <li><strong>Library of Congress:</strong> Library of Congress Classification</li>
+                                <li><strong>Dewey Decimal:</strong> Dewey Decimal Classification</li>
+                                <li><strong>JEL:</strong> Journal of Economic Literature classification</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Language Codes -->
+                <section id="language-codes">
+                    <h2>Language Codes</h2>
+
+                    <div class="property">
+                        <div class="property-header">
+                            <div class="property-title">African Languages (ISO 639-1)</div>
+                            <div class="property-meta">
+                                <span class="property-badge">Standard</span>
+                                <span>ISO 639-1 codes</span>
+                            </div>
+                        </div>
+                        <div class="property-content">
+                            <p>Commonly used language codes for African languages and official languages:</p>
+
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Language</th>
+                                            <th>Countries/Regions</th>
+                                            <th>Speakers (approx.)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>sw</td>
+                                            <td>Swahili (Kiswahili)</td>
+                                            <td>Kenya, Tanzania, Uganda, DRC</td>
+                                            <td>100+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ha</td>
+                                            <td>Hausa</td>
+                                            <td>Nigeria, Niger, Ghana</td>
+                                            <td>70+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>yo</td>
+                                            <td>Yoruba</td>
+                                            <td>Nigeria, Benin, Togo</td>
+                                            <td>45+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>zu</td>
+                                            <td>Zulu (isiZulu)</td>
+                                            <td>South Africa</td>
+                                            <td>12+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>xh</td>
+                                            <td>Xhosa (isiXhosa)</td>
+                                            <td>South Africa</td>
+                                            <td>8+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>af</td>
+                                            <td>Afrikaans</td>
+                                            <td>South Africa, Namibia</td>
+                                            <td>7+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>am</td>
+                                            <td>Amharic</td>
+                                            <td>Ethiopia</td>
+                                            <td>25+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ar</td>
+                                            <td>Arabic</td>
+                                            <td>North Africa, Sudan</td>
+                                            <td>300+ million</td>
+                                        </tr>
+                                        <tr>
+                                            <td>en</td>
+                                            <td>English</td>
+                                            <td>Official in many countries</td>
+                                            <td>Lingua franca</td>
+                                        </tr>
+                                        <tr>
+                                            <td>fr</td>
+                                            <td>French</td>
+                                            <td>West/Central Africa</td>
+                                            <td>Francophone Africa</td>
+                                        </tr>
+                                        <tr>
+                                            <td>pt</td>
+                                            <td>Portuguese</td>
+                                            <td>Angola, Mozambique, Guinea-Bissau</td>
+                                            <td>Lusophone Africa</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Navigation -->
+                <div class="page-nav">
+                    <a href="properties-resource-type.html" class="nav-prev">Resource Type Property</a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="doc-footer">
+                <p><strong>DOCiD Metadata Schema Documentation v2.0</strong></p>
+                <p>Controlled Vocabularies • African PID Alliance</p>
+                <div class="license">
+                    <p>This documentation is licensed under <a href="https://creativecommons.org/licenses/by/4.0/"
+                            target="_blank">Creative Commons Attribution 4.0 International (CC BY 4.0)</a></p>
+                </div>
+            </footer>
+    </div>
+    </main>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function () {
+            const scrollTop = document.getElementById('scrollTop');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(event.target) &&
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+
+<!-- Mirrored from docid.africapidalliance.org/docs/controlled-vocabularies.html by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 08 Oct 2025 09:58:38 GMT -->
+
+</html>
