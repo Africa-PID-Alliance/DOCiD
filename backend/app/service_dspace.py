@@ -6,14 +6,68 @@ Handles communication with DSpace repositories and metadata transformation
 import requests
 import hashlib
 import json
+import threading
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+
+
+# Repository operators read this in their access logs. An unidentified client
+# making rapid requests is indistinguishable from an AI scraper and gets blocked,
+# so always say who we are and how to reach us.
+DEFAULT_HARVESTER_USER_AGENT = (
+    "DOCiD-Harvester/1.0 "
+    "(+https://docid.africapidalliance.org; info@africapidalliance.org)"
+)
+
+# Minimum gap between consecutive requests to the same repository, in seconds.
+DEFAULT_MIN_REQUEST_INTERVAL_SECONDS = 1.0
+
+
+class PoliteSession(requests.Session):
+    """
+    A requests Session that identifies itself and paces its own requests.
+
+    Overriding request() rather than patching individual call sites means every
+    request through this session is covered, including those that bypass
+    DSpaceClient._get_headers(). The lock is held across the request itself, so
+    concurrent callers are serialised rather than merely delayed.
+    """
+
+    def __init__(
+        self,
+        user_agent: str = DEFAULT_HARVESTER_USER_AGENT,
+        min_request_interval_seconds: float = DEFAULT_MIN_REQUEST_INTERVAL_SECONDS,
+    ):
+        super().__init__()
+        self.headers.update({'User-Agent': user_agent})
+        self.min_request_interval_seconds = min_request_interval_seconds
+        self._last_request_finished_at = 0.0
+        self._request_lock = threading.Lock()
+
+    def request(self, method, url, **kwargs):
+        with self._request_lock:
+            seconds_since_last = time.monotonic() - self._last_request_finished_at
+            seconds_to_wait = self.min_request_interval_seconds - seconds_since_last
+            if seconds_to_wait > 0:
+                time.sleep(seconds_to_wait)
+            try:
+                return super().request(method, url, **kwargs)
+            finally:
+                self._last_request_finished_at = time.monotonic()
 
 
 class DSpaceClient:
     """Client for interacting with DSpace REST API"""
 
-    def __init__(self, base_url: str, username: str = None, password: str = None):
+    def __init__(
+        self,
+        base_url: str,
+        username: str = None,
+        password: str = None,
+        user_agent: str = DEFAULT_HARVESTER_USER_AGENT,
+        min_request_interval_seconds: float = DEFAULT_MIN_REQUEST_INTERVAL_SECONDS,
+    ):
         """
         Initialize DSpace client
 
@@ -21,12 +75,19 @@ class DSpaceClient:
             base_url: DSpace server base URL (e.g., https://demo.dspace.org/server)
             username: Optional username for authentication
             password: Optional password for authentication
+            user_agent: Identifies us to the repository operator. Keep the contact
+                details in it — this is what stops us being mistaken for a scraper.
+            min_request_interval_seconds: Minimum gap between requests. Raise it for
+                repositories that have asked us to go slower.
         """
         self.base_url = base_url.rstrip('/')
         self.api_url = f"{self.base_url}/api"
         self.username = username
         self.password = password
-        self.session = requests.Session()
+        self.session = PoliteSession(
+            user_agent=user_agent,
+            min_request_interval_seconds=min_request_interval_seconds,
+        )
         self.auth_token = None
         self.csrf_token = None
 
