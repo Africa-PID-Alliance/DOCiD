@@ -6,7 +6,7 @@ import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}/statistics`;
 

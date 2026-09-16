@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 
+async function getUserId(params) {
+  const resolvedParams = await params;
+  return resolvedParams.id;
+}
+
 /**
  * GET - Fetch user profile by user ID
  */
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const id = await getUserId(params);
     const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}`;
 
@@ -45,36 +50,44 @@ export async function GET(request, { params }) {
 }
 
 /**
- * PUT/PATCH - Update user profile
+ * PUT/PATCH - Update user profile fields and/or avatar file
  */
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
-    const updateData = await request.json();
+    const id = await getUserId(params);
+    const contentType = request.headers.get('content-type') || '';
+    const isMultipart = contentType.includes('multipart/form-data');
 
     const baseUrl = getBackendApiV1BaseUrl();
     const apiUrl = `${baseUrl}/user-profile/${id}`;
+    const headers = {
+      Authorization: request.headers.get('authorization') || '',
+    };
+
+    let body;
+    if (isMultipart) {
+      body = await request.formData();
+    } else {
+      const updateData = await request.json();
+      body = JSON.stringify(updateData);
+      headers['Content-Type'] = 'application/json';
+    }
 
     const response = await fetch(apiUrl, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': request.headers.get('authorization'),
-      },
-      body: JSON.stringify(updateData),
+      headers,
+      body,
     });
 
+    const responseData = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { error: errorData.message || 'Failed to update user profile' },
+        { error: responseData.message || responseData.error || 'Failed to update user profile' },
         { status: response.status }
       );
     }
 
-    const updatedUserData = await response.json();
-
-    return NextResponse.json(updatedUserData, {
+    return NextResponse.json(responseData, {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
@@ -85,14 +98,14 @@ export async function PUT(request, { params }) {
   } catch (error) {
     console.error('Error updating user profile:', error);
     return NextResponse.json(
-      { error: 'Internal server error while updating user profile' },
+      { error: error.message || 'Internal server error while updating user profile' },
       { status: 500 }
     );
   }
 }
 
-export async function PATCH(request, { params }) {
-  return PUT(request, { params });
+export async function PATCH(request, context) {
+  return PUT(request, context);
 }
 
 export async function OPTIONS() {

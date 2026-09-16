@@ -46,3 +46,19 @@ def test_user_cannot_promote_own_role(app, client):
         user = db.session.get(UserAccount, user_id)
         assert user.role == "user"
         assert user.full_name == "Still Normal"
+
+
+def test_user_cannot_upload_another_avatar(app, client):
+    from io import BytesIO
+
+    attacker_id, token = _make_user(app, "avatar-attacker")
+    victim_id, _ = _make_user(app, "avatar-victim")
+    assert attacker_id != victim_id
+
+    response = client.put(
+        f"/api/v1/user-profile/{victim_id}/avatar",
+        data={"avatar": (BytesIO(b"fake-image"), "pic.png")},
+        content_type="multipart/form-data",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403

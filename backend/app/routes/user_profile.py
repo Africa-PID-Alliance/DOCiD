@@ -2,7 +2,9 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import uuid
 from flask import Blueprint, jsonify, request
+from werkzeug.utils import secure_filename
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
@@ -41,6 +43,36 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 user_profile_bp = Blueprint("user_profile", __name__, url_prefix="/api/v1/user-profile")
+
+ALLOWED_AVATAR_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+MAX_AVATAR_BYTES = 5 * 1024 * 1024
+
+
+def _save_avatar_file(avatar_file):
+    """Validate and store an uploaded avatar. Returns the public /uploads path."""
+    if not avatar_file or not avatar_file.filename:
+        raise ValueError('Avatar file is required')
+
+    extension = os.path.splitext(avatar_file.filename)[1].lower()
+    if extension not in ALLOWED_AVATAR_EXTENSIONS:
+        raise ValueError('Unsupported image type. Use JPG, PNG, GIF, or WebP.')
+
+    avatar_file.stream.seek(0, os.SEEK_END)
+    file_size = avatar_file.stream.tell()
+    avatar_file.stream.seek(0)
+    if file_size > MAX_AVATAR_BYTES:
+        raise ValueError('Avatar must be 5MB or smaller')
+
+    safe_name = secure_filename(avatar_file.filename) or f'avatar{extension}'
+    unique_name = f"{uuid.uuid4().hex[:12]}_{safe_name}"
+    avatar_path = f'/uploads/{unique_name}'
+    if len(avatar_path) > 255:
+        unique_name = f"{uuid.uuid4().hex[:12]}{extension}"
+        avatar_path = f'/uploads/{unique_name}'
+
+    os.makedirs('uploads', exist_ok=True)
+    avatar_file.save(f'uploads/{unique_name}')
+    return avatar_path
 
 
 @user_profile_bp.route('/<int:user_id>', methods=['GET'])
@@ -276,9 +308,13 @@ def update_user_profile(user_id):
             logger.warning(f"User not found: user_id={user_id}")
             return jsonify({'message': 'User not found'}), 404
 
-        # Get update data from request
-        data = request.get_json()
-        if not data:
+        # Get update data from JSON or multipart form (avatar uploads).
+        data = request.get_json(silent=True) or {}
+        if request.form:
+            data = {**data, **request.form.to_dict()}
+        avatar_file = request.files.get('avatar') if request.files else None
+
+        if not data and not avatar_file:
             logger.warning(f"No data provided for user_id: {user_id}")
             return jsonify({'message': 'No data provided'}), 400
 
@@ -304,6 +340,30 @@ def update_user_profile(user_id):
                     setattr(user, field, new_value)
                     updated_fields.append(field)
                     logger.info(f"Updated {field} for user_id: {user_id}")
+
+        # Persist Role/Position as a job title, never as a privileged auth role.
+        if 'role' in data:
+            requested_role = str(data.get('role') or '').strip()
+            requested_lower = requested_role.lower()
+            current_lower = str(user.role or '').strip().lower()
+            protected_roles = {'admin', 'pid_minter'}
+            if (
+                requested_role
+                and requested_lower not in protected_roles
+                and current_lower not in protected_roles
+                and user.role != requested_role
+            ):
+                user.role = requested_role
+                updated_fields.append('role')
+                logger.info(f"Updated role for user_id: {user_id}")
+
+        if avatar_file:
+            try:
+                user.avator = _save_avatar_file(avatar_file)
+                updated_fields.append('avator')
+                logger.info(f"Updated avator for user_id: {user_id}")
+            except ValueError as avatar_error:
+                return jsonify({'message': str(avatar_error)}), 400
 
         # Update first_time flag if it exists in data
         if 'first_time' in data:
@@ -344,6 +404,43 @@ def update_user_profile(user_id):
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error updating user profile: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_profile_bp.route('/<int:user_id>/avatar', methods=['PUT'])
+@jwt_required()
+@owner_or_admin_required()
+def update_user_avatar(user_id):
+    """Upload and set the user's profile picture."""
+    try:
+        user = UserAccount.query.get(user_id)
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+
+        avatar_file = request.files.get('avatar')
+        if not avatar_file or not avatar_file.filename:
+            return jsonify({'message': 'Avatar file is required'}), 400
+
+        try:
+            user.avator = _save_avatar_file(avatar_file)
+        except ValueError as avatar_error:
+            return jsonify({'message': str(avatar_error)}), 400
+
+        db.session.commit()
+
+        logger.info(f"Avatar updated for user_id: {user_id}")
+        return jsonify({
+            'message': 'Avatar updated successfully',
+            'user_data': user.serialize()
+        }), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Database error updating avatar: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Database error occurred'}), 500
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating avatar: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 

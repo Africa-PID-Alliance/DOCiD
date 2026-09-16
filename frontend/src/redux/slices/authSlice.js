@@ -103,6 +103,22 @@ const authSlice = createSlice({
         localStorage.setItem('auth', JSON.stringify(state));
       }
     },
+    updateUserProfile: (state, action) => {
+      const payload = action.payload || {};
+      if (payload.full_name !== undefined) state.user.name = payload.full_name;
+      if (payload.email !== undefined) state.user.email = payload.email;
+      if (payload.avator !== undefined) state.user.picture = payload.avator;
+      if (payload.logo_url !== undefined) state.user.logo_url = payload.logo_url;
+      if (payload.user_name !== undefined) state.user.username = payload.user_name;
+      if (payload.affiliation !== undefined) state.user.affiliation = payload.affiliation;
+      if (payload.account_type_name !== undefined) {
+        state.user.account_type_name = payload.account_type_name;
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth', JSON.stringify(state));
+      }
+    },
     setLanguage: (state, action) => {
       state.language = action.payload;
       
@@ -121,6 +137,7 @@ export const {
   loginFailure,
   logout,
   updateAccessToken,
+  updateUserProfile,
   setLanguage
 } = authSlice.actions;
 export default authSlice.reducer; 

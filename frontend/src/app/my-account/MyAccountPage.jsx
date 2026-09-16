@@ -9,7 +9,6 @@ import {
   Paper,
   Avatar,
   Button,
-  Divider,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -30,6 +29,7 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
+  Badge,
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
@@ -43,15 +43,19 @@ import {
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
   VerifiedUser as VerifiedUserIcon,
+  Close as CloseIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { allCountries, faculties } from '@/data/locationData';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios'; // Added axios import
+import { updateUserProfile } from '@/redux/slices/authSlice';
 
 const MyAccountPage = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { t } = useTranslation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [expanded, setExpanded] = useState(false);
@@ -63,6 +67,8 @@ const MyAccountPage = () => {
   const [userPublications, setUserPublications] = useState([]);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
   const [userStatistics, setUserStatistics] = useState(null);
+  const [profileData, setProfileData] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [publicationToDelete, setPublicationToDelete] = useState(null);
   const [userDrafts, setUserDrafts] = useState([]);
@@ -138,7 +144,98 @@ const MyAccountPage = () => {
     return null;
   };
 
-  const handleEditModalOpen = () => setOpenEditModal(true);
+  const displayValue = (value) => {
+    if (value === null || value === undefined || String(value).trim() === '') {
+      return t('my_account.common.n_a');
+    }
+    return value;
+  };
+
+  const formatLocation = (profile) => {
+    if (profile?.location) return profile.location;
+    const parts = [profile?.city, profile?.country].filter(Boolean);
+    return parts.length ? parts.join(', ') : '';
+  };
+
+  const mapProfileToForm = (profile) => ({
+    fullName: profile?.full_name || user?.name || '',
+    email: profile?.email || user?.email || '',
+    format: '',
+    faculty: profile?.affiliation || '',
+    role: profile?.role && !['user', 'admin', 'pid_minter'].includes(String(profile.role).toLowerCase())
+      ? profile.role
+      : '',
+    country: profile?.country || '',
+    city: profile?.city || '',
+    location: profile?.location || '',
+    orcid_id: profile?.orcid_id || '',
+    ror_id: profile?.ror_id || '',
+    linkedin_profile_link: profile?.linkedin_profile_link || '',
+    facebook_profile_link: profile?.facebook_profile_link || '',
+    x_profile_link: profile?.x_profile_link || '',
+    instagram_profile_link: profile?.instagram_profile_link || '',
+    github_profile_link: profile?.github_profile_link || '',
+    profileImage: null
+  });
+
+  const persistLocalUser = (userData) => {
+    if (typeof window === 'undefined' || !userData) return;
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({
+        ...storedUser,
+        full_name: userData.full_name ?? storedUser.full_name,
+        email: userData.email ?? storedUser.email,
+        avator: userData.avator ?? storedUser.avator,
+        affiliation: userData.affiliation ?? storedUser.affiliation,
+        account_type_name: userData.account_type_name ?? storedUser.account_type_name,
+      }));
+    } catch (error) {
+      console.warn('Failed to persist local user profile:', error);
+    }
+  };
+
+  const applyUpdatedUser = (userData) => {
+    if (!userData) return;
+    setProfileData((prev) => ({ ...(prev || {}), ...userData }));
+    dispatch(updateUserProfile(userData));
+    persistLocalUser(userData);
+    if (userData.account_type_name) {
+      setUserAccountType(userData.account_type_name);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    if (!user?.id) return;
+    try {
+      const response = await axios.get(`/api/user-profile/${user.id}`);
+      const profile = response.data;
+      setProfileData(profile);
+      setEditFormData(mapProfileToForm(profile));
+      if (profile?.account_type_name) {
+        setUserAccountType(profile.account_type_name);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const uploadAvatarFile = async (file) => {
+    if (!user?.id || !file) return null;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await axios.put(`/api/user-profile/${user.id}`, formData);
+    const userData = response.data?.user_data;
+    if (userData) {
+      applyUpdatedUser(userData);
+    }
+    return userData;
+  };
+
+  const handleEditModalOpen = () => {
+    setEditFormData(mapProfileToForm(profileData));
+    setOpenEditModal(true);
+  };
   const handleEditModalClose = () => setOpenEditModal(false);
 
   const handleEditFormChange = (event) => {
@@ -155,6 +252,22 @@ const MyAccountPage = () => {
       ...prev,
       profileImage: file
     }));
+  };
+
+  const handleCardAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      await uploadAvatarFile(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert(error.response?.data?.error || 'Failed to update profile picture. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleUpdateProfile = async (e) => {
@@ -189,17 +302,32 @@ const MyAccountPage = () => {
         updatePayload
       );
 
-      if (response.data.message === 'User profile updated successfully') {
-        console.log('Profile updated successfully:', response.data);
-        // Refetch user data
-        fetchUserStatistics();
-        handleEditModalClose();
-        // Show success message
-        alert('Profile updated successfully!');
+      let updatedUser = response.data.user_data || {};
+
+      if (editFormData.profileImage instanceof File) {
+        try {
+          const avatarUser = await uploadAvatarFile(editFormData.profileImage);
+          if (avatarUser) {
+            updatedUser = { ...updatedUser, ...avatarUser };
+          }
+        } catch (avatarError) {
+          console.error('Error uploading avatar:', avatarError);
+          applyUpdatedUser(updatedUser);
+          setEditFormData(mapProfileToForm({ ...(profileData || {}), ...updatedUser }));
+          handleEditModalClose();
+          alert(avatarError.response?.data?.error || 'Profile details saved, but the photo could not be uploaded.');
+          return;
+        }
       }
+
+      applyUpdatedUser(updatedUser);
+      setEditFormData(mapProfileToForm({ ...(profileData || {}), ...updatedUser }));
+      fetchUserStatistics();
+      handleEditModalClose();
+      alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+      alert(error.response?.data?.error || 'Failed to update profile. Please try again.');
     }
   };
 
@@ -381,6 +509,7 @@ const MyAccountPage = () => {
   // Fetch user publications, drafts, and statistics when user is available
   useEffect(() => {
     if (user?.id) {
+      fetchUserProfile();
       fetchUserPublications();
       fetchUserDrafts();
       fetchUserStatistics();
@@ -406,49 +535,54 @@ const MyAccountPage = () => {
     { title: t('my_account.categories.favorite_docids'), count: user?.favorite_docids_count || 0, icon: StarIcon },
   ];
 
-  // Update basicInfoFields with ORCID data
+  // Update basicInfoFields from saved profile data
   const basicInfoFields = [
     { 
       label: t('my_account.fields.full_name'), 
-      value: orcidData?.name ? 
-        `${orcidData.name['given-names']?.value || ''} ${orcidData.name['family-name']?.value || ''}`.trim() : 
-        user?.name || t('my_account.common.n_a'),
-      loading: loadingOrcid
+      value: displayValue(profileData?.full_name || user?.name),
+      loading: false
     },
     { 
       label: t('my_account.fields.email'), 
-      value: orcidData?.emails?.email?.[0]?.email?.value || user?.email || t('my_account.common.n_a'),
-      loading: loadingOrcid 
+      value: displayValue(profileData?.email || user?.email),
+      loading: false 
     },
     {
       label: 'Account Type',
-      value: userAccountType === 'Individual' ? 'Individual' : 'Institutional',
+      value: displayValue(
+        profileData?.account_type_name ||
+        (userAccountType === 'Individual' ? 'Individual' : userAccountType === 'Institutional' ? 'Institutional' : userAccountType)
+      ),
       loading: false
     },
     {
       label: t('my_account.fields.affiliation'),
-      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.name?.value || user?.affiliation || t('my_account.common.n_a'),
-      loading: loadingOrcid
+      value: displayValue(profileData?.affiliation || user?.affiliation),
+      loading: false
     },
     { 
       label: t('my_account.fields.role'), 
-      value: orcidData?.employments?.['employment-summary']?.[0]?.role?.value || user?.role || t('my_account.common.n_a'),
-      loading: loadingOrcid
+      value: displayValue(
+        profileData?.role && !['user', 'admin', 'pid_minter'].includes(String(profileData.role).toLowerCase())
+          ? profileData.role
+          : ''
+      ),
+      loading: false
     },
     { 
       label: t('my_account.fields.orcid_id'), 
-      value: getOrcidId() || t('my_account.common.n_a'),
+      value: displayValue(profileData?.orcid_id || getOrcidId()),
       loading: false
     },
     { 
       label: t('my_account.fields.ror_id'), 
-      value: orcidData?.employments?.['employment-summary']?.[0]?.organization?.['disambiguated-organization']?.['disambiguated-organization-identifier']?.value || user?.ror_id || t('my_account.common.n_a'),
-      loading: loadingOrcid
+      value: displayValue(profileData?.ror_id),
+      loading: false
     },
     { 
       label: t('my_account.fields.location'), 
-      value: orcidData?.addresses?.['address']?.[0]?.country?.value || user?.location || t('my_account.common.n_a'),
-      loading: loadingOrcid
+      value: displayValue(formatLocation(profileData)),
+      loading: false
     },
   ];
 
@@ -1231,6 +1365,18 @@ const MyAccountPage = () => {
     },
   ];
 
+  const editFieldSx = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
+      '& input, & .MuiSelect-select': {
+        color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+      }
+    },
+    '& .MuiInputLabel-root': {
+      color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
+    }
+  };
+
   // Memoize modal BEFORE any conditional returns (Rules of Hooks)
   const EditProfileModal = useMemo(() => (
     <Modal
@@ -1251,28 +1397,49 @@ const MyAccountPage = () => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: { xs: '90%', sm: '80%', md: '60%', lg: '50%' },
-          maxWidth: '600px',
+          width: { xs: 'calc(100% - 16px)', sm: 720 },
+          maxWidth: 760,
           bgcolor: 'background.paper',
           borderRadius: 2,
           boxShadow: 24,
-          p: 4,
           outline: 'none',
+          p: { xs: 1.5, sm: 2 },
         }}
       >
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3
-        }}>
-          <Typography variant="h6" component="h2" sx={{ color: 'text.primary', mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 1.5,
+          }}
+        >
+          <Typography variant="subtitle1" component="h2" sx={{ color: 'text.primary', fontWeight: 600 }}>
             {t('my_account.edit_profile')}
           </Typography>
+          <IconButton
+            type="button"
+            onClick={handleEditModalClose}
+            aria-label="Close edit profile"
+            size="small"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box sx={{ 
-              width: 150, 
-              height: 150, 
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <Box sx={{
+              width: { xs: 64, sm: 80 },
+              height: { xs: 64, sm: 80 },
+              flexShrink: 0,
               borderRadius: '50%',
               border: `2px dashed ${theme.palette.mode === 'dark' ? '#ffffff40' : '#00000040'}`,
               display: 'flex',
@@ -1283,13 +1450,21 @@ const MyAccountPage = () => {
               backgroundColor: theme.palette.mode === 'dark' ? '#ffffff08' : '#00000008',
             }}>
               {editFormData.profileImage ? (
-                <img 
-                  src={URL.createObjectURL(editFormData.profileImage)} 
+                <img
+                  src={URL.createObjectURL(editFormData.profileImage)}
                   alt="Profile Preview"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
+              ) : (profileData?.avator || user?.picture) ? (
+                <img
+                  src={profileData?.avator || user?.picture}
+                  alt="Current profile"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               ) : (
-                <Typography color="text.secondary">{t('my_account.form.no_file_chosen')}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ px: 0.5, textAlign: 'center', lineHeight: 1.2 }}>
+                  {t('my_account.form.no_file_chosen')}
+                </Typography>
               )}
               <input
                 type="file"
@@ -1307,83 +1482,53 @@ const MyAccountPage = () => {
               />
             </Box>
 
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <TextField
                 fullWidth
+                size="small"
                 name="fullName"
                 label={t('my_account.fields.full_name').replace(':', '')}
                 value={editFormData.fullName}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
               <TextField
                 fullWidth
+                size="small"
                 name="email"
                 label="Email"
                 type="email"
                 value={editFormData.email}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Box>
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+          <Grid container spacing={1}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="role"
                 label="Role/Position"
                 value={editFormData.role}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{t('my_account.form.select_faculty')}</InputLabel>
                 <Select
                   name="faculty"
                   value={editFormData.faculty}
                   onChange={handleEditFormChange}
                   label={t('my_account.form.select_faculty')}
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                  }}
+                  sx={editFieldSx}
                 >
                   {faculties.map((faculty) => (
                     <MenuItem key={faculty} value={faculty}>
@@ -1393,21 +1538,15 @@ const MyAccountPage = () => {
                 </Select>
               </FormControl>
             </Grid>
-          </Grid>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{t('my_account.form.select_country')}</InputLabel>
                 <Select
                   name="country"
                   value={editFormData.country}
                   onChange={handleEditFormChange}
                   label={t('my_account.form.select_country')}
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                  }}
+                  sx={editFieldSx}
                 >
                   {allCountries.map((country) => (
                     <MenuItem key={country} value={country}>
@@ -1417,215 +1556,132 @@ const MyAccountPage = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="city"
                 label="City"
                 value={editFormData.city}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-          </Grid>
-
-          <TextField
-            fullWidth
-            name="location"
-            label="Location (Custom)"
-            value={editFormData.location}
-            onChange={handleEditFormChange}
-            variant="outlined"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                '& input': {
-                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                }
-              },
-              '& .MuiInputLabel-root': {
-                color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-              }
-            }}
-          />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
+                size="small"
+                name="location"
+                label="Location (Custom)"
+                value={editFormData.location}
+                onChange={handleEditFormChange}
+                variant="outlined"
+                sx={editFieldSx}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                size="small"
                 name="orcid_id"
                 label="ORCID iD"
                 placeholder="0000-0000-0000-0000"
                 value={editFormData.orcid_id}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="ror_id"
                 label="ROR ID"
                 value={editFormData.ror_id}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mt: 0.5 }}>
             Social Media Links
           </Typography>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+          <Grid container spacing={1}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="linkedin_profile_link"
                 label="LinkedIn"
                 placeholder="https://linkedin.com/in/username"
                 value={editFormData.linkedin_profile_link}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="github_profile_link"
                 label="GitHub"
                 placeholder="https://github.com/username"
                 value={editFormData.github_profile_link}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="x_profile_link"
                 label="X (Twitter)"
                 placeholder="https://x.com/username"
                 value={editFormData.x_profile_link}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="facebook_profile_link"
                 label="Facebook"
                 placeholder="https://facebook.com/username"
                 value={editFormData.facebook_profile_link}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
+                size="small"
                 name="instagram_profile_link"
                 label="Instagram"
                 placeholder="https://instagram.com/username"
                 value={editFormData.instagram_profile_link}
                 onChange={handleEditFormChange}
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-                    '& input': {
-                      color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: theme.palette.mode === 'dark' ? '#aaaaaa' : '#666666',
-                  }
-                }}
+                sx={editFieldSx}
               />
             </Grid>
           </Grid>
 
           <Button
             fullWidth
+            size="small"
             variant="contained"
             type="button"
             onClick={(e) => {
@@ -1634,7 +1690,8 @@ const MyAccountPage = () => {
               handleUpdateProfile(e);
             }}
             sx={{
-              mt: 2,
+              mt: 0.5,
+              py: 1,
               backgroundColor: theme.palette.mode === 'dark' ? '#141a3b' : '#1565c0',
               color: theme.palette.common.white,
               '&:hover': {
@@ -1649,7 +1706,7 @@ const MyAccountPage = () => {
         </Box>
       </Box>
     </Modal>
-  ), [openEditModal, editFormData, theme, t, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
+  ), [openEditModal, editFormData, profileData, user, theme, t, editFieldSx, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
 
   // Show loading state while checking authentication
   if (!isAuthenticated) {
@@ -1685,16 +1742,66 @@ const MyAccountPage = () => {
               }}
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-                <Avatar
-                  src={user?.picture || '/default-avatar.png'}
-                  alt={user?.name || 'User'}
-                  sx={{ width: 100, height: 100, mb: 2 }}
-                />
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    <IconButton
+                      component="label"
+                      size="small"
+                      disabled={uploadingAvatar}
+                      aria-label="Upload profile picture"
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: '#1565c0',
+                        color: 'white',
+                        border: '2px solid',
+                        borderColor: 'background.paper',
+                        '&:hover': { bgcolor: alpha('#1565c0', 0.85) },
+                      }}
+                    >
+                      <PhotoCameraIcon sx={{ fontSize: 16 }} />
+                      <input
+                        hidden
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCardAvatarChange}
+                      />
+                    </IconButton>
+                  }
+                >
+                  <Box sx={{ position: 'relative' }}>
+                    <Avatar
+                      src={profileData?.avator || user?.picture || '/default-avatar.png'}
+                      alt={profileData?.full_name || user?.name || 'User'}
+                      sx={{ width: 100, height: 100 }}
+                    />
+                    {uploadingAvatar && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                          bgcolor: 'rgba(0,0,0,0.45)',
+                        }}
+                      >
+                        <CircularProgress size={28} sx={{ color: 'white' }} />
+                      </Box>
+                    )}
+                  </Box>
+                </Badge>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, mb: 0.5 }}>
+                  Change photo
+                </Typography>
                 <Typography variant="h6" fontWeight={600}>
-                  {user?.name }
+                  {profileData?.full_name || user?.name }
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {user?.email}
+                  {profileData?.email || user?.email}
                 </Typography>
                 <Chip
                   icon={<VerifiedUserIcon />}
@@ -1712,7 +1819,7 @@ const MyAccountPage = () => {
           <Grid item xs={12} md={9}>
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h5" fontWeight={600}>
-                {t('my_account.greeting')}, {user?.name}
+                {t('my_account.greeting')}, {profileData?.full_name || user?.name}
               </Typography>
               <Button
                 variant="contained"
