@@ -6,7 +6,13 @@ export async function GET(_request, { params }) {
     const { email } = params;
     const response = await fetch(
       `${getBackendApiV1BaseUrl()}/auth/user/email/${encodeURIComponent(email)}`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET || '',
+        },
+      },
     );
 
     const data = await response.json().catch(() => ({}));

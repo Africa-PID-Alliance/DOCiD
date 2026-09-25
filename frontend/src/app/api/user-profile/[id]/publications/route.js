@@ -29,6 +29,7 @@ export async function GET(request, { params }) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization') || '',
       },
     });
 

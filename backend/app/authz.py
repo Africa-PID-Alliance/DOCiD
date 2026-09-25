@@ -55,6 +55,29 @@ def owner_or_admin_required(parameter="user_id"):
     return decorator
 
 
+def identity_owner_or_admin_required(path_parameter, user_attribute):
+    """Authorize a path-bound natural key (email / username) against the caller.
+
+    Used by routes keyed on an email address or username instead of a numeric
+    user ID. Must be placed below ``@jwt_required()`` on a route.
+    """
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            user = _current_database_user()
+            if user is None:
+                return jsonify({"error": "Authenticated user not found"}), 401
+            supplied = str(kwargs.get(path_parameter) or "").strip().lower()
+            owned = str(getattr(user, user_attribute, "") or "").strip().lower()
+            if not supplied or (supplied != owned and user.role != ADMIN_ROLE):
+                return jsonify({"error": "Forbidden"}), 403
+            g.current_user = user
+            return function(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
 def roles_required(*allowed_roles):
     """Require the authenticated JWT user to have one of ``allowed_roles``.
 

@@ -182,9 +182,14 @@ export async function GET(request) {
 async function lookupExistingGoogleUser(socialId, email) {
     const baseUrl = getBackendApiV1BaseUrl();
 
+    const trustedServiceHeaders = {
+        'Content-Type': 'application/json',
+        'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET || '',
+    };
+
     const socialResponse = await fetch(
         `${baseUrl}/auth/user/social/${encodeURIComponent(socialId)}`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+        { method: 'GET', headers: trustedServiceHeaders },
     );
     if (socialResponse.ok) {
         return socialResponse.json();
@@ -193,7 +198,7 @@ async function lookupExistingGoogleUser(socialId, email) {
     if (email) {
         const emailResponse = await fetch(
             `${baseUrl}/auth/user/email/${encodeURIComponent(email)}`,
-            { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+            { method: 'GET', headers: trustedServiceHeaders },
         );
         if (emailResponse.ok) {
             return emailResponse.json();

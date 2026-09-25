@@ -1,6 +1,7 @@
 """Security regression tests for unauthenticated account bootstrap flows."""
 
 import hashlib
+from datetime import datetime, timedelta
 
 from app import db, limiter
 from app.models import MutationAudit, PasswordResets, RegistrationTokens, UserAccount
@@ -45,12 +46,13 @@ def test_legacy_social_auth_routes_are_retired(client):
 def test_registration_token_is_hashed_and_validated(app, client):
     app.config["AUTH_BOOTSTRAP_SECRET"] = "test-bootstrap-secret"
     raw_token = "registration-token-with-enough-entropy"
+    expires_at = (datetime.utcnow() + timedelta(days=7)).isoformat(timespec="seconds")
     response = client.post(
         "/api/v1/auth/store-registration-token",
         json={
             "email": "new-user@example.test",
             "token": raw_token,
-            "expires_at": "2026-08-01T12:00:00",
+            "expires_at": expires_at,
         },
         headers=BOOTSTRAP_HEADERS,
     )

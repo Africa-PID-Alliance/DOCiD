@@ -54,7 +54,8 @@ export async function POST(request) {
       // Check if email exists
       const encodedEmail = encodeURIComponent(email);
       const checkEmailResponse = await axios.get(
-        `${apiBaseUrl}/auth/user/email/${encodedEmail}`
+        `${apiBaseUrl}/auth/user/email/${encodedEmail}`,
+        { headers: { 'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET || '' } }
       );
 
       if (checkEmailResponse.data && checkEmailResponse.data.email === email) {

@@ -183,6 +183,7 @@ export async function GET(request) {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Auth-Bootstrap-Secret': process.env.AUTH_BOOTSTRAP_SECRET || '',
                     },
                 }
             );

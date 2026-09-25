@@ -76,6 +76,8 @@ def _save_avatar_file(avatar_file):
 
 
 @user_profile_bp.route('/<int:user_id>', methods=['GET'])
+@jwt_required()
+@owner_or_admin_required()
 def get_user_profile(user_id):
     """
     Get user profile by user ID
@@ -495,6 +497,8 @@ def update_my_logo():
 
 
 @user_profile_bp.route('/<int:user_id>/publications', methods=['GET'])
+@jwt_required()
+@owner_or_admin_required()
 def get_user_publications(user_id):
     """
     Get all publications for a specific user
@@ -730,6 +734,8 @@ def change_password(user_id):
 
 
 @user_profile_bp.route('/<int:user_id>/statistics', methods=['GET'])
+@jwt_required()
+@owner_or_admin_required()
 def get_user_statistics(user_id):
     """
     Get user statistics

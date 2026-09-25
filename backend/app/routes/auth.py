@@ -8,6 +8,7 @@ from flask import Blueprint, current_app, g, redirect, request, session, url_for
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db, limiter
+from app.authz import identity_owner_or_admin_required, owner_or_admin_required
 from app.models import UserAccount, PasswordResets, RegistrationTokens, AccountTypes, AccountCategories
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -918,6 +919,8 @@ def register():
         return jsonify({'message': str(e)}), 500  
 
 @auth_bp.route("/user/<int:user_id>")
+@jwt_required()
+@owner_or_admin_required()
 def get_user(user_id):
     """
     Gets a user by their user ID.
@@ -989,6 +992,8 @@ def get_user(user_id):
     return jsonify(user.serialize())
 
 @auth_bp.route("/user/id/<int:user_id>", methods=["GET"])
+@jwt_required()
+@owner_or_admin_required()
 def get_user_by_user_id(user_id):
     """
     Gets a user by their user ID.
@@ -1067,6 +1072,8 @@ def get_user_by_user_id(user_id):
     }), 200
 
 @auth_bp.route("/user/username/<string:user_name>", methods=["GET"])
+@jwt_required()
+@identity_owner_or_admin_required("user_name", "user_name")
 def get_user_by_username(user_name):
     """
     Gets a user by their username.
@@ -1214,7 +1221,10 @@ def get_user_by_email(email):
                   type: string
                   description: Error message
     """
-    
+    bootstrap_error = _require_trusted_bootstrap()
+    if bootstrap_error:
+        return bootstrap_error
+
     # Check for valid email format (basic check)
     if not "@" in email or not "." in email.split("@")[-1]:
         return jsonify({"message": "Invalid email format"}), 400
@@ -1224,7 +1234,8 @@ def get_user_by_email(email):
     if user is None:
         return jsonify({"message": "User not found"}), 404
 
-    # Return user information with only fields from the model
+    # Server-to-server only: payload limited to the fields the Next.js auth
+    # handlers (registration, password reset, social sign-in) consume.
     return jsonify({
         "user_id": user.user_id,
         "user_name": user.user_name,
@@ -1232,7 +1243,6 @@ def get_user_by_email(email):
         "social_id": user.social_id,
         "type": user.type,
         "affiliation": user.affiliation,
-        "date_joined": user.date_joined.isoformat(),
         "email": user.email,
         "avator": user.avator
     }), 200
@@ -1297,12 +1307,17 @@ def get_user_by_social_id(social_id):
                   type: string
                   description: Error message
     """
+    bootstrap_error = _require_trusted_bootstrap()
+    if bootstrap_error:
+        return bootstrap_error
+
     user = UserAccount.query.filter_by(social_id=social_id).first()
 
     if user is None:
         return jsonify({"message": "User not found"}), 404
 
-    # Return user information
+    # Server-to-server only: payload limited to the fields the Next.js social
+    # sign-in handlers (Google, GitHub, ORCID) consume.
     return jsonify({
         "user_id": user.user_id,
         "user_name": user.user_name,
@@ -1310,7 +1325,6 @@ def get_user_by_social_id(social_id):
         "social_id": user.social_id,
         "type": user.type,
         "affiliation": user.affiliation,
-        "date_joined": user.date_joined.isoformat(),
         "email": user.email,
         "avator": user.avator
     }), 200

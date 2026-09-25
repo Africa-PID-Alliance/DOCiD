@@ -7,7 +7,10 @@ export async function GET(request, { params }) {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const response = await fetch(`${baseUrl}/publications/my-docids/${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization') || '',
+      },
     });
 
     if (!response.ok) {

@@ -1585,6 +1585,8 @@ def sync_cached_context(external_id):
 
 
 @localcontexts_bp.route('/audit-log', methods=['GET'])
+@jwt_required()
+@admin_required
 def get_audit_log():
     """
     Get audit log for Local Contexts operations

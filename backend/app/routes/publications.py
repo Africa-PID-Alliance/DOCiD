@@ -22,7 +22,7 @@ from urllib.parse import urlsplit
 import re
 import json
 from config import Config
-from app.authz import database_user_required
+from app.authz import database_user_required, identity_owner_or_admin_required, owner_or_admin_required
 from app.reference_filters import allowed_resource_type_ids, is_resource_type_allowed
 
 
@@ -2613,6 +2613,8 @@ def save_draft():
 
 
 @publications_bp.route('/draft/<email>', methods=['GET'])
+@jwt_required()
+@identity_owner_or_admin_required("email", "email")
 def get_all_drafts_for_user(email):
     """
     Get all saved drafts for user (returns array of drafts)
@@ -2656,6 +2658,8 @@ def get_all_drafts_for_user(email):
 
 
 @publications_bp.route('/draft/<email>/<int:resource_type_id>', methods=['GET'])
+@jwt_required()
+@identity_owner_or_admin_required("email", "email")
 def get_specific_draft(email, resource_type_id):
     """
     Get specific draft for user by email and resource_type_id
@@ -2775,6 +2779,8 @@ def get_draft_stats():
 
 
 @publications_bp.route('/draft/by-user/<int:user_id>', methods=['GET'])
+@jwt_required()
+@owner_or_admin_required("user_id")
 def get_drafts_by_user_id(user_id):
     """
     Get all saved drafts for user by user_id
@@ -3528,6 +3534,8 @@ def get_active_publication_or_410(pub_id):
 # ===== VERSIONING ENDPOINTS =====
 
 @publications_bp.route('/my-docids/<int:user_id>', methods=['GET'])
+@jwt_required()
+@owner_or_admin_required("user_id")
 def get_my_docids(user_id):
     """
     Get all published DOCiDs for a user (for parent selector dropdown in version-docid page)

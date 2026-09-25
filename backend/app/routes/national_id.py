@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from app import db
+from app.authz import database_user_required
 from app.models import NationalIdResearcher
 from sqlalchemy import or_
 import logging
@@ -98,6 +99,8 @@ def register_researcher():
 
 
 @national_id_bp.route('/researchers/<int:researcher_id>', methods=['GET'])
+@jwt_required()
+@database_user_required
 def get_researcher_by_id(researcher_id):
     """
     Get a researcher by database ID.
@@ -125,6 +128,8 @@ def get_researcher_by_id(researcher_id):
 
 
 @national_id_bp.route('/researchers/lookup/<path:national_id_number>', methods=['GET'])
+@jwt_required()
+@database_user_required
 def lookup_by_national_id(national_id_number):
     """
     Lookup researchers by National ID / Passport Number.
@@ -163,6 +168,8 @@ def lookup_by_national_id(national_id_number):
 
 
 @national_id_bp.route('/researchers/search', methods=['GET'])
+@jwt_required()
+@database_user_required
 def search_researchers():
     """
     Search researchers by name, National ID number, or country.
