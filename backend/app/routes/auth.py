@@ -1488,6 +1488,9 @@ def login():
                 'full_name': user.full_name,
                 'email': user.email,
                 'avator': user.avator,
+                'social_id': user.social_id,
+                'type': user.type,
+                'affiliation': user.affiliation,
                 'account_type_id': user.account_type_id,
                 'account_type_name': user.account_type.account_type_name if user.account_type else None
             }), 200

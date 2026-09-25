@@ -4,7 +4,7 @@ import pytest
 from flask_jwt_extended import create_access_token
 
 from app import db
-from app.models import UserAccount
+from app.models import NationalIdResearcher, UserAccount
 
 BOOTSTRAP_SECRET = "test-bootstrap-secret"
 
@@ -151,6 +151,15 @@ def test_audit_log_requires_an_admin_account(app, client):
 
 def test_national_id_reads_require_an_authenticated_account(app, client):
     _, user_headers = _make_user(app, "nid-user")
+    _, admin_headers = _make_user(app, "nid-admin", role="admin")
+
+    with app.app_context():
+        db.session.add(NationalIdResearcher(
+            name="Sensitive Researcher",
+            national_id_number="987654321",
+            country="Kenya",
+        ))
+        db.session.commit()
 
     assert (
         client.get("/api/v1/national-id/researchers/lookup/123456", headers=user_headers)
@@ -163,3 +172,50 @@ def test_national_id_reads_require_an_authenticated_account(app, client):
         ).status_code
         == 200
     )
+    assert client.get(
+        "/api/v1/national-id/researchers/search", headers=user_headers
+    ).status_code == 400
+    assert client.get(
+        "/api/v1/national-id/researchers/search?q=%25", headers=user_headers
+    ).status_code == 400
+    id_search = client.get(
+        "/api/v1/national-id/researchers/search?q=987654", headers=user_headers
+    )
+    assert id_search.status_code == 200
+    assert id_search.get_json()["total"] == 0
+    assert client.get(
+        "/api/v1/national-id/researchers/1", headers=user_headers
+    ).status_code == 403
+    admin_response = client.get(
+        "/api/v1/national-id/researchers/1", headers=admin_headers
+    )
+    assert admin_response.status_code == 200
+    assert admin_response.get_json()["national_id_number"] == "987654321"
+
+
+def test_login_returns_social_identity_without_public_lookup(app, client):
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        user = UserAccount(
+            user_name="credential-user",
+            full_name="Credential User",
+            email="credential@example.test",
+            type="email",
+            role="user",
+            password=generate_password_hash("correct horse battery staple"),
+            social_id="linked-social-id",
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "credential@example.test",
+            "password": "correct horse battery staple",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["social_id"] == "linked-social-id"

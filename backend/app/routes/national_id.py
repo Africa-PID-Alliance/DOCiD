@@ -1,10 +1,9 @@
 # app/routes/national_id.py
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from app import db
-from app.authz import database_user_required
+from app import db, limiter
+from app.authz import admin_required, database_user_required
 from app.models import NationalIdResearcher
-from sqlalchemy import or_
 import logging
 
 logger = logging.getLogger(__name__)
@@ -100,7 +99,8 @@ def register_researcher():
 
 @national_id_bp.route('/researchers/<int:researcher_id>', methods=['GET'])
 @jwt_required()
-@database_user_required
+@admin_required
+@limiter.limit("30 per minute")
 def get_researcher_by_id(researcher_id):
     """
     Get a researcher by database ID.
@@ -130,6 +130,7 @@ def get_researcher_by_id(researcher_id):
 @national_id_bp.route('/researchers/lookup/<path:national_id_number>', methods=['GET'])
 @jwt_required()
 @database_user_required
+@limiter.limit("30 per minute")
 def lookup_by_national_id(national_id_number):
     """
     Lookup researchers by National ID / Passport Number.
@@ -170,6 +171,7 @@ def lookup_by_national_id(national_id_number):
 @national_id_bp.route('/researchers/search', methods=['GET'])
 @jwt_required()
 @database_user_required
+@limiter.limit("20 per minute")
 def search_researchers():
     """
     Search researchers by name, National ID number, or country.
@@ -204,19 +206,21 @@ def search_researchers():
     """
     search_query = request.args.get('q', '').strip()
     country = request.args.get('country', '').strip()
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 20, type=int), 100)
+    page = max(request.args.get('page', 1, type=int) or 1, 1)
+    per_page = min(max(request.args.get('per_page', 20, type=int) or 20, 1), 50)
+
+    # This endpoint is a name search for the creator picker, not a registry
+    # browser. Requiring a meaningful query prevents downloading the complete
+    # National ID registry page by page.
+    if len(search_query) < 3:
+        return jsonify({'error': 'A name search of at least 3 characters is required'}), 400
 
     query = NationalIdResearcher.query
 
-    if search_query:
-        search_pattern = f"%{search_query}%"
-        query = query.filter(
-            or_(
-                NationalIdResearcher.name.ilike(search_pattern),
-                NationalIdResearcher.national_id_number.ilike(search_pattern)
-            )
-        )
+    # Escape LIKE metacharacters so input is always treated as literal text.
+    escaped_query = search_query.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    search_pattern = f"%{escaped_query}%"
+    query = query.filter(NationalIdResearcher.name.ilike(search_pattern, escape='\\'))
 
     if country:
         query = query.filter(NationalIdResearcher.country.ilike(f"%{country}%"))

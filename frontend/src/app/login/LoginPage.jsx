@@ -125,11 +125,6 @@ const LoginPage = () => {
         return;
       }
 
-      // Fetch user's social_id
-      const userResponse = await fetch(`/api/auth/user/email/${encodeURIComponent(formData.email)}`);
-      const userDataSocial = await userResponse.json();
-    
-
       const userData = {
         accessToken: data.token,
         refreshToken: data.refresh_token,
@@ -140,7 +135,7 @@ const LoginPage = () => {
         type: data.type,
         affiliation: data.affiliation,
         email: data.email,
-        social_id: userDataSocial.social_id || null,
+        social_id: data.social_id || null,
         account_type_name: data.account_type_name || null,
       };
 
@@ -834,4 +829,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;
