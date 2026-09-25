@@ -1,50 +1,123 @@
-name: Deploy
-
-# Push to main  -> demo deploys automatically, then production waits for a
-#                  required reviewer on the "production" environment.
-# Manual run    -> pick demo, production, or both (Actions tab -> Deploy -> Run workflow).
+name: Deploy to Production
 
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:
-    inputs:
-      target:
-        description: Which stack to deploy
-        required: true
-        default: demo
-        type: choice
-        options: [demo, production, both]
-
-# Only main is ever deployed; a manual run started from another branch does nothing.
-permissions:
-  contents: read
 
 jobs:
-  deploy-demo:
-    if: >-
-      github.ref == 'refs/heads/main'
-      && (github.event_name == 'push' || inputs.target == 'demo' || inputs.target == 'both')
-    concurrency:
-      group: deploy-demo
-      cancel-in-progress: false
-    uses: ./.github/workflows/_deploy-docker-stack.yml
-    with:
-      environment: demo
-    secrets: inherit
+  deploy:
+    runs-on: ubuntu-latest
 
-  deploy-production:
-    needs: deploy-demo
-    # Runs after a successful demo deploy, or alone when "production" is chosen manually.
-    if: >-
-      always() && github.ref == 'refs/heads/main' && (
-        (needs.deploy-demo.result == 'success' && (github.event_name == 'push' || inputs.target == 'both'))
-        || (needs.deploy-demo.result == 'skipped' && inputs.target == 'production')
-      )
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    uses: ./.github/workflows/_deploy-docker-stack.yml
-    with:
-      environment: production
-    secrets: inherit
+    steps:
+      - name: Deploy Backend
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SUDO_PASS: ${{ secrets.SUDO_PASS }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 5m
+          script_stop: true
+          envs: SUDO_PASS
+          script: |
+            set -e
+
+            echo "=== Cloning repo ==="
+            REPO_DIR="/tmp/docid-deploy"
+            rm -rf "$REPO_DIR"
+            git clone --depth 1 https://github.com/Africa-PID-Alliance/DOCiD.git "$REPO_DIR"
+
+            echo "=== Deploying Backend ==="
+            rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
+              --exclude='venv' \
+              --exclude='.env' \
+              --exclude='logs' \
+              --exclude='uploads' \
+              --exclude='__pycache__' \
+              "$REPO_DIR/backend/" /home/tcc-africa/docid_project/backend-v2/
+
+            cd /home/tcc-africa/docid_project/backend-v2
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+
+            export FLASK_APP=run.py
+            flask db upgrade
+            echo "Migration step completed"
+
+            echo "=== Restarting Backend ==="
+            OLD_GUNICORN_PID=$(pgrep -fo 'gunicorn.*wsgi:app' || echo "")
+            echo "Pre-restart gunicorn master PID: $OLD_GUNICORN_PID"
+
+            echo "$SUDO_PASS" | sudo -S supervisorctl restart docid
+            echo "supervisorctl restart docid returned exit 0"
+
+            sleep 4
+            NEW_GUNICORN_PID=$(pgrep -fo 'gunicorn.*wsgi:app' || echo "")
+            echo "Post-restart gunicorn master PID: $NEW_GUNICORN_PID"
+
+            if [ -z "$NEW_GUNICORN_PID" ]; then
+              echo "ERROR: gunicorn is not running after restart" >&2
+              exit 1
+            fi
+            if [ "$OLD_GUNICORN_PID" = "$NEW_GUNICORN_PID" ]; then
+              echo "ERROR: gunicorn PID unchanged ($OLD_GUNICORN_PID) — restart did NOT take effect, server still running stale code" >&2
+              exit 1
+            fi
+            echo "Backend restart confirmed: PID $OLD_GUNICORN_PID -> $NEW_GUNICORN_PID"
+
+      - name: Deploy Frontend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 25m
+          script_stop: true
+          script: |
+            set -e
+
+            REPO_DIR="/tmp/docid-deploy"
+
+            echo "=== Deploying Frontend ==="
+            rsync -rlt --delete --no-perms --no-group --no-owner --omit-dir-times \
+              --exclude='node_modules' \
+              --exclude='.next' \
+              --exclude='.env.production' \
+              --exclude='logs' \
+              "$REPO_DIR/frontend/" /var/www/html/fe/
+
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            cd /var/www/html/fe
+            npm ci
+            npm run build
+
+            pm2 restart docid-frontend || pm2 start ecosystem.config.js --env production
+            pm2 save
+
+            echo "=== Cleanup ==="
+            rm -rf "$REPO_DIR"
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            echo "=== Service Status ==="
+            pgrep -fa 'gunicorn.*backend-v2' | head -1 && echo "Backend: Running" || echo "Backend: NOT running"
+            pm2 status
+
+            echo "=== Health Checks ==="
+            sleep 5
+            curl -sf http://localhost:5001/api/v1/health > /dev/null && echo "Backend: OK" || echo "Backend: FAILED"
+            curl -sf http://localhost:3000 > /dev/null && echo "Frontend: OK" || echo "Frontend: FAILED"
