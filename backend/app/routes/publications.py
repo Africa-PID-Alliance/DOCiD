@@ -4094,6 +4094,9 @@ def sitemap_months():
             )
             .filter(Publications.published.isnot(None))
             .filter(Publications.document_docid.isnot(None))
+            # Retired (tombstoned) records return 200 + noindex; advertising them
+            # here only earns "Excluded by noindex" and wastes crawl budget.
+            .filter(Publications.deleted_at.is_(None))
             .group_by('year', 'month')
             .order_by(desc('year'), desc('month'))
             .all()
@@ -4127,6 +4130,8 @@ def sitemap_feed():
                 Publications.published,
             )
             .filter(Publications.document_docid.isnot(None))
+            # Exclude retired records — see sitemap_months.
+            .filter(Publications.deleted_at.is_(None))
             .filter(func.extract('year', Publications.published) == year)
             .filter(func.extract('month', Publications.published) == month)
             .order_by(desc(Publications.published))

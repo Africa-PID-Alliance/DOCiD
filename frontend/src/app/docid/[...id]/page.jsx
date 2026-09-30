@@ -3,6 +3,7 @@
 // body) BEFORE any client JS runs. Interactive features (comments, share,
 // like, edit, version history) live in the DocIDClient client island.
 
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
 import {
@@ -26,8 +27,11 @@ function joinDocidSegments(params) {
   return decodeURIComponent(raw);
 }
 
-async function fetchPublication(docid) {
-  if (!docid) return null;
+// Returns { status, data } with status in 'ok' | 'not_found' | 'error'. Wrapped
+// in React `cache()` so generateMetadata() and the page body share ONE upstream
+// call per request instead of issuing two independent no-store fetches.
+const fetchPublication = cache(async (docid) => {
+  if (!docid) return { status: 'not_found', data: null };
   const base = getBackendApiV1BaseUrl();
   const url = `${base}/publications/docid?docid=${encodeURIComponent(docid)}`;
   try {
@@ -39,13 +43,14 @@ async function fetchPublication(docid) {
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
     });
-    if (!res.ok) return null;
-    return await res.json();
+    if (res.status === 404) return { status: 'not_found', data: null };
+    if (!res.ok) return { status: 'error', data: null };
+    return { status: 'ok', data: await res.json() };
   } catch (err) {
     console.error('SSR fetch failed for DOCiD', docid, err);
-    return null;
+    return { status: 'error', data: null };
   }
-}
+});
 
 // All `<head>` metadata is emitted via generateMetadata(). With Next 15.4's
 // `htmlLimitedBots` regex (see next.config.js), this output renders into the
@@ -56,8 +61,10 @@ async function fetchPublication(docid) {
 export async function generateMetadata({ params }) {
   const awaited = typeof params?.then === 'function' ? await params : params;
   const docid = joinDocidSegments(awaited);
-  const publication = await fetchPublication(docid);
-  if (!publication) {
+  const { status, data: publication } = await fetchPublication(docid);
+  // No indexable content exists for a confirmed 404, and a transient backend
+  // error makes the body 5xx (which Google re-crawls) — noindex here is safe.
+  if (status !== 'ok' || !publication) {
     return {
       title: 'DOCiD not found',
       robots: { index: false, follow: false },
@@ -117,8 +124,13 @@ export async function generateMetadata({ params }) {
 export default async function DocIDLandingPage({ params }) {
   const awaited = typeof params?.then === 'function' ? await params : params;
   const docid = joinDocidSegments(awaited);
-  const publication = await fetchPublication(docid);
-  if (!publication) notFound();
+  const { status, data: publication } = await fetchPublication(docid);
+  // Only a confirmed 404 is a real not-found. A transient backend failure must
+  // throw (500) so Google retries rather than permanently dropping a live DOCiD.
+  if (status === 'not_found') notFound();
+  if (status !== 'ok' || !publication) {
+    throw new Error(`Failed to load DOCiD ${docid}`);
+  }
 
   // Tombstone branch — render a minimal "retired" panel so the handle keeps
   // resolving without leaking the old metadata. No client island, no Highwire
