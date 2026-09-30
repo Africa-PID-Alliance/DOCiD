@@ -97,9 +97,6 @@ const DocumentsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   
   // Get account type name from Redux store
   const accountTypeName = user?.account_type_name || '';
-  
-  console.log('DocumentsForm - user:', user);
-  console.log('DocumentsForm - accountTypeName:', accountTypeName);
 
   // Seed local state from parent only when the parent successfully (re)loads
   // the publication (loadGeneration bumps). This matches PublicationsForm and

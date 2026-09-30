@@ -66,12 +66,8 @@ const PublicationsForm = ({ formData, updateFormData }) => {
   // Get account type name from Redux store
   const accountTypeName = user?.account_type_name || '';
   
-  console.log('PublicationsForm - user:', user);
-  console.log('PublicationsForm - accountTypeName:', accountTypeName);
-
   // Reorder identifiers based on account type - use useMemo to recalculate when accountTypeName changes
   const identifiers = useMemo(() => {
-    console.log('PublicationsForm - useMemo identifiers - accountTypeName:', accountTypeName);
     const baseIdentifiers = [
       {
         label: 'APA Handle iD',
@@ -123,7 +119,6 @@ const PublicationsForm = ({ formData, updateFormData }) => {
     const fetchData = async () => {
       try {
         const publicationTypesRes = await axios.get('/api/publications/get-list-publication-types');
-        console.log("publication types", publicationTypesRes.data);
         setPublicationTypes(publicationTypesRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);

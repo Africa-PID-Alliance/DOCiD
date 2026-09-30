@@ -8,10 +8,8 @@ export async function POST(request) {
     
     // Get the JSON data from the request
     const data = await request.json();
-    
-    console.log('=== DRAFT DATA ===');
-    console.log('Email:', data.email);
-    console.log('Form Data Keys:', Object.keys(data.formData || {}));
+
+
 
     // Use environment variable for base URL
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;

@@ -157,10 +157,6 @@ const CompleteRegistrationPage = () => {
     setError('');
 
     try {
-      console.log('Starting registration completion...');
-      console.log('Token:', token);
-      console.log('Form data:', formData);
-
       const response = await fetch(`/api/auth/complete-registration`, {
         method: 'POST',
         headers: {

@@ -76,10 +76,6 @@ const ResetPasswordPage = () => {
     setError('');
 
     try {
-      console.log('Starting password reset...');
-      console.log('Token:', token);
-      console.log('Form data:', formData);
-
       const response = await fetch(`/api/auth/reset-password`, {
         method: 'POST',
         headers: {

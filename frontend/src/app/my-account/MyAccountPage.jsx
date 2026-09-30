@@ -488,16 +488,10 @@ const MyAccountPage = () => {
     // Extract account_type_name from localStorage
    try {
     const storedUser = localStorage.getItem('user');
-    console.log('Raw user:', storedUser);
 
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
-      console.log('Parsed user:', parsedUser);
-
-      const accountTypeName = parsedUser?.account_type_name || '';
-      console.log('account_type_name:', accountTypeName);
-
-      setUserAccountType(accountTypeName);
+      setUserAccountType(parsedUser?.account_type_name || '');
     }
   } catch (error) {
     console.error('Error parsing user data:', error);

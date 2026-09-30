@@ -97,9 +97,6 @@ const DocumentsForm = ({ formData, updateFormData }) => {
   
   // Get account type name from Redux store
   const accountTypeName = user?.account_type_name || '';
-  
-  console.log('DocumentsForm - user:', user);
-  console.log('DocumentsForm - accountTypeName:', accountTypeName);
 
   // Effect to sync state with parent when formData changes
   useEffect(() => {

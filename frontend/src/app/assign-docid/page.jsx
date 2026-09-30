@@ -121,9 +121,6 @@ const AssignDocID = () => {
     t('assign_docid.steps.projects'),
   ];
 
-  // Add console.log to debug
-  console.log('Current formData:', formData);
-
   const handleNext = () => {
     // Check specifically for the generatedId property
     if (activeStep === 0 && !formData.docId?.generatedId) {
@@ -688,17 +685,7 @@ const AssignDocID = () => {
 
       // 3. Documents
       if (formData.documents?.files?.length > 0) {
-        console.log('Documents data being submitted:', formData.documents);
-        
         formData.documents.files.forEach((file, index) => {
-          console.log(`Document ${index} metadata:`, {
-            title: file.metadata.title,
-            description: file.metadata.description,
-            identifier: file.metadata.identifier,
-            identifierType: file.metadata.identifierType,
-            generated_identifier: file.metadata.generated_identifier
-          });
-          
           submitData.append(`filesDocuments[${index}][title]`, file.metadata.title);
           submitData.append(`filesDocuments[${index}][description]`, file.metadata.description);
           submitData.append(`filesDocuments[${index}][identifier]`, file.metadata.identifier);
@@ -765,11 +752,8 @@ const AssignDocID = () => {
       }
 
       // 5c. Organizations (Ringgold)
-      console.log('Ringgold data check:', formData.organizationsRinggold);
       if (formData.organizationsRinggold?.organizations?.length > 0) {
-        console.log('Ringgold organizations being submitted:', formData.organizationsRinggold.organizations);
         formData.organizationsRinggold.organizations.forEach((organization, index) => {
-          console.log(`Ringgold org ${index}:`, organization);
           submitData.append(`organizationRinggold[${index}][name]`, organization.name);
           submitData.append(`organizationRinggold[${index}][other_name]`, organization.otherName);
           submitData.append(`organizationRinggold[${index}][type]`, organization.type);
@@ -778,13 +762,10 @@ const AssignDocID = () => {
           submitData.append(`organizationRinggold[${index}][isni_id]`, organization.isni || '');
           submitData.append(`organizationRinggold[${index}][rrid]`, organization.rrid || '');
         });
-      } else {
-        console.log('No Ringgold organizations to submit');
       }
 
       // 6. Funders
       if (formData.funders?.funders?.length > 0) {
-        console.log("Funders files",formData.funders);
         formData.funders.funders.forEach((funder, index) => {
           submitData.append(`funders[${index}][name]`, funder.name);
           submitData.append(`funders[${index}][other_name]`, funder.otherName);
@@ -796,7 +777,6 @@ const AssignDocID = () => {
 
       // 7. Projects
       if (formData.project?.projects?.length > 0) {
-        console.log("Projects files",formData.project);
         formData.project.projects.forEach((project, index) => {
           submitData.append(`projects[${index}][title]`, project.title);
           submitData.append(`projects[${index}][raid_id]`, project.raidId);

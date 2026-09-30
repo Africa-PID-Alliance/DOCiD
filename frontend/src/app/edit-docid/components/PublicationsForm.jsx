@@ -65,9 +65,6 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   
   // Get account type name from Redux store
   const accountTypeName = user?.account_type_name || '';
-  
-  console.log('PublicationsForm - user:', user);
-  console.log('PublicationsForm - accountTypeName:', accountTypeName);
 
   // Edit-docid: APA Handle iD is always minted server-side on save (the
   // Cordra child handle is our internal resolvable id). CrossRef is exposed
@@ -103,7 +100,6 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
     const fetchData = async () => {
       try {
         const publicationTypesRes = await axios.get('/api/publications/get-list-publication-types');
-        console.log("publication types", publicationTypesRes.data);
         setPublicationTypes(publicationTypesRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);
