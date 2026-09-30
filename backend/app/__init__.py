@@ -161,10 +161,6 @@ def create_app(test_config=None):
     app.register_blueprint(enrichment_generic_bp)  # /api/v1/publications/<id>/enrich/<source> + /api/v1/harvest/<source>
     app.register_blueprint(verify_bp)  # /api/v1/verify (public integrity verification)
 
-    # Add root-level DocID route
-    from app.routes.docid_root import setup_docid_root_route
-    setup_docid_root_route(app)
-
     # Set up logging
     setup_logging(app)
 
