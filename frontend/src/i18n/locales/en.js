@@ -555,11 +555,22 @@ const translations = {
     "view_file": "VIEW FILE",
     "number": "No. {{number}}",
     "creator_fields": {
+      "creator_name": "Creator's Name",
       "full_name": "Full Name",
       "family_name": "Family Name", 
       "given_name": "Given Name",
       "affiliation": "Affiliation",
-      "role": "Role"
+      "role": "Role",
+      "identifier_labels": {
+        "orcid": "ORCID Identifier",
+        "national_id": "National ID",
+        "isni": "ISNI Identifier",
+        "viaf": "VIAF Identifier",
+        "researcher": "Researcher ID",
+        "scopus": "Scopus ID",
+        "openalex": "OpenAlex Author ID",
+        "typed": "{{type}} Identifier"
+      }
     },
     "organization_fields": {
       "organization_name": "Organization Name",

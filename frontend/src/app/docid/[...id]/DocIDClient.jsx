@@ -88,6 +88,49 @@ const isNationalIdCreator = (item) => {
   return true;
 };
 
+const CREATOR_IDENTIFIER_LABEL_KEYS = {
+  orcid: 'docid_page.modal.creator_fields.identifier_labels.orcid',
+  national_id: 'docid_page.modal.creator_fields.identifier_labels.national_id',
+  isni: 'docid_page.modal.creator_fields.identifier_labels.isni',
+  viaf: 'docid_page.modal.creator_fields.identifier_labels.viaf',
+  researcher: 'docid_page.modal.creator_fields.identifier_labels.researcher',
+  scopus: 'docid_page.modal.creator_fields.identifier_labels.scopus',
+  openalex: 'docid_page.modal.creator_fields.identifier_labels.openalex',
+};
+
+const resolveCreatorIdentifierKind = (item) => {
+  const type = String(item?.identifier_type || '').trim().toLowerCase();
+  if (CREATOR_IDENTIFIER_LABEL_KEYS[type]) return type;
+
+  const identifier = String(item?.identifier || '');
+  if (/orcid\.org/i.test(identifier) || /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i.test(identifier.trim())) {
+    return 'orcid';
+  }
+  if (/isni\.org/i.test(identifier)) return 'isni';
+  if (/viaf\.org/i.test(identifier)) return 'viaf';
+  if (/openalex\.org/i.test(identifier)) return 'openalex';
+  if (/scopus\.com/i.test(identifier)) return 'scopus';
+  if (isNationalIdCreator(item)) return 'national_id';
+  return type;
+};
+
+const getCreatorIdentifierLabel = (item, translate) => {
+  const kind = resolveCreatorIdentifierKind(item);
+  if (CREATOR_IDENTIFIER_LABEL_KEYS[kind]) {
+    return translate(CREATOR_IDENTIFIER_LABEL_KEYS[kind]);
+  }
+  if (kind) {
+    const prettyType = kind.replace(/[_-]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    return translate('docid_page.modal.creator_fields.identifier_labels.typed', { type: prettyType });
+  }
+  return translate('docid_page.modal.identifier_field');
+};
+
+const getCreatorDisplayName = (item) => {
+  const fromParts = [item?.given_name, item?.family_name].filter(Boolean).join(' ').trim();
+  return fromParts || item?.creator_name || item?.family_name || '';
+};
+
 const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const searchParams = useSearchParams();
   const lcDemoProjectId = searchParams?.get('lc_demo') || null;
@@ -2069,104 +2112,141 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                           </Typography>
 
                           <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.creator_fields.full_name')}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                value={`${item.given_name || ''} ${item.family_name || ''}`}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
-                            </Grid>
+                            {isNationalIdCreator(item) ? (
+                              <>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.creator_name')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={getCreatorDisplayName(item)}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.creator_fields.family_name')}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                value={item.family_name || ''}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
-                            </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {getCreatorIdentifierLabel(item, t)}
+                                  </Typography>
+                                  <MaskedNationalIdField
+                                    fullWidth
+                                    value={item.identifier || ''}
+                                    revealed={!!revealedNationalIds[index]}
+                                    onToggleReveal={() => toggleRevealedNationalId(index)}
+                                    showToggle={isDocidOwner && !item.identifier_masked}
+                                    readOnly
+                                    variant="filled"
+                                    size="small"
+                                    InputProps={{ disableUnderline: true }}
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.creator_fields.given_name')}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                value={item.given_name || ''}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
-                            </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.organization_fields.country')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={item.country || 'N/A'}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
+                              </>
+                            ) : (
+                              <>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.full_name')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={getCreatorDisplayName(item)}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.identifier_field')}
-                              </Typography>
-                              {isNationalIdCreator(item) ? (
-                                <MaskedNationalIdField
-                                  fullWidth
-                                  value={item.identifier || ''}
-                                  revealed={!!revealedNationalIds[index]}
-                                  onToggleReveal={() => toggleRevealedNationalId(index)}
-                                  showToggle={isDocidOwner && !item.identifier_masked}
-                                  readOnly
-                                  variant="filled"
-                                  size="small"
-                                  InputProps={{ disableUnderline: true }}
-                                  sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                                />
-                              ) : (
-                                <TextField
-                                  fullWidth
-                                  value={item.identifier || 'ORCID'}
-                                  InputProps={{ readOnly: true, disableUnderline: true }}
-                                  variant="filled"
-                                  size="small"
-                                  sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                                />
-                              )}
-                            </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.family_name')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={item.family_name || ''}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.creator_fields.affiliation')}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                value={item.affiliation || 'N/A'}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
-                            </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.given_name')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={item.given_name || ''}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                {t('docid_page.modal.creator_fields.role')}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                value={getRoleName(item.role)}
-                                InputProps={{ readOnly: true, disableUnderline: true }}
-                                variant="filled"
-                                size="small"
-                                sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
-                              />
-                            </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {getCreatorIdentifierLabel(item, t)}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={item.identifier || 'ORCID'}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.affiliation')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={item.affiliation || 'N/A'}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                    {t('docid_page.modal.creator_fields.role')}
+                                  </Typography>
+                                  <TextField
+                                    fullWidth
+                                    value={getRoleName(item.role)}
+                                    InputProps={{ readOnly: true, disableUnderline: true }}
+                                    variant="filled"
+                                    size="small"
+                                    sx={{ '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                  />
+                                </Grid>
+                              </>
+                            )}
                           </Grid>
                         </Box>
                 ))}
