@@ -1,8 +1,8 @@
-"""Add Book, Masters Thesis and PhD Thesis resource types
+"""Add Masters Thesis and PhD Thesis resource types
 
-Requested by client amendment: the publication-type dropdown needs Book and the
-two thesis levels so that monographs and postgraduate research can be minted
-under their own type instead of being filed as something else.
+Requested by client amendment: the publication-type dropdown needs the two
+thesis levels so that postgraduate research can be minted under its own type
+instead of being filed as something else.
 
 Inserted by NAME rather than id, because the environments genuinely hold
 different resource-type sets (production runs the Indigenous Knowledge / Patent
@@ -25,7 +25,6 @@ depends_on = None
 # Reuses icons already shipped in the frontend bundle — no new binary assets.
 # Theses share the universities icon; swap these paths if dedicated artwork lands.
 NEW_RESOURCE_TYPES = [
-    ('Book', '/assets/images/research-icon.png'),
     ('Masters Thesis', '/assets/images/universities-icon.png'),
     ('PhD Thesis', '/assets/images/universities-icon.png'),
 ]

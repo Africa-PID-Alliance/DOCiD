@@ -90,7 +90,6 @@ def seed():
             {'resource_type': 'Project'},
             {'resource_type': 'Funder'},
             {'resource_type': 'DMP (Data Management Plan)'},
-            {'resource_type': 'Manuscripts'},
         ]
 
         try:
@@ -235,6 +234,7 @@ def seed():
         # PublicationTypes
 
         publication_types_data = [
+            {'publication_type_name': 'Book'},
             {'publication_type_name': 'Article'},
             {'publication_type_name': 'Book Chapter'},
             {'publication_type_name': 'Chapter'},
