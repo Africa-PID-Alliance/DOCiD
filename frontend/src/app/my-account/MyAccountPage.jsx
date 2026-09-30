@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Container,
@@ -69,6 +69,7 @@ const MyAccountPage = () => {
   const [userStatistics, setUserStatistics] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [publicationToDelete, setPublicationToDelete] = useState(null);
   const [userDrafts, setUserDrafts] = useState([]);
@@ -79,6 +80,7 @@ const MyAccountPage = () => {
   const [draftsPage, setDraftsPage] = useState(1);
   const itemsPerPage = 5;
   const [userAccountType, setUserAccountType] = useState('');
+  const [accountTypesList, setAccountTypesList] = useState([]);
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
@@ -95,6 +97,7 @@ const MyAccountPage = () => {
     x_profile_link: '',
     instagram_profile_link: '',
     github_profile_link: '',
+    accountTypeId: '',
     profileImage: null
   });
 
@@ -175,6 +178,7 @@ const MyAccountPage = () => {
     x_profile_link: profile?.x_profile_link || '',
     instagram_profile_link: profile?.instagram_profile_link || '',
     github_profile_link: profile?.github_profile_link || '',
+    accountTypeId: profile?.account_type_id ?? '',
     profileImage: null
   });
 
@@ -186,9 +190,14 @@ const MyAccountPage = () => {
         ...storedUser,
         full_name: userData.full_name ?? storedUser.full_name,
         email: userData.email ?? storedUser.email,
-        avator: userData.avator ?? storedUser.avator,
+        avator: userData.avator !== undefined ? userData.avator : storedUser.avator,
         affiliation: userData.affiliation ?? storedUser.affiliation,
-        account_type_name: userData.account_type_name ?? storedUser.account_type_name,
+        account_type_name: userData.account_type_name !== undefined
+          ? userData.account_type_name
+          : storedUser.account_type_name,
+        account_type_id: userData.account_type_id !== undefined
+          ? userData.account_type_id
+          : storedUser.account_type_id,
       }));
     } catch (error) {
       console.warn('Failed to persist local user profile:', error);
@@ -200,8 +209,8 @@ const MyAccountPage = () => {
     setProfileData((prev) => ({ ...(prev || {}), ...userData }));
     dispatch(updateUserProfile(userData));
     persistLocalUser(userData);
-    if (userData.account_type_name) {
-      setUserAccountType(userData.account_type_name);
+    if (userData.account_type_name !== undefined) {
+      setUserAccountType(userData.account_type_name || '');
     }
   };
 
@@ -264,11 +273,19 @@ const MyAccountPage = () => {
       await uploadAvatarFile(file);
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      alert(error.response?.data?.error || 'Failed to update profile picture. Please try again.');
+      alert(error.response?.data?.error || error.response?.data?.message || 'Failed to update profile picture. Please try again.');
     } finally {
       setUploadingAvatar(false);
     }
   };
+
+  const handleAvatarInputClick = () => {
+    if (!uploadingAvatar) {
+      avatarInputRef.current?.click();
+    }
+  };
+
+  const currentAvatarSrc = profileData?.avator || user?.picture || '/default-avatar.png';
 
   const handleUpdateProfile = async (e) => {
     // Prevent default form submission if event is passed
@@ -295,6 +312,9 @@ const MyAccountPage = () => {
         x_profile_link: editFormData.x_profile_link,
         instagram_profile_link: editFormData.instagram_profile_link,
         github_profile_link: editFormData.github_profile_link,
+        ...(editFormData.accountTypeId !== '' && editFormData.accountTypeId !== null
+          ? { account_type_id: Number(editFormData.accountTypeId) }
+          : {}),
       };
 
       const response = await axios.put(
@@ -449,6 +469,19 @@ const MyAccountPage = () => {
       setLoadingOrcid(false);
     }
   };
+
+  useEffect(() => {
+    const fetchAccountTypes = async () => {
+      try {
+        const response = await axios.get('/api/auth/get-list-account-types');
+        setAccountTypesList(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error('Error fetching account types:', error);
+      }
+    };
+
+    fetchAccountTypes();
+  }, []);
 
   // Fetch account type from localStorage and ORCID data when component mounts
   useEffect(() => {
@@ -1605,6 +1638,24 @@ const MyAccountPage = () => {
                 sx={editFieldSx}
               />
             </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>{t('my_account.form.select_account_type')}</InputLabel>
+                <Select
+                  name="accountTypeId"
+                  value={editFormData.accountTypeId}
+                  onChange={handleEditFormChange}
+                  label={t('my_account.form.select_account_type')}
+                  sx={editFieldSx}
+                >
+                  {accountTypesList.map((accountType) => (
+                    <MenuItem key={accountType.id} value={accountType.id}>
+                      {accountType.account_type_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
 
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mt: 0.5 }}>
@@ -1706,7 +1757,7 @@ const MyAccountPage = () => {
         </Box>
       </Box>
     </Modal>
-  ), [openEditModal, editFormData, profileData, user, theme, t, editFieldSx, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
+  ), [openEditModal, editFormData, profileData, user, theme, t, editFieldSx, accountTypesList, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
 
   // Show loading state while checking authentication
   if (!isAuthenticated) {
@@ -1742,15 +1793,22 @@ const MyAccountPage = () => {
               }}
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+                <input
+                  ref={avatarInputRef}
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCardAvatarChange}
+                />
                 <Badge
                   overlap="circular"
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                   badgeContent={
                     <IconButton
-                      component="label"
                       size="small"
                       disabled={uploadingAvatar}
                       aria-label="Upload profile picture"
+                      onClick={handleAvatarInputClick}
                       sx={{
                         width: 32,
                         height: 32,
@@ -1762,18 +1820,12 @@ const MyAccountPage = () => {
                       }}
                     >
                       <PhotoCameraIcon sx={{ fontSize: 16 }} />
-                      <input
-                        hidden
-                        type="file"
-                        accept="image/*"
-                        onChange={handleCardAvatarChange}
-                      />
                     </IconButton>
                   }
                 >
                   <Box sx={{ position: 'relative' }}>
                     <Avatar
-                      src={profileData?.avator || user?.picture || '/default-avatar.png'}
+                      src={currentAvatarSrc}
                       alt={profileData?.full_name || user?.name || 'User'}
                       sx={{ width: 100, height: 100 }}
                     />
@@ -1794,9 +1846,26 @@ const MyAccountPage = () => {
                     )}
                   </Box>
                 </Badge>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, mb: 0.5 }}>
-                  Change photo
-                </Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  disabled={uploadingAvatar}
+                  onClick={handleAvatarInputClick}
+                  sx={{
+                    mt: 1,
+                    mb: 0.5,
+                    minWidth: 0,
+                    px: 1,
+                    py: 0.25,
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
+                    color: '#1565c0',
+                    textTransform: 'none',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {t('my_account.change_photo')}
+                </Button>
                 <Typography variant="h6" fontWeight={600}>
                   {profileData?.full_name || user?.name }
                 </Typography>

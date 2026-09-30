@@ -171,6 +171,7 @@ const translations = {
   "update_profile_btn": "UPDATE PROFILE",
   "edit_profile": "Edit Profile",
   "verified_account": "Verified Account",
+  "change_photo": "Change photo",
   "loading": "Loading...",
   "categories": {
     "total_docids": "Total DOCiD™s",
@@ -226,6 +227,7 @@ const translations = {
   "form": {
     "select_faculty": "Select Faculty",
     "select_country": "Select Country",
+    "select_account_type": "Account Type",
     "phone": "Phone",
     "no_file_chosen": "No file chosen"
   },
