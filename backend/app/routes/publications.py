@@ -15,9 +15,9 @@ from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifie
 # from app.service_codra import update_object
 from app.service_identifiers import IdentifierService
 from app.utils_checksum import checksum_fields_for_upload, external_checksum_fields
-from sqlalchemy import desc, func, or_
+from sqlalchemy import and_, desc, func, or_
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 import re
 import json
@@ -89,6 +89,35 @@ def _resolve_publication_poster(pub):
     if resource_type and getattr(resource_type, 'default_poster_url', None):
         return resource_type.default_poster_url  # already a relative /assets/... path
     return None
+
+
+def _parse_modified_since(raw_modified_since):
+    """Parse the get-publications ``modified_since`` filter into a naive UTC datetime.
+
+    Accepts ISO 8601 (``2026-10-06``, ``2026-10-06T08:00:00``, ``...Z`` or
+    ``...+03:00``) or Unix seconds. Naive inputs are taken as UTC, matching how
+    ``Publications.updated_at`` is stored. Raises ValueError on anything else.
+    """
+    raw_value = raw_modified_since.strip()
+    if re.fullmatch(r'\d{9,11}', raw_value):
+        return datetime.utcfromtimestamp(int(raw_value))
+    parsed_value = datetime.fromisoformat(raw_value.replace('Z', '+00:00'))
+    if parsed_value.tzinfo is not None:
+        parsed_value = parsed_value.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed_value
+
+
+def _utc_isoformat(naive_utc_datetime):
+    """Serialise a naive-UTC DB timestamp with an explicit Z so clients don't read it as local time."""
+    return naive_utc_datetime.isoformat() + 'Z' if naive_utc_datetime else None
+
+
+def _parse_sync_cursor(raw_cursor):
+    """Split a delta-sync cursor ("<changed_at ISO>|<publication id>") into (datetime, id)."""
+    raw_changed_at, separator, raw_publication_id = raw_cursor.strip().rpartition('|')
+    if not separator:
+        raise ValueError('cursor must be "<changed_at>|<id>"')
+    return _parse_modified_since(raw_changed_at), int(raw_publication_id)
 
 
 NATIONAL_ID_IDENTIFIER_TYPE = 'national_id'
@@ -573,11 +602,31 @@ def get_all_publications():
       - in: query
         name: sort
         type: string
-        description: Sorting criteria (e.g., "published" or "title"). Default is "published".
+        description: Sorting criteria ("published", "title", "id" or "updated_at"). Default is "published", or "updated_at" when modified_since is set.
       - in: query
         name: order
         type: string
-        description: Sorting order ("asc" for ascending, "desc" for descending). Default is "desc".
+        description: Sorting order ("asc" for ascending, "desc" for descending). Default is "desc", or "asc" when modified_since is set.
+      - in: query
+        name: modified_since
+        type: string
+        description: >
+          Delta sync. ISO 8601 date/datetime (UTC if no offset) or Unix seconds.
+          Returns publications created, edited or retired at or after this time,
+          always ordered by (changed_at, id) ascending; sort/order are ignored.
+          Retired publications are returned as tombstones
+          ({id, docid, deleted: true, deleted_at, changed_at}) so mirrors can
+          drop them. resource_type_counts and account_type_counts are not
+          computed in this mode.
+      - in: query
+        name: cursor
+        type: string
+        description: >
+          Delta sync only. Pass back next_cursor from the previous response to
+          fetch the next page; page is ignored in delta mode, because offsets
+          skip rows edited mid-sync while the cursor re-sends them. next_cursor
+          is null on the last page; keep the last changed_at seen as the next
+          modified_since.
     responses:
       200:
         description: List of publications (with optional filters, pagination, and sorting)
@@ -647,16 +696,40 @@ def get_all_publications():
         # Optional filter by resource_type_id (supports multiple values)
         resource_type_ids = request.args.getlist('resource_type_id')
 
-        # Sorting parameters
-        sort_field = request.args.get('sort', 'published')  # Default sort field is 'published'
-        order = request.args.get('order', 'desc')  # Default sort order is descending
+        # Optional delta-sync filter: only publications changed at/after this time
+        raw_modified_since = request.args.get('modified_since', '').strip()
+        modified_since = None
+        if raw_modified_since:
+            try:
+                modified_since = _parse_modified_since(raw_modified_since)
+            except (ValueError, OverflowError, OSError):
+                return jsonify({'message': 'Invalid modified_since (use ISO 8601, e.g. 2026-10-06T08:00:00Z, or Unix seconds)'}), 400
+        is_delta_sync = modified_since is not None
+
+        # Keyset cursor for delta sync: resume strictly after the last row seen.
+        # Unlike page offsets, rows edited mid-sync move past the cursor and are
+        # re-sent rather than shifting earlier rows out of view.
+        raw_sync_cursor = request.args.get('cursor', '').strip()
+        sync_cursor = None
+        if raw_sync_cursor:
+            if not is_delta_sync:
+                return jsonify({'message': 'cursor requires modified_since'}), 400
+            try:
+                sync_cursor = _parse_sync_cursor(raw_sync_cursor)
+            except (ValueError, OverflowError, OSError):
+                return jsonify({'message': 'Invalid cursor (pass back next_cursor unchanged)'}), 400
+
+        # Sorting parameters. Delta sync always walks oldest change first (then
+        # id) so checkpoints and cursors can never skip a row; sort/order are ignored.
+        sort_field = 'updated_at' if is_delta_sync else request.args.get('sort', 'published')
+        order = 'asc' if is_delta_sync else request.args.get('order', 'desc')
 
         # Validate sort order
         if order not in ['asc', 'desc']:
             return jsonify({'message': 'Invalid order parameter (must be "asc" or "desc")'}), 400
 
         # Validate and set sort field
-        valid_sort_fields = ['published', 'title', 'id']
+        valid_sort_fields = ['published', 'title', 'id', 'updated_at']
         if sort_field not in valid_sort_fields:
             return jsonify({'message': f'Invalid sort field (must be one of {valid_sort_fields})'}), 400
 
@@ -665,9 +738,17 @@ def get_all_publications():
         if search_field not in valid_search_fields:
             return jsonify({'message': f'Invalid search_field (must be one of {valid_search_fields})'}), 400
 
+        # Rows that predate updated_at tracking fall back to their publish time.
+        last_changed_at = func.coalesce(Publications.updated_at, Publications.published)
+
         # Build the query using the Publications model
-        # Soft-delete: exclude retired (tombstoned) records from every list response.
-        query = Publications.query.filter(Publications.deleted_at.is_(None))
+        if is_delta_sync:
+            # Delta sync keeps retired rows (serialised as tombstones below) so
+            # mirrors learn about retirements instead of silently keeping them.
+            query = Publications.query.filter(last_changed_at >= modified_since)
+        else:
+            # Soft-delete: exclude retired (tombstoned) records from every list response.
+            query = Publications.query.filter(Publications.deleted_at.is_(None))
         if current_user_id is not None:
             query = query.filter(Publications.user_id == current_user_id)
         needs_distinct = False
@@ -718,16 +799,21 @@ def get_all_publications():
                 AccountTypes, UserAccount.account_type_id == AccountTypes.id
             ).filter(AccountTypes.account_type_name.ilike(account_type_filter))
 
-        # Compute resource type counts (after search filter, before resource_type filter)
-        if needs_distinct:
-            count_query = query.with_entities(
-                Publications.resource_type_id, func.count(func.distinct(Publications.id))
-            ).group_by(Publications.resource_type_id)
+        # Compute resource type counts (after search filter, before resource_type filter).
+        # Skipped for delta sync: sync clients don't use facets and the GROUP BY
+        # is the most expensive part of each page.
+        if is_delta_sync:
+            resource_type_counts = {}
         else:
-            count_query = query.with_entities(
-                Publications.resource_type_id, func.count(Publications.id)
-            ).group_by(Publications.resource_type_id)
-        resource_type_counts = {str(rt_id): count for rt_id, count in count_query.all()}
+            if needs_distinct:
+                count_query = query.with_entities(
+                    Publications.resource_type_id, func.count(func.distinct(Publications.id))
+                ).group_by(Publications.resource_type_id)
+            else:
+                count_query = query.with_entities(
+                    Publications.resource_type_id, func.count(Publications.id)
+                ).group_by(Publications.resource_type_id)
+            resource_type_counts = {str(rt_id): count for rt_id, count in count_query.all()}
 
         # Apply resource type filter
         if resource_type_ids:
@@ -737,10 +823,13 @@ def get_all_publications():
             except ValueError:
                 return jsonify({'message': 'Invalid resource_type_id (must be an integer)'}), 400
 
-        # Apply sorting
-        sort_column = getattr(Publications, sort_field)
+        # Apply sorting. id is a tiebreaker so rows sharing a timestamp keep a
+        # stable order across pages (bulk imports share updated_at values).
+        sort_column = last_changed_at if sort_field == 'updated_at' else getattr(Publications, sort_field)
+        tiebreak_column = Publications.id
         if order == 'desc':
             sort_column = desc(sort_column)
+            tiebreak_column = desc(tiebreak_column)
 
         # Apply sorting and pagination
         offset = (page - 1) * page_size
@@ -751,16 +840,44 @@ def get_all_publications():
             if current_user_id is not None:
                 query = query.filter(Publications.user_id == current_user_id)
 
+        # Count before the cursor filter so total reflects the whole delta window.
+        total_publications = query.count()
+        page_query = query
+        fetch_size = page_size
+        if is_delta_sync:
+            # Delta sync pages only by cursor (page is ignored): offsets skip rows
+            # when a row on an earlier page is edited mid-sync. One extra row
+            # tells us whether a next page exists.
+            offset = 0
+            fetch_size = page_size + 1
+            if sync_cursor is not None:
+                cursor_changed_at, cursor_publication_id = sync_cursor
+                page_query = page_query.filter(or_(
+                    last_changed_at > cursor_changed_at,
+                    and_(last_changed_at == cursor_changed_at, Publications.id > cursor_publication_id),
+                ))
+
         publications = (
-            query.order_by(sort_column)
-            .limit(page_size)
+            page_query.order_by(sort_column, tiebreak_column)
+            .limit(fetch_size)
             .offset(offset)
             .all()
         )
+        has_more_delta_rows = is_delta_sync and len(publications) > page_size
+        publications = publications[:page_size]
 
         # See module-level _absolute_upload_url / _resolve_publication_avatar for
         # the URL normalization rules and per-host UPLOADS_BASE_URL override.
         data_list = [
+            {
+                # Retired publication in a delta-sync page: identity and timing only.
+                'id': pub.id,
+                'docid': pub.document_docid,
+                'deleted': True,
+                'deleted_at': _utc_isoformat(pub.deleted_at),
+                'changed_at': _utc_isoformat(pub.updated_at or pub.published),
+            }
+            if pub.deleted_at is not None else
             {
                 'id': pub.id,
                 'title': pub.document_title,
@@ -774,19 +891,38 @@ def get_all_publications():
                 'avatar': _resolve_publication_avatar(pub),
                 'published_isoformat': pub.published.isoformat() if pub.published else None,
                 'published': int(pub.published.timestamp()) if pub.published else None,  # Converted to Unix timestamp
-                'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None
+                'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None,
+                # Effective change time (falls back to published for rows that
+                # predate updated_at tracking); delta-sync clients checkpoint on it.
+                'changed_at': _utc_isoformat(pub.updated_at or pub.published),
+                'deleted': False,
             }
             for pub in publications
         ]
 
         # Pagination metadata
-        total_publications = query.count()
         pagination = {
             'total': total_publications,
             'page': page,
             'page_size': page_size,
             'total_pages': (total_publications + page_size - 1) // page_size
         }
+
+        if is_delta_sync:
+            # A full page means there may be more: hand back the last row's position.
+            next_cursor = None
+            if has_more_delta_rows:
+                last_publication = publications[-1]
+                last_changed = last_publication.updated_at or last_publication.published
+                next_cursor = f"{_utc_isoformat(last_changed)}|{last_publication.id}"
+            return jsonify({
+                'data': data_list,
+                'pagination': pagination,
+                'modified_since': _utc_isoformat(modified_since),
+                'next_cursor': next_cursor,
+                'resource_type_counts': resource_type_counts,
+                'account_type_counts': {}
+            }), 200
 
         # Compute account type counts (individual vs institutional)
         # Use OUTER JOIN to AccountTypes so users without account_type_id are included
