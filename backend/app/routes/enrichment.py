@@ -496,7 +496,9 @@ def publication_jsonld(publication_id):
                 continue
             author = {'@type': 'Person', 'name': name}
             identifier = getattr(creator, 'identifier', None)
-            if identifier:
+            identifier_type = (getattr(creator, 'identifier_type', None) or '').strip().lower()
+            # A national ID is personal data, not a resolvable profile URL.
+            if identifier and identifier_type != 'national_id':
                 author['sameAs'] = identifier
             creators_list.append(author)
 

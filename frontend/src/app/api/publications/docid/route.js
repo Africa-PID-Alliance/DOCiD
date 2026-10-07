@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiV1BaseUrl } from '@/lib/apiBase';
-import { enrichPublicationNationalIdCountries } from '@/lib/enrichNationalIdCreatorCountries';
 
 export async function GET(request) {
   try {
@@ -54,12 +53,7 @@ export async function GET(request) {
       );
     }
 
-    let data = await response.json();
-    const authorizationHeader = request.headers.get('authorization') || request.headers.get('Authorization') || '';
-    data = await enrichPublicationNationalIdCountries(data, {
-      apiBaseUrl: baseUrl,
-      authorizationHeader,
-    });
+    const data = await response.json();
 
     return NextResponse.json(data, {
       status: 200,

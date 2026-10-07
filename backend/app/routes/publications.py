@@ -167,6 +167,53 @@ def _redact_national_ids(publication_dict, pub):
     return publication_dict
 
 
+def _normalize_person_name(name):
+    return ' '.join(str(name or '').split()).lower()
+
+
+def _national_id_creator_countries(creators):
+    """Resolve {creator.id: country} for national-ID creators.
+
+    Country is not a publication_creators column; it lives only in the
+    NationalIdResearcher registry, whose key is (national_id_number, country).
+    Saving a creator upserts (number, submitted country), so a number registered
+    in one country only resolves to it. A number registered in several countries
+    is narrowed by the creator's name, and anything still ambiguous gets no
+    country rather than a guess. Must run on raw ORM identifiers, before
+    _redact_national_ids masks them.
+    """
+    national_id_creators = [
+        creator for creator in (creators or [])
+        if (getattr(creator, 'identifier_type', None) or '').strip().lower() == NATIONAL_ID_IDENTIFIER_TYPE
+        and creator.identifier
+    ]
+    if not national_id_creators:
+        return {}
+
+    registry_rows = NationalIdResearcher.query.filter(
+        NationalIdResearcher.national_id_number.in_({creator.identifier.strip() for creator in national_id_creators})
+    ).all()
+    registry_rows_by_number = {}
+    for researcher in registry_rows:
+        registry_rows_by_number.setdefault(researcher.national_id_number, []).append(researcher)
+
+    country_by_creator_id = {}
+    for creator in national_id_creators:
+        candidate_rows = registry_rows_by_number.get(creator.identifier.strip(), [])
+        matched_countries = {researcher.country for researcher in candidate_rows}
+        if len(matched_countries) > 1:
+            creator_display_name = _normalize_person_name(
+                ' '.join(filter(None, [creator.given_name, creator.family_name]))
+            )
+            matched_countries = {
+                researcher.country for researcher in candidate_rows
+                if _normalize_person_name(researcher.name) == creator_display_name
+            }
+        if len(matched_countries) == 1:
+            country_by_creator_id[creator.id] = next(iter(matched_countries))
+    return country_by_creator_id
+
+
 def _normalize_publication_dict(publication_dict, pub=None):
     """In-place rewrite of poster/avatar URLs on a detail-endpoint response dict.
 
@@ -1132,6 +1179,7 @@ def get_publication(publication_id):
             } for doc in data.publication_documents
         ]
 
+        national_id_country_by_creator_id = _national_id_creator_countries(data.publication_creators)
         publication_dict['publication_creators'] = [
             {
                 'id': creator.id,
@@ -1140,7 +1188,8 @@ def get_publication(publication_id):
                 'identifier': creator.identifier,
                 'role': creator.role_id,
                 'identifier_type': getattr(creator, 'identifier_type', None),
-                'affiliation': creator.affiliation
+                'affiliation': creator.affiliation,
+                'country': national_id_country_by_creator_id.get(creator.id),
             } for creator in data.publication_creators
         ]
 
@@ -1330,6 +1379,7 @@ def get_publication_by_docid_prefix():
             } for doc in data.publication_documents
         ]
 
+        national_id_country_by_creator_id = _national_id_creator_countries(data.publication_creators)
         publication_dict['publication_creators'] = [
             {
                 'id': creator.id,
@@ -1338,7 +1388,8 @@ def get_publication_by_docid_prefix():
                 'identifier': creator.identifier,
                 'role': creator.role_id,
                 'identifier_type': getattr(creator, 'identifier_type', None),
-                'affiliation': creator.affiliation
+                'affiliation': creator.affiliation,
+                'country': national_id_country_by_creator_id.get(creator.id),
             } for creator in data.publication_creators
         ]
 
@@ -1534,6 +1585,7 @@ def get_publication_by_docid_simple(document_docid):
             } for doc in data.publication_documents
         ]
 
+        national_id_country_by_creator_id = _national_id_creator_countries(data.publication_creators)
         publication_dict['publication_creators'] = [
             {
                 'id': creator.id,
@@ -1542,7 +1594,8 @@ def get_publication_by_docid_simple(document_docid):
                 'identifier': creator.identifier,
                 'role': creator.role_id,
                 'identifier_type': getattr(creator, 'identifier_type', None),
-                'affiliation': creator.affiliation
+                'affiliation': creator.affiliation,
+                'country': national_id_country_by_creator_id.get(creator.id),
             } for creator in data.publication_creators
         ]
 
@@ -3360,23 +3413,7 @@ def get_publication_for_edit(publication_id):
             } for doc in data.publication_documents
         ]
         
-        # Country for national-ID creators lives only in the NationalIdResearcher
-        # registry (it is not a publication_creators column), so batch-resolve it
-        # for the edit form's National ID panel.
-        _national_id_numbers = [
-            creator.identifier for creator in data.publication_creators
-            if (getattr(creator, 'identifier_type', None) or '') == 'national_id' and creator.identifier
-        ]
-        _national_registry_country = {}
-        if _national_id_numbers:
-            # The registry key is (national_id_number, country); the creator row
-            # stores only the number, so an ID registered in several countries is
-            # ambiguous here. Order by id so the earliest registration wins
-            # deterministically rather than by arbitrary query order.
-            for researcher in NationalIdResearcher.query.filter(
-                NationalIdResearcher.national_id_number.in_(_national_id_numbers)
-            ).order_by(NationalIdResearcher.id).all():
-                _national_registry_country.setdefault(researcher.national_id_number, researcher.country)
+        national_id_country_by_creator_id = _national_id_creator_countries(data.publication_creators)
 
         publication_dict['publication_creators'] = [
             {
@@ -3387,8 +3424,7 @@ def get_publication_for_edit(publication_id):
                 'role': creator.role_id,
                 'identifier_type': getattr(creator, 'identifier_type', None),
                 'affiliation': getattr(creator, 'affiliation', None),
-                'country': _national_registry_country.get(creator.identifier)
-                if (getattr(creator, 'identifier_type', None) or '') == 'national_id' else None,
+                'country': national_id_country_by_creator_id.get(creator.id),
             } for creator in data.publication_creators
         ]
         

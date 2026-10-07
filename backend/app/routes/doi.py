@@ -12,7 +12,7 @@ from flasgger import swag_from
 
 # App-specific imports
 from app import db
-from app.routes.publications import _redact_national_ids
+from app.routes.publications import _redact_national_ids, _national_id_creator_countries
 from app.models import (
     DocIdLookup,
     Publications,
@@ -138,6 +138,7 @@ def handle_doi(prefix, suffix):
             } for doc in data.publication_documents
         ]
 
+        national_id_country_by_creator_id = _national_id_creator_countries(data.publication_creators)
         publication_dict['publication_creators'] = [
             {
                 'id': creator.id,
@@ -145,7 +146,8 @@ def handle_doi(prefix, suffix):
                 'given_name': creator.given_name,
                 'identifier': creator.identifier,
                 'identifier_type': getattr(creator, 'identifier_type', None),
-                'role': creator.role_id
+                'role': creator.role_id,
+                'country': national_id_country_by_creator_id.get(creator.id),
             } for creator in data.publication_creators
         ]
 
