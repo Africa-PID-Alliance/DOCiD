@@ -85,6 +85,10 @@ const ListDocIds = () => {
   const searchInputRef = useRef(null);
   const maintainFocusRef = useRef(false);
   const isStateInitialized = useRef(false);
+  // Flips to true one render after the URL values are applied, so the URL sync
+  // effect never writes the default (page 1) state over an incoming ?page=N.
+  const [hasAppliedUrlState, setHasAppliedUrlState] = useState(false);
+  const [jumpToPageInput, setJumpToPageInput] = useState('');
 
   // Wait for Redux Persist to rehydrate before checking authentication
   useEffect(() => {
@@ -132,12 +136,14 @@ const ListDocIds = () => {
           console.error('Error parsing resource types from URL:', e);
         }
       }
-      if (urlPage) {
-        setPagination(prev => ({ ...prev, page: parseInt(urlPage, 10) }));
+      const parsedUrlPage = parseInt(urlPage, 10);
+      if (parsedUrlPage > 1) {
+        setPagination(prev => ({ ...prev, page: parsedUrlPage }));
       }
 
-      debouncedSearchQuery.current = urlSearchQuery;
+      debouncedSearchQuery.current = urlSearchQuery.trim();
       isStateInitialized.current = true;
+      setHasAppliedUrlState(true);
     }
   }, [searchParams]);
 
@@ -274,6 +280,11 @@ const ListDocIds = () => {
       clearTimeout(searchTimeout.current);
     }
     const trimmedQuery = searchQuery.trim();
+    // Nothing changed (e.g. this effect re-ran because resource types finished
+    // loading) - don't refetch, or a restored ?page=N would be reset to page 1.
+    if (trimmedQuery === debouncedSearchQuery.current) {
+      return;
+    }
     // Only search when field is cleared or has at least 4 characters
     if (trimmedQuery.length > 0 && trimmedQuery.length < 4) {
       return;
@@ -321,7 +332,7 @@ const ListDocIds = () => {
 
   // Sync URL when filters change
   useEffect(() => {
-    if (isStateInitialized.current) {
+    if (hasAppliedUrlState) {
       updateURL({
         search: searchQuery,
         searchField,
@@ -330,7 +341,26 @@ const ListDocIds = () => {
         page: pagination.page
       });
     }
-  }, [searchQuery, searchField, accountTypeFilter, selectedTypes, pagination.page, updateURL]);
+  }, [hasAppliedUrlState, searchQuery, searchField, accountTypeFilter, selectedTypes, pagination.page, updateURL]);
+
+  const requestedJumpPage = Number(jumpToPageInput);
+  const isJumpPageValid =
+    jumpToPageInput !== '' &&
+    Number.isInteger(requestedJumpPage) &&
+    requestedJumpPage >= 1 &&
+    requestedJumpPage <= pagination.total_pages;
+
+  const handleJumpToPage = (event) => {
+    event.preventDefault();
+    if (!isJumpPageValid) {
+      return;
+    }
+    const requestedPage = requestedJumpPage;
+    setJumpToPageInput('');
+    if (requestedPage !== pagination.page) {
+      fetchPublications(requestedPage);
+    }
+  };
 
   // Update search handler
   const handleSearchChange = (event) => {
@@ -989,7 +1019,10 @@ const ListDocIds = () => {
                     <Box
                       sx={{
                         display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
                         justifyContent: 'center',
+                        gap: 2,
                         mt: 4,
                         mb: 2
                       }}
@@ -1013,6 +1046,30 @@ const ListDocIds = () => {
                           }
                         }}
                       />
+                      <Box
+                        component="form"
+                        onSubmit={handleJumpToPage}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Go to page"
+                          value={jumpToPageInput}
+                          onChange={(event) => setJumpToPageInput(event.target.value)}
+                          inputProps={{ min: 1, max: pagination.total_pages, 'aria-label': 'Page number' }}
+                          helperText={`1 - ${pagination.total_pages}`}
+                          sx={{ width: 130 }}
+                        />
+                        <Button
+                          type="submit"
+                          variant="outlined"
+                          disabled={!isJumpPageValid}
+                          sx={{ alignSelf: 'flex-start', height: 40 }}
+                        >
+                          Go
+                        </Button>
+                      </Box>
                     </Box>
                   )}
                 </>
