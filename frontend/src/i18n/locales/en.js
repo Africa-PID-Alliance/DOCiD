@@ -228,6 +228,10 @@ const translations = {
     "select_faculty": "Select Faculty",
     "select_country": "Select Country",
     "select_account_type": "Account Type",
+    "confirm_account_type_title": "Switch account type?",
+    "confirm_account_type_message": "You are switching from {{from}} to {{to}}. This changes which registries you can deposit to (e.g. DataCite is only available to Institutional accounts). Your login email and password stay the same. Existing DOCiDs are not changed.",
+    "confirm_account_type_cancel": "Cancel",
+    "confirm_account_type_confirm": "Switch and save",
     "phone": "Phone",
     "no_file_chosen": "No file chosen"
   },

@@ -30,6 +30,11 @@ import {
   InputLabel,
   CircularProgress,
   Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
@@ -61,6 +66,7 @@ const MyAccountPage = () => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [accountTypeConfirmOpen, setAccountTypeConfirmOpen] = useState(false);
   const [loadingOrcid, setLoadingOrcid] = useState(false);
   const [orcidData, setOrcidData] = useState(null);
   const [orcidError, setOrcidError] = useState(null);
@@ -1410,6 +1416,19 @@ const MyAccountPage = () => {
     }
   };
 
+  const currentAccountTypeId = profileData?.account_type_id ?? user?.account_type_id ?? null;
+  const isAccountTypeChanged = editFormData.accountTypeId !== ''
+    && editFormData.accountTypeId !== null
+    && Number(editFormData.accountTypeId) !== Number(currentAccountTypeId);
+  const accountTypeNameById = (accountTypeId) => accountTypesList.find(
+    (accountType) => Number(accountType.id) === Number(accountTypeId)
+  )?.account_type_name || t('my_account.basic_info.not_set', 'Not set');
+
+  const handleAccountTypeSwitchConfirm = async () => {
+    setAccountTypeConfirmOpen(false);
+    await handleUpdateProfile();
+  };
+
   // Memoize modal BEFORE any conditional returns (Rules of Hooks)
   const EditProfileModal = useMemo(() => (
     <Modal
@@ -1738,6 +1757,10 @@ const MyAccountPage = () => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (isAccountTypeChanged) {
+                setAccountTypeConfirmOpen(true);
+                return;
+              }
               handleUpdateProfile(e);
             }}
             sx={{
@@ -1757,7 +1780,7 @@ const MyAccountPage = () => {
         </Box>
       </Box>
     </Modal>
-  ), [openEditModal, editFormData, profileData, user, theme, t, editFieldSx, accountTypesList, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile]);
+  ), [openEditModal, editFormData, profileData, user, theme, t, editFieldSx, accountTypesList, handleEditModalClose, handleEditFormChange, handleFileChange, handleUpdateProfile, isAccountTypeChanged]);
 
   // Show loading state while checking authentication
   if (!isAuthenticated) {
@@ -2415,6 +2438,29 @@ const MyAccountPage = () => {
           </Grid>
         </Grid>
         {EditProfileModal}
+        <Dialog
+          open={accountTypeConfirmOpen}
+          onClose={() => setAccountTypeConfirmOpen(false)}
+          sx={{ zIndex: (muiTheme) => muiTheme.zIndex.modal + 1 }}
+        >
+          <DialogTitle>{t('my_account.form.confirm_account_type_title')}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {t('my_account.form.confirm_account_type_message', {
+                from: currentAccountTypeId ? accountTypeNameById(currentAccountTypeId) : t('my_account.basic_info.not_set', 'Not set'),
+                to: accountTypeNameById(editFormData.accountTypeId),
+              })}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAccountTypeConfirmOpen(false)}>
+              {t('my_account.form.confirm_account_type_cancel')}
+            </Button>
+            <Button variant="contained" onClick={handleAccountTypeSwitchConfirm}>
+              {t('my_account.form.confirm_account_type_confirm')}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Delete Confirmation Modal */}
         <Modal

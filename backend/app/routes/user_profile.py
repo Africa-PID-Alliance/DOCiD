@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
-from app.models import UserAccount, Publications
+from app.models import UserAccount, Publications, AccountTypes
 from app.authz import owner_or_admin_required
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from datetime import datetime
@@ -73,6 +73,14 @@ def _save_avatar_file(avatar_file):
     os.makedirs('uploads', exist_ok=True)
     avatar_file.save(f'uploads/{unique_name}')
     return avatar_path
+
+
+def _serialize_profile(user):
+    """user.serialize() plus the account type, so the client can refresh it after a save."""
+    profile_payload = user.serialize()
+    profile_payload['account_type_id'] = user.account_type_id
+    profile_payload['account_type_name'] = user.account_type.account_type_name if user.account_type else None
+    return profile_payload
 
 
 @user_profile_bp.route('/<int:user_id>', methods=['GET'])
@@ -359,6 +367,27 @@ def update_user_profile(user_id):
                 updated_fields.append('role')
                 logger.info(f"Updated role for user_id: {user_id}")
 
+        # Account type switch (Individual <-> Institutional); login credentials are untouched.
+        if 'account_type_id' in data and data['account_type_id'] not in (None, ''):
+            try:
+                requested_account_type_id = int(data['account_type_id'])
+            except (TypeError, ValueError):
+                db.session.rollback()
+                return jsonify({'error': 'Invalid account type'}), 400
+            requested_account_type = db.session.get(AccountTypes, requested_account_type_id)
+            if requested_account_type is None:
+                db.session.rollback()
+                return jsonify({'error': 'Invalid account type'}), 400
+            if user.account_type_id != requested_account_type_id:
+                previous_account_type_name = user.account_type.account_type_name if user.account_type else None
+                user.account_type_id = requested_account_type_id
+                user.account_type = requested_account_type
+                updated_fields.append('account_type_id')
+                logger.info(
+                    f"Account type switched for user_id: {user_id} "
+                    f"from {previous_account_type_name} to {requested_account_type.account_type_name}"
+                )
+
         if avatar_file:
             try:
                 user.avator = _save_avatar_file(avatar_file)
@@ -381,7 +410,7 @@ def update_user_profile(user_id):
             logger.info(f"No changes detected for user_id: {user_id}")
             return jsonify({
                 'message': 'No changes detected',
-                'user_data': user.serialize()
+                'user_data': _serialize_profile(user)
             }), 200
 
         # Commit changes to database
@@ -392,7 +421,7 @@ def update_user_profile(user_id):
         return jsonify({
             'message': 'User profile updated successfully',
             'updated_fields': updated_fields,
-            'user_data': user.serialize()
+            'user_data': _serialize_profile(user)
         }), 200
 
     except IntegrityError as e:
