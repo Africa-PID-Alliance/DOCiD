@@ -53,6 +53,7 @@ import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { getDocIdUrl } from '@/utils/docidUtils';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/context/ToastContext';
 
 const ListDocIds = () => {
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -75,6 +76,7 @@ const ListDocIds = () => {
   const router = useRouter();
   const theme = useTheme();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const searchParams = useSearchParams();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -499,11 +501,7 @@ const ListDocIds = () => {
       // ... rest of your success handling code ...
     } catch (error) {
       console.error('Error adding document:', error);
-      setSnackbar({
-        open: true,
-        message: error.message || 'Failed to add document',
-        severity: 'error'
-      });
+      showToast(error.message || 'Failed to add document', 'error');
     }
   };
 

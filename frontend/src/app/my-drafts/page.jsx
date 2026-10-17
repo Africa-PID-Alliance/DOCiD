@@ -19,9 +19,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Alert,
-  Snackbar
+  DialogActions
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -33,6 +31,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/context/ToastContext';
 
 const MyDrafts = () => {
   const [drafts, setDrafts] = useState([]);
@@ -40,7 +39,7 @@ const MyDrafts = () => {
   const [isRehydrated, setIsRehydrated] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [draftToDelete, setDraftToDelete] = useState(null);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const { showToast } = useToast();
   const router = useRouter();
   const theme = useTheme();
   const { t } = useTranslation();
@@ -85,11 +84,7 @@ const MyDrafts = () => {
         }
       } catch (error) {
         console.error('Error fetching drafts:', error);
-        setNotification({
-          open: true,
-          message: t('drafts.error_load_drafts'),
-          severity: 'error'
-        });
+        showToast(t('drafts.error_load_drafts'), 'error');
         setDrafts([]);
       } finally {
         setIsLoading(false);
@@ -121,18 +116,10 @@ const MyDrafts = () => {
       // Remove draft from local state
       setDrafts(drafts.filter(d => d.id !== draftToDelete.id));
 
-      setNotification({
-        open: true,
-        message: t('drafts.success_delete_draft'),
-        severity: 'success'
-      });
+      showToast(t('drafts.success_delete_draft'), 'success');
     } catch (error) {
       console.error('Error deleting draft:', error);
-      setNotification({
-        open: true,
-        message: t('drafts.error_delete_draft'),
-        severity: 'error'
-      });
+      showToast(t('drafts.error_delete_draft'), 'error');
     } finally {
       setDeleteDialogOpen(false);
       setDraftToDelete(null);
@@ -608,22 +595,6 @@ const MyDrafts = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={() => setNotification({ ...notification, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setNotification({ ...notification, open: false })}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

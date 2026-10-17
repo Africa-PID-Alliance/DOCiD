@@ -20,8 +20,7 @@ import {
   Slide,
   useTheme,
   Modal,
-  Paper,
-  Snackbar
+  Paper
 } from '@mui/material';
 import {
   LockOutlined,
@@ -37,6 +36,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { useToast } from '@/context/ToastContext';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -56,11 +56,7 @@ const LoginPage = () => {
   const [resetEmailError, setResetEmailError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
+  const { showToast } = useToast();
 
   const validateForm = () => {
     const newErrors = {};
@@ -117,11 +113,7 @@ const LoginPage = () => {
 
       if (!response.ok) {
         dispatch(loginFailure(data.error || 'Invalid email or password'));
-        setSnackbar({
-          open: true,
-          message: data.error || 'Invalid email or password',
-          severity: 'error'
-        });
+        showToast(data.error || 'Invalid email or password', 'error');
         return;
       }
 
@@ -144,21 +136,13 @@ const LoginPage = () => {
 
       dispatch(loginSuccess(userData));
 
-      setSnackbar({
-        open: true,
-        message: 'Successfully signed in!',
-        severity: 'success'
-      });
+      showToast('Successfully signed in!', 'success');
 
       // Redirect to list-docids page after successful login
       router.push('/list-docids');
     } catch (error) {
       dispatch(loginFailure('An error occurred during sign in. Please try again.'));
-      setSnackbar({
-        open: true,
-        message: 'An error occurred during sign in. Please try again.',
-        severity: 'error'
-      });
+      showToast('An error occurred during sign in. Please try again.', 'error');
     }
   };
 
@@ -207,11 +191,7 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error("Social login error:", error);
-      setSnackbar({
-        open: true,
-        message: "An error occurred during social login. Please try again.",
-        severity: "error"
-      });
+      showToast("An error occurred during social login. Please try again.", "error");
     }
   };
   
@@ -240,17 +220,9 @@ const LoginPage = () => {
       const message = response.data.message;
 
       if (message === "Email not found for the given type.") {
-        setSnackbar({
-          open: true,
-          message: "Email not found in our database or used as social login",
-          severity: 'warning'
-        });
+        showToast("Email not found in our database or used as social login", 'warning');
       } else if (message === "Email provided does not exists!") {
-        setSnackbar({
-          open: true,
-          message: message,
-          severity: 'warning'
-        });
+        showToast(message, 'warning');
       } else {
         setResetPasswordModal(false);
         setShowSuccessModal(true);
@@ -258,11 +230,7 @@ const LoginPage = () => {
       setResetEmail('');
     } catch (error) {
       console.error("Password reset request error:", error);
-      setSnackbar({
-        open: true,
-        message: "Failed to request password reset.",
-        severity: 'error'
-      });
+      showToast("Failed to request password reset.", 'error');
     } finally {
       setIsResetting(false);
     }
@@ -270,11 +238,7 @@ const LoginPage = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    setSnackbar({
-      open: true,
-      message: 'Successfully logged out!',
-      severity: 'success'
-    });
+    showToast('Successfully logged out!', 'success');
     router.push('/');
   };
 
@@ -810,21 +774,6 @@ const LoginPage = () => {
           </Button>
         </Paper>
       </Modal>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </>
   );
 };

@@ -13,7 +13,6 @@ import {
   Typography,
   Paper,
   Alert,
-  Snackbar,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -28,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useToast } from '@/context/ToastContext';
 
 // Reuse form components from assign-docid
 import DocIDForm from '../assign-docid/components/DocIDForm';
@@ -47,7 +47,7 @@ const VersionDocIDInner = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [parentLoading, setParentLoading] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const { showToast } = useToast();
   const [selectedParent, setSelectedParent] = useState(null);
   const [formData, setFormData] = useState({
     docId: {
@@ -114,11 +114,7 @@ const VersionDocIDInner = () => {
           setActiveStep(1);
         } catch (error) {
           console.error('Failed to auto-select parent from URL:', error);
-          setNotification({
-            open: true,
-            message: 'Could not load the selected DOCiD. Please select manually.',
-            severity: 'warning'
-          });
+          showToast('Could not load the selected DOCiD. Please select manually.', 'warning');
         } finally {
           setParentLoading(false);
         }
@@ -197,18 +193,10 @@ const VersionDocIDInner = () => {
         }
       }));
 
-      setNotification({
-        open: true,
-        message: 'Form pre-filled from parent DOCiD. Generate a new DOCiD and modify fields as needed.',
-        severity: 'info'
-      });
+      showToast('Form pre-filled from parent DOCiD. Generate a new DOCiD and modify fields as needed.', 'info');
     } catch (error) {
       console.error('Failed to fetch parent data:', error);
-      setNotification({
-        open: true,
-        message: 'Failed to load parent DOCiD data for pre-fill.',
-        severity: 'warning'
-      });
+      showToast('Failed to load parent DOCiD data for pre-fill.', 'warning');
     } finally {
       setParentLoading(false);
     }
@@ -217,12 +205,12 @@ const VersionDocIDInner = () => {
   const handleNext = () => {
     // Step 0: must select a parent
     if (activeStep === 0 && !selectedParent) {
-      setNotification({ open: true, message: 'Please select a parent DOCiD first.', severity: 'error' });
+      showToast('Please select a parent DOCiD first.', 'error');
       return;
     }
     // Step 1 (DocID): must generate a new DOCiD
     if (activeStep === 1 && !formData.docId?.generatedId) {
-      alert(t('assign_docid.notifications.generate_first'));
+      showToast(t('assign_docid.notifications.generate_first'), 'warning');
       return;
     }
     setActiveStep((previousStep) => previousStep + 1);
@@ -417,14 +405,10 @@ const VersionDocIDInner = () => {
   const handleStepClick = (step) => {
     // Don't allow skipping past step 0 without selecting parent
     if (step > 0 && !selectedParent) {
-      setNotification({ open: true, message: 'Please select a parent DOCiD first.', severity: 'error' });
+      showToast('Please select a parent DOCiD first.', 'error');
       return;
     }
     setActiveStep(step);
-  };
-
-  const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
   };
 
   const handleSubmitClick = () => {
@@ -444,32 +428,32 @@ const VersionDocIDInner = () => {
     // Validation
     if (!selectedParent) {
       setActiveStep(0);
-      setNotification({ open: true, message: 'Please select a parent DOCiD.', severity: 'error' });
+      showToast('Please select a parent DOCiD.', 'error');
       return;
     }
     if (!formData.docId.resourceType) {
       setActiveStep(1);
-      setNotification({ open: true, message: 'Resource type is required!', severity: 'error' });
+      showToast('Resource type is required!', 'error');
       return;
     }
     if (!formData.docId.generatedId) {
       setActiveStep(1);
-      setNotification({ open: true, message: 'DOCiD is required!', severity: 'error' });
+      showToast('DOCiD is required!', 'error');
       return;
     }
     if (!formData.docId.title) {
       setActiveStep(1);
-      setNotification({ open: true, message: 'Document title is required!', severity: 'error' });
+      showToast('Document title is required!', 'error');
       return;
     }
     if (!formData.docId.description) {
       setActiveStep(1);
-      setNotification({ open: true, message: 'Document description is required!', severity: 'error' });
+      showToast('Document description is required!', 'error');
       return;
     }
     if (!formData.creators?.creators || formData.creators.creators.length === 0) {
       setActiveStep(4);
-      setNotification({ open: true, message: 'Creator(s) are required!', severity: 'error' });
+      showToast('Creator(s) are required!', 'error');
       return;
     }
 
@@ -618,11 +602,7 @@ const VersionDocIDInner = () => {
       );
 
       if (response.status === 200 || response.status === 201) {
-        setNotification({
-          open: true,
-          message: `Version ${response.data.version_number} created successfully!`,
-          severity: 'success'
-        });
+        showToast(`Version ${response.data.version_number} created successfully!`, 'success');
         setActiveStep(steps.length);
         window.location.href = '/list-docids?success=true';
       } else {
@@ -640,11 +620,7 @@ const VersionDocIDInner = () => {
         errorMessage += error.message;
       }
 
-      setNotification({
-        open: true,
-        message: errorMessage,
-        severity: 'error'
-      });
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -823,22 +799,6 @@ const VersionDocIDInner = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
 
       {/* Form container */}
       <Container

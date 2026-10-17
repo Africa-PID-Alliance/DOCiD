@@ -57,11 +57,13 @@ import { allCountries, faculties } from '@/data/locationData';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios'; // Added axios import
 import { updateUserProfile } from '@/redux/slices/authSlice';
+import { useToast } from '@/context/ToastContext';
 
 const MyAccountPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
@@ -279,7 +281,7 @@ const MyAccountPage = () => {
       await uploadAvatarFile(file);
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      alert(error.response?.data?.error || error.response?.data?.message || 'Failed to update profile picture. Please try again.');
+      showToast(error.response?.data?.error || error.response?.data?.message || 'Failed to update profile picture. Please try again.', 'error');
     } finally {
       setUploadingAvatar(false);
     }
@@ -341,7 +343,7 @@ const MyAccountPage = () => {
           applyUpdatedUser(updatedUser);
           setEditFormData(mapProfileToForm({ ...(profileData || {}), ...updatedUser }));
           handleEditModalClose();
-          alert(avatarError.response?.data?.error || 'Profile details saved, but the photo could not be uploaded.');
+          showToast(avatarError.response?.data?.error || 'Profile details saved, but the photo could not be uploaded.', 'warning');
           return;
         }
       }
@@ -350,10 +352,10 @@ const MyAccountPage = () => {
       setEditFormData(mapProfileToForm({ ...(profileData || {}), ...updatedUser }));
       fetchUserStatistics();
       handleEditModalClose();
-      alert('Profile updated successfully!');
+      showToast('Profile updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert(error.response?.data?.error || 'Failed to update profile. Please try again.');
+      showToast(error.response?.data?.error || 'Failed to update profile. Please try again.', 'error');
     }
   };
 
@@ -777,7 +779,7 @@ const MyAccountPage = () => {
         // Refetch statistics
         fetchUserStatistics();
 
-        alert('DOCiD retired successfully.');
+        showToast('DOCiD retired successfully.', 'success');
       }
     } catch (error) {
       console.error('Error deleting publication:', error);
@@ -787,13 +789,13 @@ const MyAccountPage = () => {
 
       // Show appropriate error message
       if (error.response?.status === 401) {
-        alert('Authentication required. Please log in again.');
+        showToast('Authentication required. Please log in again.', 'error');
       } else if (error.response?.status === 403) {
-        alert(errorMessage || 'You do not have permission to retire this DOCiD.');
+        showToast(errorMessage || 'You do not have permission to retire this DOCiD.', 'error');
       } else if (error.response?.status === 404) {
-        alert(errorMessage || 'Publication not found.');
+        showToast(errorMessage || 'Publication not found.', 'error');
       } else {
-        alert(errorMessage || 'Failed to retire DOCiD. Please try again.');
+        showToast(errorMessage || 'Failed to retire DOCiD. Please try again.', 'error');
       }
     } finally {
       setDeleteConfirmOpen(false);
@@ -819,10 +821,10 @@ const MyAccountPage = () => {
       await axios.delete(`/api/publications/draft/${user.email}/${draftToDelete.resource_type_id}`);
 
       setUserDrafts(userDrafts.filter(d => d.id !== draftToDelete.id));
-      alert('Draft deleted successfully!');
+      showToast('Draft deleted successfully!', 'success');
     } catch (error) {
       console.error('Error deleting draft:', error);
-      alert('Failed to delete draft. Please try again.');
+      showToast('Failed to delete draft. Please try again.', 'error');
     } finally {
       setDeleteDraftConfirmOpen(false);
       setDraftToDelete(null);

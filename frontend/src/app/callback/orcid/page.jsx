@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { Backdrop, CircularProgress, TextField, Button, Box, Container, Avatar, Link, Grid, Typography, IconButton, InputAdornment, Snackbar, Alert, Paper, LinearProgress } from "@mui/material";
+import { Backdrop, CircularProgress, TextField, Button, Box, Container, Avatar, Link, Grid, Typography, IconButton, InputAdornment, Paper, LinearProgress } from "@mui/material";
 import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useDispatch, useSelector } from "react-redux";
 import { loginStart, loginSuccess, loginFailure, logout } from '@/redux/slices/authSlice';
 import { updateUser } from "@/redux/dataSlice";
+import { useToast } from "@/context/ToastContext";
 
 const CallbackOrcid = ({ onCallback }) => {
   const router = useRouter();
@@ -25,11 +26,7 @@ const CallbackOrcid = ({ onCallback }) => {
   const [authPhoto, setAuthPhoto] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [data, setData] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info"
-  });
+  const { showToast } = useToast();
 
   const user = useSelector((state) => state.data.user);
   const lang = useSelector((state) => state.data.lang);
@@ -39,17 +36,13 @@ const CallbackOrcid = ({ onCallback }) => {
   useEffect(() => {
     if (user) {
       setLoading(false);
-      setSnackbar({
-        open: true,
-        message: lang === "English" ? "Welcome to the DOCiD™" :
+      showToast(lang === "English" ? "Welcome to the DOCiD™" :
                 lang === "Kiswahili" ? "Karibu kwenye DOCiD™" :
                 lang === "French" ? "Bienvenue sur le DOCiD™" :
                 lang === "Arabic" ? "مرحبا بكم في DOCiD™" :
                 lang === "German" ? "Willkommen beim DOCiD™" :
                 lang === "Portugal" ? "Bem-vindo ao DOCiD™" :
-                "Welcome to the DOCiD™",
-        severity: "success"
-      });
+                "Welcome to the DOCiD™", "success");
       router.push("/list-docids/1");
     }
   }, [user, router, lang]);
@@ -104,11 +97,7 @@ const CallbackOrcid = ({ onCallback }) => {
 
       dispatch(loginSuccess(userData));
 
-      setSnackbar({
-        open: true,
-        message: 'Successfully signed in!',
-        severity: 'success'
-      });
+      showToast('Successfully signed in!', 'success');
 
       // Redirect to list-docids page after successful login
       router.push('/list-docids');
@@ -119,21 +108,13 @@ const CallbackOrcid = ({ onCallback }) => {
       
       // Handle specific error cases
       if (error.response?.data?.error === 'invalid_grant') {
-        setSnackbar({
-          open: true,
-          message: "Your login session has expired. Please try logging in again.",
-          severity: "warning"
-        });
+        showToast("Your login session has expired. Please try logging in again.", "warning");
         // Redirect to login page after a short delay
         setTimeout(() => {
           router.push('/login');
         }, 2000);
       } else {
-        setSnackbar({
-          open: true,
-          message: "Error during authentication. Please try again.",
-          severity: "error"
-        });
+        showToast("Error during authentication. Please try again.", "error");
         // Redirect to login page after a short delay
         setTimeout(() => {
           router.push('/login');

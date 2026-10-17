@@ -7,6 +7,7 @@ import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "@/redux/dataSlice";
 import { loginSuccess } from "@/redux/slices/authSlice";
+import { useToast } from "@/context/ToastContext";
 
 const CallbackGoogle = () => {
   const router = useRouter();
@@ -15,11 +16,7 @@ const CallbackGoogle = () => {
   const [needsRegistration, setNeedsRegistration] = useState(false);
   const dispatch = useDispatch();
   const exchangeAttempted = useRef(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info"
-  });
+  const { showToast } = useToast();
 
   const user = useSelector((state) => state.data.user);
   const lang = useSelector((state) => state.data.lang);
@@ -27,17 +24,13 @@ const CallbackGoogle = () => {
   useEffect(() => {
     if (user) {
       setLoading(false);
-      setSnackbar({
-        open: true,
-        message: lang === "English" ? "Welcome to the DOCiD™" :
+      showToast(lang === "English" ? "Welcome to the DOCiD™" :
           lang === "Kiswahili" ? "Karibu kwenye DOCiD™" :
             lang === "French" ? "Bienvenue sur le DOCiD™" :
               lang === "Arabic" ? "مرحبا بكم في DOCiD™" :
                 lang === "German" ? "Willkommen beim DOCiD™" :
                   lang === "Portugal" ? "Bem-vindo ao DOCiD™" :
-                    "Welcome to the DOCiD™",
-        severity: "success"
-      });
+                    "Welcome to the DOCiD™", "success");
       router.push("/list-docids");
     }
   }, [user, router, lang]);
@@ -81,11 +74,7 @@ const CallbackGoogle = () => {
       // Update the Redux store with user data
       dispatch(loginSuccess(userData));
 
-      setSnackbar({
-        open: true,
-        message: 'Successfully signed in!',
-        severity: 'success'
-      });
+      showToast('Successfully signed in!', 'success');
 
       // Redirect to list-docids page after successful login
       router.push('/list-docids');
@@ -100,27 +89,15 @@ const CallbackGoogle = () => {
       
       // Handle specific error cases
       if (error.message?.includes('Request already processed')) {
-        setSnackbar({
-          open: true,
-          message: "Your login is already being processed. Please wait...",
-          severity: "info"
-        });
+        showToast("Your login is already being processed. Please wait...", "info");
       } else if (error.message?.includes('bad_verification_code') || error.response?.data?.error === 'invalid_grant') {
-        setSnackbar({
-          open: true,
-          message: "Your login session has expired. Please try logging in again.",
-          severity: "warning"
-        });
+        showToast("Your login session has expired. Please try logging in again.", "warning");
         // Redirect to login page after a short delay
         setTimeout(() => {
           router.push('/login');
         }, 2000);
       } else {
-        setSnackbar({
-          open: true,
-          message: "Error during authentication. Please try again.",
-          severity: "error"
-        });
+        showToast("Error during authentication. Please try again.", "error");
         // Redirect to login page after a short delay
         setTimeout(() => {
           router.push('/login');

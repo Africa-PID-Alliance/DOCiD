@@ -13,8 +13,6 @@ import {
   Typography,
   Paper,
   StepIcon,
-  Alert,
-  Snackbar,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -38,6 +36,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useToast } from '@/context/ToastContext';
 
 // Step components will be imported here
 import DocIDForm from './components/DocIDForm';
@@ -62,7 +61,7 @@ const AssignDocID = () => {
   const [isRehydrated, setIsRehydrated] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     docId: {
       title: '',
@@ -94,7 +93,6 @@ const AssignDocID = () => {
   // Draft functionality state
   const [draftStatus, setDraftStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [lastSaved, setLastSaved] = useState(null);
-  const [showDraftNotification, setShowDraftNotification] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const autoSaveIntervalRef = useRef(null);
   const isFormDirty = useRef(false);
@@ -127,7 +125,7 @@ const AssignDocID = () => {
   const handleNext = () => {
     // Check specifically for the generatedId property
     if (activeStep === 0 && !formData.docId?.generatedId) {
-      alert(t('assign_docid.notifications.generate_first'));
+      showToast(t('assign_docid.notifications.generate_first'), 'warning');
       return;
     }
     setActiveStep((prevStep) => prevStep + 1);
@@ -193,11 +191,8 @@ const AssignDocID = () => {
       if (response.data.saved) {
         setDraftStatus('saved');
         setLastSaved(new Date());
-        setShowDraftNotification(true);
+        showToast(t('assign_docid.notifications.draft_saved'), 'success', { autoHideDuration: 3000 });
         isFormDirty.current = false;
-
-        // Hide notification after 3 seconds
-        setTimeout(() => setShowDraftNotification(false), 3000);
       }
     } catch (error) {
       console.error('Draft save failed:', error);
@@ -226,11 +221,7 @@ const AssignDocID = () => {
           setLastSaved(new Date(firstDraft.updated_at));
           setDraftLoaded(true);
 
-          setNotification({
-            open: true,
-            message: `Draft restored from ${new Date(firstDraft.updated_at).toLocaleString()}`,
-            severity: 'info'
-          });
+          showToast(`Draft restored from ${new Date(firstDraft.updated_at).toLocaleString()}`, 'info');
 
           console.log('Draft loaded successfully:', savedFormData);
           return;
@@ -244,11 +235,7 @@ const AssignDocID = () => {
         setDraftLoaded(true);
 
         // Show notification about loaded draft
-        setNotification({
-          open: true,
-          message: `Draft restored from ${new Date(response.data.lastSaved).toLocaleString()}`,
-          severity: 'info'
-        });
+        showToast(`Draft restored from ${new Date(response.data.lastSaved).toLocaleString()}`, 'info');
 
         console.log('Draft loaded successfully:', savedFormData);
       }
@@ -371,20 +358,12 @@ const AssignDocID = () => {
       setActiveStep(0);
 
       // Show success notification
-      setNotification({
-        open: true,
-        message: 'Draft discarded successfully',
-        severity: 'success'
-      });
+      showToast('Draft discarded successfully', 'success');
 
       console.log('Draft discarded successfully');
     } catch (error) {
       console.error('Failed to discard draft:', error);
-      setNotification({
-        open: true,
-        message: 'Failed to discard draft',
-        severity: 'error'
-      });
+      showToast('Failed to discard draft', 'error');
     }
   };
 
@@ -565,10 +544,6 @@ const AssignDocID = () => {
     setActiveStep(step);
   };
 
-  const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
-  };
-
   const handleSubmitClick = () => {
     setOpenConfirmModal(true);
   };
@@ -611,26 +586,26 @@ const AssignDocID = () => {
     // Validation checks
     if (!formData.docId.resourceType) {
       setActiveStep(0);
-      setNotification({ open: true, message: "Resource type is required!", severity: 'error' });
+      showToast("Resource type is required!", 'error');
       return;
     } else if (!formData.docId.generatedId) {
       setActiveStep(0);
-      setNotification({ open: true, message: "DOCiD is required!", severity: 'error' });
+      showToast("DOCiD is required!", 'error');
       return;
     } else if (!formData.docId.title) {
       setActiveStep(0);
-      setNotification({ open: true, message: "Document title is required!", severity: 'error' });
+      showToast("Document title is required!", 'error');
       return;
     } else if (!formData.docId.description) {
       setActiveStep(0);
-      setNotification({ open: true, message: "Document description is required!", severity: 'error' });
+      showToast("Document description is required!", 'error');
       return;
     } else if (
       (!formData.creators?.creators || formData.creators.creators.length === 0) &&
       (!formData.creatorsNationalId?.creators || formData.creatorsNationalId.creators.length === 0)
     ) {
       setActiveStep(3);
-      setNotification({ open: true, message: "Creator(s) are required! Add at least one ORCID or National ID creator.", severity: 'error' });
+      showToast("Creator(s) are required! Add at least one ORCID or National ID creator.", 'error');
       return;
     }
 
@@ -858,11 +833,7 @@ const AssignDocID = () => {
               `${lcFailed.length} Local Contexts project(s) could not be attached. You can retry from Edit.`
             );
           }
-          setNotification({
-            open: true,
-            message: t('assign_docid.notifications.success_assigned'),
-            severity: 'success'
-          });
+          showToast(t('assign_docid.notifications.success_assigned'), 'success');
           // Set flag in sessionStorage before redirecting
           sessionStorage.setItem('fromAssignDocId', 'true');
           // Move to completion step
@@ -893,19 +864,11 @@ const AssignDocID = () => {
 
         console.log("Error message:", error);
 
-        setNotification({
-          open: true,
-          message: errorMessage,
-          severity: 'error'
-        });
+        showToast(errorMessage, 'error');
       }
     } catch (error) {
       console.error("Error in form preparation:", error);
-      setNotification({
-        open: true,
-        message: "Error preparing form data: " + error.message,
-        severity: 'error'
-      });
+      showToast("Error preparing form data: " + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -1172,38 +1135,6 @@ const AssignDocID = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
-
-      {/* Draft notification snackbar */}
-      <Snackbar
-        open={showDraftNotification}
-        autoHideDuration={3000}
-        onClose={() => setShowDraftNotification(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setShowDraftNotification(false)}
-          severity="success"
-          sx={{ width: '100%' }}
-        >
-          {t('assign_docid.notifications.draft_saved')}
-        </Alert>
-      </Snackbar>
 
       {/* Reduced width form container */}
       <Container 

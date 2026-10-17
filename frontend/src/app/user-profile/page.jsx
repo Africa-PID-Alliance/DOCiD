@@ -12,8 +12,6 @@ import {
   Divider,
   TextField,
   CircularProgress,
-  Snackbar,
-  Alert,
   Tabs,
   Tab,
   Card,
@@ -40,6 +38,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { useToast } from '@/context/ToastContext';
 
 const UserProfilePage = () => {
   const router = useRouter();
@@ -52,9 +51,7 @@ const UserProfilePage = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoadingPublications, setIsLoadingPublications] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const { showToast } = useToast();
 
   // User profile data
   const [profileData, setProfileData] = useState(null);
@@ -90,7 +87,7 @@ const UserProfilePage = () => {
       setEditedProfileData(response.data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      showSnackbar('Failed to load user profile', 'error');
+      showToast('Failed to load user profile', 'error');
     } finally {
       setIsLoadingProfile(false);
     }
@@ -118,7 +115,7 @@ const UserProfilePage = () => {
       setPublicationsPagination(response.data.pagination || {});
     } catch (error) {
       console.error('Error fetching user publications:', error);
-      showSnackbar('Failed to load publications', 'error');
+      showToast('Failed to load publications', 'error');
     } finally {
       setIsLoadingPublications(false);
     }
@@ -168,10 +165,10 @@ const UserProfilePage = () => {
       setProfileData(response.data.user_data);
       setEditedProfileData(response.data.user_data);
       setIsEditingProfile(false);
-      showSnackbar('Profile updated successfully', 'success');
+      showToast('Profile updated successfully', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
-      showSnackbar(
+      showToast(
         error.response?.data?.error || 'Failed to update profile',
         'error'
       );
@@ -184,13 +181,6 @@ const UserProfilePage = () => {
   const handleCancelEdit = () => {
     setEditedProfileData(profileData);
     setIsEditingProfile(false);
-  };
-
-  // Show snackbar notification
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
   };
 
   // Handle pagination change
@@ -663,21 +653,6 @@ const UserProfilePage = () => {
           {currentTab === 2 && renderStatisticsTab()}
         </Paper>
 
-        {/* Snackbar for notifications */}
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert
-            onClose={() => setSnackbarOpen(false)}
-            severity={snackbarSeverity}
-            sx={{ width: '100%' }}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
       </Container>
     </Box>
   );

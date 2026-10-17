@@ -27,8 +27,6 @@ import {
   IconButton,
   Chip,
   Stack,
-  Snackbar,
-  Alert,
   Tooltip,
 } from '@mui/material';
 import {
@@ -67,6 +65,7 @@ import { useTranslation } from 'react-i18next';
 import LocalContextsLabels from '@/components/LocalContexts/LocalContextsLabels';
 import MaskedNationalIdField from '@/components/MaskedNationalIdField';
 import { sanitizeRichText } from '@/lib/sanitizeRichText';
+import { useToast } from '@/context/ToastContext';
 
 const IDENTIFIER_TYPE_LABELS = {
   ror: 'ROR',
@@ -157,8 +156,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const [commentSuccess, setCommentSuccess] = useState('');
   const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
   const [filesStats, setFilesStats] = useState({ files: [], documents: [] });
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const { showToast } = useToast();
 
   // Version history state
   const [versionHistory, setVersionHistory] = useState(null);
@@ -765,21 +763,12 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      setSnackbarMessage('Link copied to clipboard!');
-      setSnackbarOpen(true);
+      showToast('Link copied to clipboard!', 'success', { autoHideDuration: 3000 });
       handleShareClose();
     } catch (error) {
       console.error('Failed to copy link:', error);
-      setSnackbarMessage('Failed to copy link');
-      setSnackbarOpen(true);
+      showToast('Failed to copy link', 'error', { autoHideDuration: 3000 });
     }
-  };
-
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
   };
 
   const handleViewSection = (section) => {
@@ -914,7 +903,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
 
     if (!fileUrl) {
       console.error('No file URL provided');
-      alert(t('docid_page.file_errors.no_url'));
+      showToast(t('docid_page.file_errors.no_url'), 'error');
       return;
     }
 
@@ -965,7 +954,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
       const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       if (!baseUrl) {
         console.error('No base URL configured for file downloads');
-        alert(t('docid_page.file_errors.no_config'));
+        showToast(t('docid_page.file_errors.no_config'), 'error');
         return;
       }
 
@@ -998,7 +987,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
         document.body.removeChild(link);
       } catch (downloadError) {
         console.error('Error downloading file:', downloadError);
-        alert(t('docid_page.file_errors.unable_to_open'));
+        showToast(t('docid_page.file_errors.unable_to_open'), 'error');
       }
     }
   };
@@ -1974,8 +1963,7 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                                                   size="small"
                                                   onClick={() => {
                                                     navigator.clipboard?.writeText(checksumInfo.checksum);
-                                                    setSnackbarMessage('Checksum copied to clipboard');
-                                                    setSnackbarOpen(true);
+                                                    showToast('Checksum copied to clipboard', 'success', { autoHideDuration: 3000 });
                                                   }}
                                                   sx={{ minWidth: 'auto', px: 2 }}
                                                 >
@@ -3186,22 +3174,6 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
           </Grid>
         </Grid>
       </Container>
-      
-      {/* Snackbar for copy link notification */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleSnackbarClose} 
-          severity={snackbarMessage.includes('Failed') ? 'error' : 'success'}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

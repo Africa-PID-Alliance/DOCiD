@@ -10,6 +10,7 @@ import I18nProvider from '@/i18n/I18nProvider';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { TenantProvider } from '@/context/TenantContext';
+import { ToastProvider } from '@/context/ToastContext';
 import PreFooter from '@/components/PreFooter/PreFooter';
 import Footer from '@/components/Footer/Footer';
 import { Box } from '@mui/material';
@@ -35,6 +36,7 @@ export default function ClientWrapper({ children, tenant }) {
                     <TenantProvider value={tenant}>
                     <ThemeProvider>
                     <CssBaseline />
+                    <ToastProvider>
                     <I18nProvider>
                         <Box 
                             sx={{ 
@@ -69,6 +71,7 @@ export default function ClientWrapper({ children, tenant }) {
                         </Box>
                         <LanguageSelectionModal />
                     </I18nProvider>
+                    </ToastProvider>
                 </ThemeProvider>
                 </TenantProvider>
                 </AuthRehydrator>

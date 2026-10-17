@@ -49,6 +49,7 @@ import Underline from '@tiptap/extension-underline';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { useToast } from '@/context/ToastContext';
 
 const fontFamilies = [
   { value: 'Inter', label: 'Inter' },
@@ -305,6 +306,7 @@ title={t('assign_docid.docid_form.editor.highlight_color')}
 const DocIDForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const accessToken = useSelector((state) => state.auth?.user?.accessToken);
   const [isGenerated, setIsGenerated] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
@@ -414,11 +416,11 @@ const DocIDForm = ({ formData, updateFormData }) => {
     const normalizedDescriptionContent = formData.description === "<p><br></p>" ? "" : formData.description;
 
     if (!formData.title) {
-      alert(t('assign_docid.docid_form.alerts.enter_title'));
+      showToast(t('assign_docid.docid_form.alerts.enter_title'), 'warning');
       return;
     }
     if (!normalizedDescriptionContent) {
-      alert(t('assign_docid.docid_form.alerts.enter_description'));
+      showToast(t('assign_docid.docid_form.alerts.enter_description'), 'warning');
       return;
     }
 
@@ -446,7 +448,7 @@ console.log(response.data);
       setIsGenerated(true);
     } catch (error) {
       console.error('Error generating DOCiD:', error);
-      alert(t('assign_docid.docid_form.alerts.failed_generate'));
+      showToast(t('assign_docid.docid_form.alerts.failed_generate'), 'error');
     } finally {
       setIsGenerating(false);
     }
