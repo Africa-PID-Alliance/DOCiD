@@ -629,7 +629,10 @@ def get_user_publications(user_id):
                 'avatar': pub.avatar,
                 'published': pub.published.isoformat() if pub.published else None,
                 'updated_at': pub.updated_at.isoformat() if pub.updated_at else None,
-                'updated_by': pub.updated_by
+                'updated_by': pub.updated_by,
+                # Retired records stay in the owner's list so they can be labelled as such
+                'deleted_at': pub.deleted_at.isoformat() + 'Z' if pub.deleted_at else None,
+                'deletion_reason': pub.deletion_reason
             }
             for pub in publications
         ]
@@ -811,21 +814,25 @@ def get_user_statistics(user_id):
             logger.warning(f"User not found: user_id={user_id}")
             return jsonify({'message': 'User not found'}), 404
 
+        # Retired publications are not counted
+        active_publications = Publications.query.filter(
+            Publications.user_id == user_id,
+            Publications.deleted_at.is_(None)
+        )
+
         # Get total publications count
-        total_publications = Publications.query.filter_by(user_id=user_id).count()
+        total_publications = active_publications.count()
 
         # Get publications this year
         from sqlalchemy import extract
         current_year = datetime.utcnow().year
-        publications_this_year = Publications.query.filter(
-            Publications.user_id == user_id,
+        publications_this_year = active_publications.filter(
             extract('year', Publications.published) == current_year
         ).count()
 
         # Get publications this month
         current_month = datetime.utcnow().month
-        publications_this_month = Publications.query.filter(
-            Publications.user_id == user_id,
+        publications_this_month = active_publications.filter(
             extract('year', Publications.published) == current_year,
             extract('month', Publications.published) == current_month
         ).count()

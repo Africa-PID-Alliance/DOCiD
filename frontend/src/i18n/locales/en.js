@@ -240,7 +240,8 @@ const translations = {
     "title": "TITLE",
     "action": "ACTION",
     "my_publications": "My Publications",
-    "no_publications_found": "No publications found"
+    "no_publications_found": "No publications found",
+    "retired": "Retired"
   },
   "common": {
     "no_data_available": "No data available",

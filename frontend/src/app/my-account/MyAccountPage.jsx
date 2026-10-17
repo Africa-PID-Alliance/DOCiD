@@ -768,15 +768,16 @@ const MyAccountPage = () => {
       });
 
       if (response.status === 200) {
-        // Remove from local state
+        // Retiring keeps the record; mark it retired in local state
+        const retiredAt = response.data?.deleted_at || new Date().toISOString();
         setUserPublications(prev =>
-          prev.filter(pub => pub.id !== publicationToDelete.id)
+          prev.map(pub => (pub.id === publicationToDelete.id ? { ...pub, deleted_at: retiredAt } : pub))
         );
 
         // Refetch statistics
         fetchUserStatistics();
 
-        alert('Publication deleted successfully!');
+        alert('DOCiD retired successfully.');
       }
     } catch (error) {
       console.error('Error deleting publication:', error);
@@ -788,11 +789,11 @@ const MyAccountPage = () => {
       if (error.response?.status === 401) {
         alert('Authentication required. Please log in again.');
       } else if (error.response?.status === 403) {
-        alert(errorMessage || 'You do not have permission to delete this publication.');
+        alert(errorMessage || 'You do not have permission to retire this DOCiD.');
       } else if (error.response?.status === 404) {
         alert(errorMessage || 'Publication not found.');
       } else {
-        alert(errorMessage || 'Failed to delete publication. Please try again.');
+        alert(errorMessage || 'Failed to retire DOCiD. Please try again.');
       }
     } finally {
       setDeleteConfirmOpen(false);
@@ -2374,6 +2375,15 @@ const MyAccountPage = () => {
                             >
                               {publication.document_title || publication.title}
                             </Typography>
+                            {publication.deleted_at && (
+                              <Chip
+                                label={t('my_account.table.retired', 'Retired')}
+                                size="small"
+                                color="default"
+                                variant="outlined"
+                                sx={{ mt: 0.5 }}
+                              />
+                            )}
                           </TableCell>
                         <TableCell align="right">
                           <IconButton
@@ -2388,18 +2398,21 @@ const MyAccountPage = () => {
                           >
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(publication)}
-                            sx={{
-                              color: theme.palette.error.main,
-                              '&:hover': {
-                                backgroundColor: alpha(theme.palette.error.main, 0.1)
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          {!publication.deleted_at && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteClick(publication)}
+                              aria-label="Retire DOCiD"
+                              sx={{
+                                color: theme.palette.error.main,
+                                '&:hover': {
+                                  backgroundColor: alpha(theme.palette.error.main, 0.1)
+                                }
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </TableCell>
                       </TableRow>
                       ))
@@ -2481,11 +2494,11 @@ const MyAccountPage = () => {
             outline: 'none',
           }}>
             <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
-              Delete Publication?
+              Retire DOCiD?
             </Typography>
             <Typography sx={{ mb: 3, color: 'text.secondary' }}>
-              Are you sure you want to delete "<strong>{publicationToDelete?.document_title || publicationToDelete?.title}</strong>"?
-              {' '}This action cannot be undone.
+              Are you sure you want to retire "<strong>{publicationToDelete?.document_title || publicationToDelete?.title}</strong>"?
+              {' '}The DOCiD will keep resolving, but its public page will only show a retired notice.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
@@ -2509,7 +2522,7 @@ const MyAccountPage = () => {
                   }
                 }}
               >
-                Delete
+                Retire
               </Button>
             </Box>
           </Box>
