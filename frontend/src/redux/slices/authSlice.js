@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Safe initial state for SSR
-const initialState = {
+// Logged-out state; also what the server renders with
+const loggedOutState = {
   user: {
     accessToken: "",
     refreshToken: "",
@@ -21,26 +21,26 @@ const initialState = {
   language: 'en'
 };
 
+// Restore the saved login when the store is created in the browser, so pages
+// already see it on their first render (a later restore loses the race with
+// pages that redirect to /login when logged out).
+const loadSavedAuthState = () => {
+  if (typeof window === 'undefined') return loggedOutState;
+  const storedAuth = localStorage.getItem('auth');
+  if (!storedAuth) return loggedOutState;
+  try {
+    return { ...loggedOutState, ...JSON.parse(storedAuth) };
+  } catch (error) {
+    console.warn('Failed to parse stored auth state:', error);
+    localStorage.removeItem('auth');
+    return loggedOutState;
+  }
+};
+
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
+  initialState: loadSavedAuthState,
   reducers: {
-    rehydrateAuth: (state) => {
-      // Rehydrate auth state from localStorage after app loads
-      if (typeof window !== 'undefined') {
-        const storedAuth = localStorage.getItem('auth');
-        if (storedAuth) {
-          try {
-            const parsedAuth = JSON.parse(storedAuth);
-            return { ...state, ...parsedAuth };
-          } catch (error) {
-            console.warn('Failed to parse stored auth state:', error);
-            localStorage.removeItem('auth');
-          }
-        }
-      }
-      return state;
-    },
     loginStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -131,7 +131,6 @@ const authSlice = createSlice({
 });
 
 export const {
-  rehydrateAuth,
   loginStart,
   loginSuccess,
   loginFailure,

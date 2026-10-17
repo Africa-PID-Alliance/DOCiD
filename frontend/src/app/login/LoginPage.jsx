@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { loginStart, loginSuccess, loginFailure, logout } from '@/redux/slices/authSlice';
@@ -43,7 +43,7 @@ const LoginPage = () => {
   const router = useRouter();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -57,6 +57,17 @@ const LoginPage = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { showToast } = useToast();
+
+  // Already signed in when the page opens: go to My Account instead of showing
+  // the form. Checked on first load only, so it does not race the redirect that
+  // follows a successful sign-in.
+  const [wasSignedInOnLoad] = useState(isAuthenticated);
+  useEffect(() => {
+    if (wasSignedInOnLoad) {
+      router.replace('/my-account');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -241,6 +252,8 @@ const LoginPage = () => {
     showToast('Successfully logged out!', 'success');
     router.push('/');
   };
+
+  if (wasSignedInOnLoad) return null;
 
   return (
     <>

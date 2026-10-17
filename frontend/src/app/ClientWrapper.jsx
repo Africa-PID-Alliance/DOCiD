@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Provider, useDispatch } from 'react-redux';
+import React from 'react';
+import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '@/redux/store';
-import { rehydrateAuth } from '@/redux/slices/authSlice';
 import Navbar from '@/components/Navbar/Navbar';
 import I18nProvider from '@/i18n/I18nProvider';
 import { CssBaseline } from '@mui/material';
@@ -16,23 +15,12 @@ import Footer from '@/components/Footer/Footer';
 import { Box } from '@mui/material';
 import LanguageSelectionModal from '@/components/LanguageSelector/LanguageSelectionModal';
 
-// Inner component that handles auth rehydration
-function AuthRehydrator({ children }) {
-    const dispatch = useDispatch();
-    
-    useEffect(() => {
-        // Rehydrate auth state from localStorage
-        dispatch(rehydrateAuth());
-    }, [dispatch]);
-    
-    return children;
-}
-
+// The saved login is restored when the store is created (see authSlice),
+// before any page renders.
 export default function ClientWrapper({ children, tenant }) {
     return (
         <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
-                <AuthRehydrator>
                     <TenantProvider value={tenant}>
                     <ThemeProvider>
                     <CssBaseline />
@@ -74,7 +62,6 @@ export default function ClientWrapper({ children, tenant }) {
                     </ToastProvider>
                 </ThemeProvider>
                 </TenantProvider>
-                </AuthRehydrator>
             </PersistGate>
         </Provider>
     );
