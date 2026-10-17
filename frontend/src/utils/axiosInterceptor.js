@@ -86,8 +86,10 @@ axios.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried refreshing yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // If error is 401 and we haven't tried refreshing yet. Auth endpoints are
+    // excluded: a 401 from /api/auth/refresh itself must fall through to the
+    // logout below, not wait in the queue for a refresh that never finishes.
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthenticationExempt(originalRequest.url)) {
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {

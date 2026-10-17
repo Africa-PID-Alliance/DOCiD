@@ -74,6 +74,8 @@ def create_app(test_config=None):
     cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
     CORS(app, origins=[origin.strip() for origin in cors_origins.split(",") if origin.strip()])
     jwt.init_app(app)
+    from app.jwt_callbacks import register_jwt_callbacks
+    register_jwt_callbacks(jwt)
     limiter.init_app(app)
     
     
