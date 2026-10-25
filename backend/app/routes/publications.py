@@ -272,6 +272,17 @@ def clean_undefined_string(value):
     return value
 
 
+def build_raid_link(raid_id):
+    """
+    Return the link stored for a RAiD: full URLs are kept as entered, bare
+    `prefix/suffix` IDs are appended to RAID_LINK_BASE_URL.
+    """
+    if raid_id.startswith('http://') or raid_id.startswith('https://'):
+        return raid_id
+    base_url = Config.RAID_LINK_BASE_URL.rstrip('/')
+    return f"{base_url}/{raid_id}"
+
+
 _REAL_DOI_RE = re.compile(r'^10\.\d+/')
 
 
@@ -2575,15 +2586,8 @@ def create_publication():
             identifier_type = None
             if raid_id:
                 identifier_type = 'raid'
-                # RAID is already a URL, just ensure it's properly formatted
-                if raid_id.startswith('http://') or raid_id.startswith('https://'):
-                    resolvable_identifier = raid_id
-                elif raid_id.startswith('10.'):  # Handle format like 10.80368/b1adfb3a
-                    resolvable_identifier = f"https://app.demo.raid.org.au/raids/{raid_id}"
-                else:
-                    # Assume it's just the ID part
-                    resolvable_identifier = f"https://app.demo.raid.org.au/raids/{raid_id}"
-            
+                resolvable_identifier = build_raid_link(raid_id)
+
             logger.info(f"PublicationProject [{index}]:")
             logger.info(f"  title: {title}")
             logger.info(f"  raid_id: {raid_id}")

@@ -82,6 +82,9 @@ class Config:
     RAID_CLIENT_SECRET = os.getenv('RAID_CLIENT_SECRET')
     RAID_USERNAME = os.getenv('RAID_USERNAME')
     RAID_PASSWORD = os.getenv('RAID_PASSWORD')
+    # Base for the RAiD links stored on projects: https://raid.org/ in production;
+    # demo RAiDs only exist in the login-only demo app.
+    RAID_LINK_BASE_URL = os.getenv('RAID_LINK_BASE_URL') or 'https://app.demo.raid.org.au/raids/'
 
     # Metadata Enrichment Configuration
     OPENALEX_CONTACT_EMAIL = os.getenv('OPENALEX_CONTACT_EMAIL', 'admin@docid.africapidalliance.org')
