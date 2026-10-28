@@ -234,8 +234,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "ចំ ណ ង ជើ ង",
     "action": "ជ ំ ហ ា ន",
-    "my_publications": "ការ ប ោ ះ ព ុ ម្ ព រ ប ស់ ខ្ ញ ុំ",
-    "no_publications_found": "រ ក ម ិ ន ឃើ ញ ការ ប ោ ះ ព ុ ម្ ព"
+    "my_publications": "DOCiD របស់ខ្ញុំ",
+    "no_publications_found": "រកមិនឃើញ DOCiD ទេ"
   },
   "common": {
     "no_data_available": "គ ម ្ ន ទ ិ ន្ ន ន័ យ",

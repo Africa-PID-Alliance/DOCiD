@@ -232,8 +232,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "العنوان",
     "action": "الإجراء",
-    "my_publications": "منشوراتي",
-    "no_publications_found": "لم يتم العثور على منشورات"
+    "my_publications": "معرّفات DOCiD الخاصة بي",
+    "no_publications_found": "لم يتم العثور على معرّفات DOCiD"
   },
   "common": {
     "no_data_available": "لا توجد بيانات متاحة",

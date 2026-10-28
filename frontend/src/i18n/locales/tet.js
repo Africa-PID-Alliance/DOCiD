@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "TÍTULU",
     "action": "ASAUN",
-    "my_publications": "Ha'u-nia Publikasaun",
-    "no_publications_found": "La hetan publikasaun"
+    "my_publications": "Ha'u-nia DOCiD",
+    "no_publications_found": "La hetan DOCiD"
   },
   "common": {
     "no_data_available": "La iha dadus disponível",

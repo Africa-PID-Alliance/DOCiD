@@ -239,8 +239,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "TITLE",
     "action": "ACTION",
-    "my_publications": "My Publications",
-    "no_publications_found": "No publications found",
+    "my_publications": "My DOCiDs",
+    "no_publications_found": "No DOCiDs found",
     "retired": "Retired"
   },
   "common": {

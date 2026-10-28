@@ -232,8 +232,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "TITRE",
     "action": "ACTION",
-    "my_publications": "Mes Publications",
-    "no_publications_found": "Aucune publication trouvée"
+    "my_publications": "Mes DOCiDs",
+    "no_publications_found": "Aucun DOCiD trouvé"
   },
   "common": {
     "no_data_available": "Aucune donnée disponible",

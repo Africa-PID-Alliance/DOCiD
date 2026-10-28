@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "ခေါင်းစဉ်",
     "action": "လုပ်ဆောင်ချက်",
-    "my_publications": "ကျွန်ုပ်၏ ထုတ်ဝေမှုများ",
-    "no_publications_found": "ထုတ်ဝေမှုများ မတွေ့ရှိပါ"
+    "my_publications": "ကျွန်ုပ်၏ DOCiD များ",
+    "no_publications_found": "DOCiD မတွေ့ပါ"
   },
   "common": {
     "no_data_available": "ဒေတာမရှိပါ",

@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "ชื่อเรื่อง",
     "action": "การดำเนินการ",
-    "my_publications": "สิ่งพิมพ์ของฉัน",
-    "no_publications_found": "ไม่พบสิ่งพิมพ์"
+    "my_publications": "DOCiD ของฉัน",
+    "no_publications_found": "ไม่พบ DOCiD"
   },
   "common": {
     "no_data_available": "ไม่มีข้อมูล",
