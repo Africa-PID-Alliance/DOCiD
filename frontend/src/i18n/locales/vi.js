@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "TIÊU ĐỀ",
     "action": "HÀNH ĐỘNG",
-    "my_publications": "Ấn phẩm của tôi",
-    "no_publications_found": "Không tìm thấy ấn phẩm"
+    "my_publications": "DOCiD của tôi",
+    "no_publications_found": "Không tìm thấy DOCiD"
   },
   "common": {
     "no_data_available": "Không có dữ liệu",

@@ -234,8 +234,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "JUDUL",
     "action": "TINDAKAN",
-    "my_publications": "Publikasi Saya",
-    "no_publications_found": "Tidak ada publikasi yang ditemukan"
+    "my_publications": "DOCiD Saya",
+    "no_publications_found": "Tidak ada DOCiD ditemukan"
   },
   "common": {
     "no_data_available": "Tidak ada data tersedia",

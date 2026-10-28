@@ -232,8 +232,8 @@ const translations = {
     "docid": "DOCID",
     "title": "KICHWA",
     "action": "KITENDO",
-    "my_publications": "Machapisho Yangu",
-    "no_publications_found": "Haujapatikana machapisho"
+    "my_publications": "DOCiD Zangu",
+    "no_publications_found": "Hakuna DOCiD zilizopatikana"
   },
   "common": {
     "no_data_available": "Hakuna data inayopatikana",

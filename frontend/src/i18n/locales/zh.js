@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "标题",
     "action": "操作",
-    "my_publications": "我的出版物",
-    "no_publications_found": "未找到出版物"
+    "my_publications": "我的 DOCiD",
+    "no_publications_found": "未找到 DOCiD"
   },
   "common": {
     "no_data_available": "暂无数据",

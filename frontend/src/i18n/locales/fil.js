@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "PAMAGAT",
     "action": "AKSYON",
-    "my_publications": "Aking mga Publikasyon",
-    "no_publications_found": "Walang nahanap na publikasyon"
+    "my_publications": "Aking mga DOCiD",
+    "no_publications_found": "Walang nahanap na DOCiD"
   },
   "common": {
     "no_data_available": "Walang magagamit na datos",

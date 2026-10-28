@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "शीर्षक",
     "action": "कार्रवाई",
-    "my_publications": "मेरे प्रकाशन",
-    "no_publications_found": "कोई प्रकाशन नहीं मिला"
+    "my_publications": "मेरे DOCiDs",
+    "no_publications_found": "कोई DOCiD नहीं मिला"
   },
   "common": {
     "no_data_available": "कोई डेटा उपलब्ध नहीं",

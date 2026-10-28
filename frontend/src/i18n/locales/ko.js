@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "제목",
     "action": "작업",
-    "my_publications": "내 출판물",
-    "no_publications_found": "출판물을 찾을 수 없습니다"
+    "my_publications": "내 DOCiD",
+    "no_publications_found": "DOCiD를 찾을 수 없습니다"
   },
   "common": {
     "no_data_available": "데이터 없음",

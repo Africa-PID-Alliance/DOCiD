@@ -233,8 +233,8 @@ const translations = {
     "docid": "DOCiD™",
     "title": "ຊື່ເລື່ອງ",
     "action": "ການດຳເນີນການ",
-    "my_publications": "ສິ່ງພິມຂອງຂ້ອຍ",
-    "no_publications_found": "ບໍ່ພົບສິ່ງພິມ"
+    "my_publications": "DOCiD ຂອງຂ້ອຍ",
+    "no_publications_found": "ບໍ່ພົບ DOCiD"
   },
   "common": {
     "no_data_available": "ບໍ່ມີຂໍ້ມູນ",
