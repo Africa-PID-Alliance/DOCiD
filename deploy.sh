@@ -10,12 +10,12 @@
 set -e
 
 # ── Connection ────────────────────────────────────────────────────────────────
-SSH_HOST="197.136.17.175"
-SSH_PORT="62222"
-SSH_USER="tcc-africa"
-SSH_PASS='AP@-D0c!D2050'
-REPO_URL="https://github.com/Africa-PID-Alliance/DOCiD.git"
-REPO_DIR="/tmp/docid-deploy"
+SSH_HOST=
+SSH_PORT=
+SSH_USER=
+SSH_PASS=
+REPO_URL=
+REPO_DIR=
 
 # Pipe a heredoc to bash on the server — avoids all quoting issues
 ssh_exec() {
