@@ -192,7 +192,9 @@ def handle_doi(prefix, suffix):
                 'id': project.id,
                 'title': project.title,
                 'raid_id': project.raid_id,
-                'description': project.description
+                'description': project.description,
+                'identifier': project.identifier,
+                'identifier_type': project.identifier_type
             } for project in data.publication_projects
         ]
 

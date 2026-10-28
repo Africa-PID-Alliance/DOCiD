@@ -1248,7 +1248,9 @@ def get_publication(publication_id):
                 'id': project.id,
                 'title': project.title,
                 'raid_id': project.raid_id,
-                'description': project.description
+                'description': project.description,
+                'identifier': project.identifier,
+                'identifier_type': project.identifier_type
             } for project in data.publication_projects
         ]
 
@@ -1448,7 +1450,9 @@ def get_publication_by_docid_prefix():
                 'id': project.id,
                 'title': project.title,
                 'raid_id': project.raid_id,
-                'description': project.description
+                'description': project.description,
+                'identifier': project.identifier,
+                'identifier_type': project.identifier_type
             } for project in data.publication_projects
         ]
 
@@ -1654,7 +1658,9 @@ def get_publication_by_docid_simple(document_docid):
                 'id': project.id,
                 'title': project.title,
                 'raid_id': project.raid_id,
-                'description': project.description
+                'description': project.description,
+                'identifier': project.identifier,
+                'identifier_type': project.identifier_type
             } for project in data.publication_projects
         ]
 
