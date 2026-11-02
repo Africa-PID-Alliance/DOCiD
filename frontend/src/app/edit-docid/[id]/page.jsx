@@ -214,13 +214,23 @@ function formToDbProject(p) {
 // Files & Documents map to PublicationsForm/DocumentsForm's "uploaded file + metadata" shape.
 // Existing rows from the DB are flagged with `existing: true` so the form does not try to
 // re-upload them. New rows added by the form have no `id` and carry a real File blob.
+// Bare 10.xxxx/... DOI (doi.org prefix stripped), or '' for anything else,
+// including DOCiD handles (20.500.14351/...).
+function realDoiOrEmpty(value) {
+  const bare = String(value || '').trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+  return /^10\.\d+\/.+/.test(bare) ? bare : '';
+}
+
 function dbToFormFile(f) {
-  // If the stored row already carries a Crossref DOI as external_identifier,
-  // round-trip it back through to the form. value=3 maps to the "CrossRef"
+  // Crossref files carry the DOI in external_identifier. Older ones only have
+  // identifier=3 with the DOI in generated_identifier; recognise both, or the
+  // row opens in edit mode as APA Handle iD. value=3 maps to the "CrossRef"
   // option in the dropdown (same numeric convention as assign-docid).
-  const hasExternalDoi =
-    (f.external_identifier_type === 'DOI') &&
-    !!(f.external_identifier && String(f.external_identifier).trim());
+  const crossrefDoi =
+    (f.external_identifier_type === 'DOI' && realDoiOrEmpty(f.external_identifier)) ||
+    (String(f.identifier) === '3' && realDoiOrEmpty(f.generated_identifier)) ||
+    '';
+  const hasExternalDoi = Boolean(crossrefDoi);
   const identifierType = hasExternalDoi ? 3 : 1;
   return {
     id: f.id,
@@ -232,7 +242,7 @@ function dbToFormFile(f) {
     lastModified: 0,
     file: null,
     publicationType: f.publication_type_id != null ? String(f.publication_type_id) : '',
-    externalIdentifier: hasExternalDoi ? String(f.external_identifier).trim() : '',
+    externalIdentifier: crossrefDoi,
     externalIdentifierType: hasExternalDoi ? 'DOI' : '',
     metadata: {
       title: f.title || '',
@@ -312,6 +322,16 @@ function rebuildBaseline({ original, working, deletedIds, putById }) {
     }
   }
   return snapshotCopy(next);
+}
+
+// Saving used to fall back to the file name when a row had no title, so a
+// blank title quietly became e.g. "scan_0042.pdf". Now the save is blocked
+// with a message instead, the same way the create flow requires a title.
+function untitledRowMessage(rows) {
+  const untitled = rows.find((row) => !String(row.metadata?.title || '').trim());
+  if (!untitled) return null;
+  const label = untitled.name || untitled.file?.name || 'the attached file';
+  return `Add a title for "${label}" before saving.`;
 }
 
 function hasChanged(a, b, keys) {
@@ -1048,6 +1068,11 @@ export default function EditDocidPage() {
       });
       return;
     }
+    const missingFileTitle = untitledRowMessage(files);
+    if (missingFileTitle) {
+      setFeedbackMessage({ type: 'error', text: missingFileTitle });
+      return;
+    }
     const wouldDeleteCount = original.filter(
       (o) => !files.find((f) => f.id === o.id)
     ).length;
@@ -1084,7 +1109,7 @@ export default function EditDocidPage() {
     }
 
     setIsSaving(true);
-    let uploaded = 0, updated = 0, deleted = 0, errors = 0;
+    let uploaded = 0, replaced = 0, updated = 0, deleted = 0, errors = 0;
     const defaultType = publicationsData.publicationType || '1';
     const successfullyDeletedIds = new Set();
     const successfullyPutById = new Map();
@@ -1138,14 +1163,33 @@ export default function EditDocidPage() {
           successfullyPutById.set(f.id, f);
         } catch (err) { errors++; console.error('File update:', err); }
       }
-      // POST new items. Track response.id so retry doesn't duplicate.
       let working = files.slice();
+      // Swap the stored file on rows where the user picked "Replace file".
+      // The row keeps its id, title, description, handle and DOI. A failed
+      // swap leaves replacementFile set, so a retry sends it again.
+      for (let i = 0; i < working.length; i++) {
+        const f = working[i];
+        if (!f.id || !f.existing || !(f.replacementFile instanceof Blob)) continue;
+        const fd = new FormData();
+        fd.append('file', f.replacementFile);
+        try {
+          const response = await axios.post(`${EDIT_BASE(publicationId)}/files/${f.id}/replace`, fd);
+          working[i] = {
+            ...f,
+            replacementFile: null,
+            name: response?.data?.file_name || f.replacementFile.name,
+            url: response?.data?.file_url || f.url,
+          };
+          replaced++;
+        } catch (err) { errors++; console.error(`Replace file ${f.id}:`, err); }
+      }
+      // POST new items. Track response.id so retry doesn't duplicate.
       for (let i = 0; i < working.length; i++) {
         const f = working[i];
         if (f.id || f.existing) continue;
         const meta = f.metadata || {};
         const fd = new FormData();
-        fd.append('title', meta.title || f.name || f.file?.name || 'Untitled');
+        fd.append('title', String(meta.title).trim());
         fd.append('description', meta.description || '');
         fd.append('publication_type_id', f.publicationType || defaultType);
         // Optional external identifier (CrossRef DOI). Only send if the user
@@ -1183,7 +1227,7 @@ export default function EditDocidPage() {
 
       setFeedbackMessage({
         type: errors ? 'warning' : 'success',
-        text: `Files: ${uploaded} uploaded, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
+        text: `Files: ${uploaded} uploaded, ${replaced} replaced, ${updated} updated, ${deleted} deleted${errors ? `, ${errors} errors` : ''}`,
       });
       if (errors === 0) {
         await loadPublication();
@@ -1213,6 +1257,11 @@ export default function EditDocidPage() {
           'Documents list is empty — refusing to delete all attached documents. ' +
           'Please reload the page and try again.',
       });
+      return;
+    }
+    const missingDocumentTitle = untitledRowMessage(docs);
+    if (missingDocumentTitle) {
+      setFeedbackMessage({ type: 'error', text: missingDocumentTitle });
       return;
     }
     const wouldDeleteCount = original.filter(
@@ -1276,7 +1325,7 @@ export default function EditDocidPage() {
         if (d.id || d.existing) continue;
         const meta = d.metadata || {};
         const fd = new FormData();
-        fd.append('title', meta.title || d.name || d.file?.name || 'Untitled');
+        fd.append('title', String(meta.title).trim());
         fd.append('description', meta.description || '');
         fd.append('publication_type_id', d.publicationType || defaultType);
         fd.append('identifier_type_id', meta.identifierType || '1');
@@ -1676,6 +1725,7 @@ export default function EditDocidPage() {
               files: next.files || [],
             })}
             loadGeneration={loadGeneration}
+            recordDoi={realDoiOrEmpty(publicationData?.doi)}
           />
           <Box mt={2}>
             <Button

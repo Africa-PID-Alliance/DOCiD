@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import uuid
+from datetime import datetime
 from urllib.parse import quote as url_quote, urlparse
 
 from flask import Blueprint, jsonify, request
@@ -579,6 +580,23 @@ def delete_project(publication_id, project_id):
 
 # ---------- FILES (publications_files) ----------
 
+# publications_files.identifier holds the identifier-TYPE id the public page
+# labels the file with (1 = APA Handle iD, 3 = CrossRef) and
+# generated_identifier holds the identifier it shows. A Crossref file uses the
+# same shape as the create flow: type 3, the DOI as generated_identifier, and
+# the minted Cordra handle kept separately in handle_identifier. Before this,
+# edit mode always wrote type 1 + the handle, so a file saved with a DOI showed
+# up publicly as "APA Handle iD" with no DOI anywhere.
+APA_HANDLE_TYPE_ID = '1'
+CROSSREF_TYPE_ID = '3'
+
+
+def _identifier_columns(doi, handle):
+    if doi:
+        return {'identifier': CROSSREF_TYPE_ID, 'generated_identifier': doi[:100]}
+    return {'identifier': APA_HANDLE_TYPE_ID, 'generated_identifier': (handle or '')[:100]}
+
+
 @edit_bp.route('/<int:publication_id>/files', methods=['POST'])
 @jwt_required()
 def add_file(publication_id):
@@ -652,8 +670,7 @@ def add_file(publication_id):
             file_name='',
             file_type='video/external',
             file_url=video_url_raw[:255],
-            identifier='1',  # identifier-TYPE id (1=APA Handle iD); handle lives in handle_identifier
-            generated_identifier=minted[:100],
+            **_identifier_columns(ext_identifier, minted),
             handle_identifier=minted[:100],
             external_identifier=ext_identifier,
             external_identifier_type=ext_identifier_type,
@@ -694,8 +711,7 @@ def add_file(publication_id):
         file_name=file_name[:255],
         file_type=(uploaded.mimetype or 'application/octet-stream')[:100],
         file_url=file_url[:255],
-        identifier='1',  # identifier-TYPE id (1=APA Handle iD); handle lives in handle_identifier
-        generated_identifier=minted[:100],
+        **_identifier_columns(ext_identifier, minted),
         handle_identifier=minted[:100],
         external_identifier=ext_identifier,
         external_identifier_type=ext_identifier_type,
@@ -724,10 +740,13 @@ def update_file(publication_id, file_id):
 
     Mutable: title, description, publication_type_id, plus the external
     identifier pair (external_identifier_type + external_identifier_value).
-    file_url, file_name, file_type, and handle_identifier are immutable —
-    attempts to change them are silently ignored to keep Cordra + disk
-    state in sync. The external identifier pair has three-state semantics:
+    file_url, file_name and file_type are immutable — attempts to change them
+    are silently ignored to keep Cordra + disk state in sync. The external
+    identifier pair has three-state semantics:
     omitted fields = no change · empty string = clear · non-empty = set.
+    Setting or clearing it also moves identifier/generated_identifier between
+    CrossRef (3 + the DOI) and APA Handle iD (1 + the handle); clearing it on a
+    row that has no handle yet mints one.
     """
     publication, user_id, err = _authorize(publication_id)
     if err:
@@ -742,6 +761,10 @@ def update_file(publication_id, file_id):
         if field not in data:
             continue
         new_value = data[field]
+        # Same rule as add_file. The edit form used to blank a file's title
+        # when its identifier type was switched, and this route saved it.
+        if field == 'title' and not str(new_value or '').strip():
+            return jsonify({'error': 'title is required'}), 400
         if field == 'publication_type_id':
             try:
                 new_value = int(new_value)
@@ -796,14 +819,32 @@ def update_file(publication_id, file_id):
             new_ext_id = coerced
             new_ext_type = 'DOI'
 
-        old_ext_id = pub_file.external_identifier
-        old_ext_type = pub_file.external_identifier_type
-        if old_ext_id != new_ext_id:
-            pub_file.external_identifier = new_ext_id
-            changes['external_identifier'] = (old_ext_id, new_ext_id)
-        if old_ext_type != new_ext_type:
-            pub_file.external_identifier_type = new_ext_type
-            changes['external_identifier_type'] = (old_ext_type, new_ext_type)
+        # Switching back to APA Handle iD shows the row's own handle. Some
+        # older rows keep it only in generated_identifier; reuse that. Older
+        # Crossref rows have none at all, so mint one (before any column
+        # changes, so a Cordra failure leaves the row as it was).
+        handle = pub_file.handle_identifier
+        existing = pub_file.generated_identifier
+        if not new_ext_id and not handle and IdentifierService.is_handle(existing) \
+                and not _coerce_real_doi(existing):
+            handle = existing
+        if not new_ext_id and not handle:
+            handle = IdentifierService.generate_handle()
+            if not handle:
+                db.session.rollback()
+                return jsonify({'error': 'Cordra handle mint failed'}), 502
+
+        new_values = {
+            'external_identifier': new_ext_id,
+            'external_identifier_type': new_ext_type,
+            'handle_identifier': handle[:100] if handle else handle,
+            **_identifier_columns(new_ext_id, handle),
+        }
+        for field, new_value in new_values.items():
+            old_value = getattr(pub_file, field)
+            if old_value != new_value:
+                setattr(pub_file, field, new_value)
+                changes[field] = (old_value, new_value)
 
     if changes:
         for field, (old, new) in changes.items():
@@ -811,6 +852,58 @@ def update_file(publication_id, file_id):
                    field_name=f'file.{field}', old_value=old, new_value=new)
         db.session.commit()
     return jsonify({'message': 'File updated', 'id': pub_file.id, 'changes': list(changes.keys())}), 200
+
+
+@edit_bp.route('/<int:publication_id>/files/<int:file_id>/replace', methods=['POST'])
+@jwt_required()
+def replace_file(publication_id, file_id):
+    """Swap the stored file on an existing row, keeping everything else.
+
+    Title, description, publication type, the Cordra handle and any Crossref
+    DOI all stay as they are; only the file itself (name, type, URL,
+    checksum) changes. Without this, replacing a file meant remove + attach,
+    which lost the row's title and identifiers. No new handle is minted:
+    push_to_cordra.py rewrites the handle record's fileUrl from the row, so
+    the publication's updated_at is bumped to bring it into the next sync.
+    """
+    publication, user_id, err = _authorize(publication_id)
+    if err:
+        return err
+    pub_file = PublicationFiles.query.filter_by(id=file_id, publication_id=publication_id).first()
+    if not pub_file:
+        return jsonify({'error': 'File not found'}), 404
+
+    uploaded = request.files.get('file')
+    validation_error = _validate_upload(uploaded)
+    if validation_error:
+        return jsonify({'error': validation_error}), 400
+
+    old_file_name = pub_file.file_name
+    old_file_url = pub_file.file_url
+    file_name, file_url, abs_path = _save_upload(uploaded)
+    try:
+        pub_file.file_name = file_name[:255]
+        pub_file.file_type = (uploaded.mimetype or 'application/octet-stream')[:100]
+        pub_file.file_url = file_url[:255]
+        for field, value in checksum_fields_for_upload(abs_path, file_url).items():
+            setattr(pub_file, field, value)
+        publication.updated_at = datetime.utcnow()
+        _audit(publication_id, user_id, 'REPLACE_FILE',
+               field_name='file.file_name', old_value=old_file_name, new_value=file_name)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        _delete_local_file(file_url)
+        logger.exception(f"Replacing file {file_id} on publication {publication_id} failed")
+        return jsonify({'error': 'Could not replace the file'}), 500
+
+    _delete_local_file(old_file_url)
+    return jsonify({
+        'message': 'File replaced',
+        'id': pub_file.id,
+        'file_name': file_name,
+        'file_url': file_url,
+    }), 200
 
 
 @edit_bp.route('/<int:publication_id>/files/<int:file_id>', methods=['DELETE'])

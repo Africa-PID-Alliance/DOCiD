@@ -567,8 +567,13 @@ class Publications(db.Model):
     user_account = relationship('UserAccount', back_populates='publications', foreign_keys=[user_id])
     updated_by_user = relationship('UserAccount', foreign_keys=[updated_by])
     resource_type = relationship('ResourceTypes', foreign_keys=[resource_type_id])
-    publications_files = relationship('PublicationFiles', back_populates='publication', cascade="all, delete-orphan")
-    publication_documents = relationship('PublicationDocuments', back_populates='publication', cascade="all, delete-orphan")
+    # Files and documents load in the order they were added. Without an
+    # order_by, Postgres returned an edited row last, so after a save the
+    # edit page showed a different file in the spot the user had just fixed.
+    publications_files = relationship('PublicationFiles', back_populates='publication', cascade="all, delete-orphan",
+                                      order_by='PublicationFiles.id')
+    publication_documents = relationship('PublicationDocuments', back_populates='publication', cascade="all, delete-orphan",
+                                         order_by='PublicationDocuments.id')
     publication_creators = relationship('PublicationCreators', back_populates='publication', cascade="all, delete-orphan")
     publication_organizations = relationship('PublicationOrganization', back_populates='publication', cascade="all, delete-orphan")
     publication_funders = relationship('PublicationFunders', back_populates='publication', cascade="all, delete-orphan")

@@ -32,13 +32,14 @@ import {
   Close as CloseIcon,
   Add as AddIcon,
   Cancel as CancelIcon,
+  SwapHoriz as ReplaceIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import RichTextEditor from '@/components/RichTextEditor';
 
-const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
+const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0, recordDoi = '' }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
@@ -46,6 +47,12 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   // Initialize state from props if available
   const [selectedType, setSelectedType] = useState(formData?.publicationType || '');
   const [uploadedFiles, setUploadedFiles] = useState(formData?.files || []);
+  // The newest list and type, updated synchronously on every change. Edits
+  // build on these rather than on the render they started in: the Crossref
+  // lookup used to write back the list as it was before its request, undoing
+  // changes made to other files while it waited.
+  const latestFilesRef = useRef(uploadedFiles);
+  const latestTypeRef = useRef(selectedType);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedFileUrl, setSelectedFileUrl] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
@@ -93,8 +100,10 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   useEffect(() => {
     if (!formData) return;
     if (lastSeededGeneration.current === loadGeneration) return;
-    setSelectedType(formData.publicationType || '');
-    setUploadedFiles(formData.files || []);
+    latestTypeRef.current = formData.publicationType || '';
+    latestFilesRef.current = formData.files || [];
+    setSelectedType(latestTypeRef.current);
+    setUploadedFiles(latestFilesRef.current);
     lastSeededGeneration.current = loadGeneration;
   }, [loadGeneration, formData]);
 
@@ -114,12 +123,21 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
     fetchData();
   }, []);
 
+  // Every list change goes through here so the ref, local state and parent
+  // stay in step.
+  const commitFiles = (next) => {
+    latestFilesRef.current = next;
+    setUploadedFiles(next);
+    updateFormData({ publicationType: latestTypeRef.current, files: next });
+  };
+
   const handleTypeChange = (event) => {
     const newType = event.target.value;
+    latestTypeRef.current = newType;
     setSelectedType(newType);
     updateFormData({
       publicationType: newType,
-      files: uploadedFiles
+      files: latestFilesRef.current
     });
   };
 
@@ -128,7 +146,21 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
     const newFiles = files.map(file => {
       // Create a blob URL for preview
       const url = URL.createObjectURL(file);
-      
+
+      // New files used to start with no identifier type picked, which saved
+      // as APA Handle iD without saying so. Default to the record's own
+      // Crossref DOI when it has one (the usual case is attaching the
+      // article's PDF), otherwise to APA Handle iD. Both stay editable.
+      const identifierDefaults = recordDoi
+        ? {
+            externalIdentifier: recordDoi,
+            externalIdentifierType: 'DOI',
+            metadata: { identifier: 3, identifierType: 3, generated_identifier: '' },
+          }
+        : {
+            metadata: { identifier: 1, identifierType: 1, generated_identifier: 'pending' },
+          };
+
       return {
         name: file.name,
         size: file.size,
@@ -137,40 +169,29 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
         url: url,
         // Store the actual File object
         file: file,
+        ...identifierDefaults,
         metadata: {
           title: '',
           description: '',
-          identifier: '',
-          identifierType: '',
-          generated_identifier: ''
+          ...identifierDefaults.metadata,
         }
       };
     });
-
-    const updatedFiles = [...uploadedFiles, ...newFiles];
-    setUploadedFiles(updatedFiles);
 
     // Preserve ALL fields on already-loaded rows (especially id, existing,
     // publicationType). The previous serializableFiles.map() cherry-picked
     // a fixed subset and silently dropped id/existing/publicationType from
     // existing rows — which then caused savePublicationFiles' diff loop to
     // DELETE every baseline row from the DB. Codex round-2 catch.
-    updateFormData({
-      publicationType: selectedType,
-      files: updatedFiles,
-    });
+    commitFiles([...latestFilesRef.current, ...newFiles]);
   };
 
   const handleRemoveFile = (index) => {
-    if (uploadedFiles[index].url) {
-      URL.revokeObjectURL(uploadedFiles[index].url);
+    const current = latestFilesRef.current;
+    if (current[index]?.url) {
+      URL.revokeObjectURL(current[index].url);
     }
-    const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
-    setUploadedFiles(updatedFiles);
-    updateFormData({
-      publicationType: selectedType,
-      files: updatedFiles
-    });
+    commitFiles(current.filter((_, i) => i !== index));
   };
 
   const handlePreview = (file) => {
@@ -184,13 +205,7 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   };
 
   const handleMetadataChange = (index, field, value) => {
-    const updatedFiles = [...uploadedFiles];
-    updatedFiles[index].metadata[field] = value;
-    setUploadedFiles(updatedFiles);
-    updateFormData({
-      publicationType: selectedType,
-      files: updatedFiles
-    });
+    mutateFile(index, { metadata: { [field]: value } });
   };
 
   // Per-file map of in-flight CrossRef errors, keyed by file index. Per-file
@@ -201,15 +216,32 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
   // field on the row so callers can't accidentally drop `id`, `existing`,
   // `file`, `externalIdentifier`, etc. (See PublicationsForm.jsx:148-156 for
   // the data-loss-fix the 2026-06-25 incident motivated — keep that pattern.)
+  //
+  // `metadata` in a patch is merged into the row's existing metadata. It used
+  // to be merged into itself (the spread above had already replaced it), so
+  // picking CrossRef wiped the file's title and description, and cancelling a
+  // DOI wiped every other metadata field.
   const mutateFile = (index, patch) => {
-    const next = [...uploadedFiles];
-    next[index] = { ...next[index], ...patch };
-    if (patch.metadata) {
-      next[index].metadata = { ...next[index].metadata, ...patch.metadata };
-    }
-    setUploadedFiles(next);
-    updateFormData({ publicationType: selectedType, files: next });
+    const current = latestFilesRef.current;
+    if (!current[index]) return;
+    const next = [...current];
+    next[index] = {
+      ...current[index],
+      ...patch,
+      metadata: { ...current[index].metadata, ...(patch.metadata || {}) },
+    };
+    commitFiles(next);
   };
+
+  // Rows are matched by id once saved, and by their File object before that,
+  // so an async result can find its row again after other rows were added,
+  // removed or edited.
+  const indexOfRow = (row) =>
+    latestFilesRef.current.findIndex((candidate) =>
+      candidate === row ||
+      (row.id != null && candidate.id === row.id) ||
+      (!!row.file && candidate.file === row.file)
+    );
 
   const handleIdentifierChange = (index, value) => {
     setSelectedIdentifier(value);
@@ -238,10 +270,17 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
 
   // Per-file Crossref title-search. Stores the search query in
   // `file.metadata.crossrefTitle` so multiple files have independent inputs.
+  // Everything after the request finds the row again by identity and reads
+  // the latest list, because other files may have been edited, added or
+  // removed while it waited.
   const generateCrossref = async (index) => {
-    const file = uploadedFiles[index];
+    const file = latestFilesRef.current[index];
     const query = (file?.metadata?.crossrefTitle || '').trim();
     if (!query) return;
+    const showError = (message) => {
+      const at = indexOfRow(file);
+      if (at !== -1) setCrossrefErrors((e) => ({ ...e, [at]: message }));
+    };
     setLoadingIdentifiers((prev) => ({ ...prev, [index]: true }));
     setCrossrefErrors((e) => ({ ...e, [index]: '' }));
     try {
@@ -250,7 +289,7 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
       );
       const hitRaw = response?.data?.data?.[0]?.DOI;
       if (!hitRaw) {
-        setCrossrefErrors((e) => ({ ...e, [index]: 'No DOI found for that title.' }));
+        showError('No DOI found for that title.');
         return;
       }
       // Client-side shape check before storing — same rule the backend
@@ -259,24 +298,24 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
       // 400 mid-save which is the worse UX.
       const hit = String(hitRaw).trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
       if (!/^10\.\d+\/.+/.test(hit)) {
-        setCrossrefErrors((e) => ({
-          ...e,
-          [index]:
-            `CrossRef returned an unexpected identifier ("${hitRaw}"). ` +
-            `Try a different title or paste the DOI manually.`,
-        }));
+        showError(
+          `CrossRef returned an unexpected identifier ("${hitRaw}"). ` +
+          `Try a different title or paste the DOI manually.`
+        );
         return;
       }
-      mutateFile(index, {
+      // Drop the result if the row was removed or switched away from
+      // CrossRef while the lookup ran; otherwise a DOI would land on an
+      // APA Handle row.
+      const at = indexOfRow(file);
+      if (at === -1 || latestFilesRef.current[at].metadata?.identifierType !== 3) return;
+      mutateFile(at, {
         externalIdentifier: hit,
         externalIdentifierType: 'DOI',
       });
     } catch (err) {
       console.error('CrossRef search failed:', err);
-      setCrossrefErrors((e) => ({
-        ...e,
-        [index]: 'CrossRef lookup failed — try again or switch back to APA Handle iD.',
-      }));
+      showError('CrossRef lookup failed — try again or switch back to APA Handle iD.');
     } finally {
       setLoadingIdentifiers((prev) => ({ ...prev, [index]: false }));
     }
@@ -289,6 +328,21 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
       metadata: { crossrefTitle: '' },
     });
     setCrossrefErrors((e) => ({ ...e, [index]: '' }));
+  };
+
+  // Swap the stored file on a saved row without touching its title,
+  // description or identifiers. The new file is held on the row and sent to
+  // the /replace endpoint on save; before this, the only way to change a file
+  // was remove + attach, which lost the row's title and Crossref DOI.
+  const handleReplaceFile = (index, event) => {
+    const replacement = event.target.files?.[0];
+    event.target.value = '';
+    if (!replacement) return;
+    mutateFile(index, { replacementFile: replacement });
+  };
+
+  const cancelReplaceFile = (index) => {
+    mutateFile(index, { replacementFile: null });
   };
 
   const formatFileSize = (bytes) => {
@@ -464,8 +518,40 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0 }) => {
                       </a>
                     </Typography>
                   )}
+                  {file.replacementFile && (
+                    <Typography variant="body2" sx={{ mt: 0.5, color: theme.palette.warning.main }}>
+                      {t('assign_docid.publications_form.replacement_pending', { name: file.replacementFile.name })}
+                      <Button size="small" onClick={() => cancelReplaceFile(index)} sx={{ ml: 1, minWidth: 0, p: 0, verticalAlign: 'baseline' }}>
+                        {t('assign_docid.publications_form.undo_replace')}
+                      </Button>
+                    </Typography>
+                  )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
+                  {file.existing && file.id && (
+                    <Button
+                      component="label"
+                      startIcon={<ReplaceIcon />}
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : theme.palette.divider,
+                        color: theme.palette.text.primary,
+                        '&:hover': {
+                          borderColor: theme.palette.primary.main,
+                          bgcolor: theme.palette.action.hover
+                        }
+                      }}
+                    >
+                      {t('assign_docid.publications_form.replace_file')}
+                      <input
+                        type="file"
+                        hidden
+                        accept=".pdf,.doc,.docx,.ppt,.pptx"
+                        onChange={(event) => handleReplaceFile(index, event)}
+                      />
+                    </Button>
+                  )}
                   <Button
                     startIcon={<PreviewIcon />}
                     onClick={() => handlePreview(file)}
