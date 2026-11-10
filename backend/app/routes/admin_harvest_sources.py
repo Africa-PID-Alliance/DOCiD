@@ -10,8 +10,9 @@ from sqlalchemy.exc import IntegrityError
 import logging
 
 from app import db
-from app.models import HarvestSource, UserAccount
+from app.models import HarvestSource, HarvestSourceCollection, ResourceTypes, UserAccount
 from app.authz import admin_required
+from app.service_dspace_collections import check_collection_connection, make_reader
 from app.utils_crypto import encrypt_value
 
 logger = logging.getLogger(__name__)
@@ -142,3 +143,134 @@ def resolve_owner(source_id):
     source.resolve_owner()
     db.session.commit()
     return jsonify(_serialize_with_status(source))
+
+
+# ---------------------------------------------------------------------------
+# Watched collections: the DSpace collections (IK, CH, ...) DOCiD harvests for
+# a source, with the DOCiD URL written back into each record.
+# ---------------------------------------------------------------------------
+
+def _get_collection_or_404(source_id, collection_id):
+    collection = HarvestSourceCollection.query.filter_by(
+        id=collection_id, harvest_source_id=source_id
+    ).first()
+    if collection is None:
+        return None, (jsonify({"error": "Collection not found for this source"}), 404)
+    return collection, None
+
+
+def _validate_resource_type(resource_type_id):
+    if resource_type_id is None:
+        return "resource_type_id is required"
+    try:
+        resource_type_id = int(resource_type_id)
+    except (TypeError, ValueError):
+        return "resource_type_id must be an integer"
+    if db.session.get(ResourceTypes, resource_type_id) is None:
+        return f"resource_type_id {resource_type_id} does not exist"
+    return None
+
+
+@admin_harvest_sources_bp.route("/<int:source_id>/collections", methods=["GET"])
+@jwt_required()
+@admin_required
+def list_collections(source_id):
+    source = HarvestSource.query.get_or_404(source_id)
+    return jsonify({"collections": [collection.serialize() for collection in source.collections]})
+
+
+@admin_harvest_sources_bp.route("/<int:source_id>/collections", methods=["POST"])
+@jwt_required()
+@admin_required
+def add_collection(source_id):
+    """
+    Watch a DSpace collection. Body: {"collection": "<link, handle or UUID>",
+    "resource_type_id": <int>, "write_back_enabled": true}. The collection is
+    looked up in the source's DSpace, so a typo fails here, not at harvest time.
+    """
+    source = HarvestSource.query.get_or_404(source_id)
+    if source.api_type != "modern":
+        return jsonify({"error": "Watched collections need a DSpace 7+ source (api_type 'modern')"}), 400
+
+    payload = request.get_json(silent=True) or {}
+    reference = (payload.get("collection") or "").strip()
+    if not reference:
+        return jsonify({"error": "collection is required (a collection link, handle or UUID)"}), 400
+    error = _validate_resource_type(payload.get("resource_type_id"))
+    if error:
+        return jsonify({"error": error}), 400
+
+    try:
+        dspace_collection = make_reader(source).find_collection(reference)
+    except Exception as lookup_error:
+        logger.warning(f"Collection lookup failed for source {source_id}: {lookup_error}")
+        return jsonify({"error": f"Could not reach {source.base_url}: {lookup_error}"}), 502
+    if dspace_collection is None:
+        return jsonify({"error": f"No collection found in {source.base_url} for {reference!r}"}), 404
+
+    collection = HarvestSourceCollection(
+        harvest_source_id=source.id,
+        dspace_collection_uuid=dspace_collection["uuid"],
+        dspace_collection_handle=dspace_collection.get("handle"),
+        collection_name=(dspace_collection.get("name") or "")[:255] or None,
+        resource_type_id=int(payload["resource_type_id"]),
+        write_back_enabled=bool(payload.get("write_back_enabled", True)),
+    )
+    db.session.add(collection)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "This collection is already watched for this source"}), 409
+    return jsonify(collection.serialize()), 201
+
+
+@admin_harvest_sources_bp.route("/<int:source_id>/collections/<int:collection_id>", methods=["PATCH"])
+@jwt_required()
+@admin_required
+def update_collection(source_id, collection_id):
+    collection, error_response = _get_collection_or_404(source_id, collection_id)
+    if error_response:
+        return error_response
+    payload = request.get_json(silent=True) or {}
+    if "resource_type_id" in payload:
+        error = _validate_resource_type(payload["resource_type_id"])
+        if error:
+            return jsonify({"error": error}), 400
+        collection.resource_type_id = int(payload["resource_type_id"])
+    for field in ("write_back_enabled", "is_active"):
+        if field in payload:
+            setattr(collection, field, bool(payload[field]))
+    db.session.commit()
+    return jsonify(collection.serialize())
+
+
+@admin_harvest_sources_bp.route("/<int:source_id>/collections/<int:collection_id>", methods=["DELETE"])
+@jwt_required()
+@admin_required
+def remove_collection(source_id, collection_id):
+    """Stop watching a collection. Records already harvested, and their DOCiDs, stay."""
+    collection, error_response = _get_collection_or_404(source_id, collection_id)
+    if error_response:
+        return error_response
+    db.session.delete(collection)
+    db.session.commit()
+    return jsonify({"message": "Collection removed", "id": collection_id})
+
+
+@admin_harvest_sources_bp.route("/<int:source_id>/collections/<int:collection_id>/test", methods=["POST"])
+@jwt_required()
+@admin_required
+def check_collection(source_id, collection_id):
+    """
+    Connection test: lists the collection anonymously, logs in with the
+    source's DSpace account and checks it may edit metadata there (the
+    Administrators role). Stores the answer as write_back_ok.
+    """
+    collection, error_response = _get_collection_or_404(source_id, collection_id)
+    if error_response:
+        return error_response
+    report = check_collection_connection(
+        collection.source, collection, current_app.config.get("SECRET_KEY", "")
+    )
+    return jsonify({"collection": collection.serialize(), "report": report})

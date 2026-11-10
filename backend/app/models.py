@@ -1514,6 +1514,11 @@ class RinggoldInstitution(db.Model):
         return cls.query.filter_by(isni=clean_isni).first()
 
 
+# DSpace states in which DOCiD must not show a record's metadata. Withdrawn is
+# not among them: DSpace itself still shows a withdrawn record's metadata.
+DSPACE_WITHHELD_STATUSES = ('restricted', 'private', 'deleted')
+
+
 class DSpaceMapping(db.Model):
     """
     Tracks mapping between DSpace items and DOCiD publications for integration
@@ -1542,15 +1547,41 @@ class DSpaceMapping(db.Model):
     error_message = db.Column(db.Text)
     retry_count = db.Column(db.Integer, default=0)
 
+    # Watched-collection integration (see HarvestSourceCollection). Null for
+    # records that arrived through any other harvest path.
+    harvest_source_collection_id = db.Column(
+        db.Integer,
+        db.ForeignKey('harvest_source_collections.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True,
+    )
+    # What an anonymous visitor sees in DSpace: public | restricted | private |
+    # withdrawn | deleted. Restricted, private and deleted records are
+    # tombstoned on DOCiD so their metadata is never shown.
+    dspace_status = db.Column(db.String(20), nullable=True, index=True)
+    dspace_status_changed_at = db.Column(db.DateTime, nullable=True)
+    # Writing the DOCiD URL back into the item's dc.identifier.uri:
+    # pending | done | failed | waiting_for_docid | disabled
+    writeback_status = db.Column(db.String(30), nullable=True, index=True)
+    writeback_attempts = db.Column(db.Integer, nullable=False, default=0)
+    writeback_error = db.Column(db.Text, nullable=True)
+    written_back_at = db.Column(db.DateTime, nullable=True)
+
     # Audit
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     publication = db.relationship('Publications', backref=db.backref('dspace_mapping', uselist=False, cascade='all, delete-orphan'))
+    harvest_source_collection = db.relationship('HarvestSourceCollection', back_populates='mappings')
 
     def __repr__(self):
         return f'<DSpaceMapping {self.dspace_handle} -> Publication {self.publication_id}>'
+
+    @property
+    def is_withheld(self):
+        """True when the holding repository hides this record from the public."""
+        return self.dspace_status in DSPACE_WITHHELD_STATUSES
 
     def to_dict(self):
         """Serialize DSpace mapping for JSON responses"""
@@ -1564,6 +1595,13 @@ class DSpaceMapping(db.Model):
             'last_sync_at': self.last_sync_at.isoformat() if self.last_sync_at else None,
             'error_message': self.error_message,
             'retry_count': self.retry_count,
+            'harvest_source_collection_id': self.harvest_source_collection_id,
+            'dspace_status': self.dspace_status,
+            'dspace_status_changed_at': self.dspace_status_changed_at.isoformat() if self.dspace_status_changed_at else None,
+            'writeback_status': self.writeback_status,
+            'writeback_attempts': self.writeback_attempts,
+            'writeback_error': self.writeback_error,
+            'written_back_at': self.written_back_at.isoformat() if self.written_back_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -1988,6 +2026,12 @@ class HarvestSource(db.Model):
         back_populates='source',
         cascade='all, delete-orphan'
     )
+    collections = relationship(
+        'HarvestSourceCollection',
+        back_populates='source',
+        cascade='all, delete-orphan',
+        order_by='HarvestSourceCollection.id',
+    )
 
     def __repr__(self):
         return f"<HarvestSource(id={self.id}, name='{self.name}', api_type='{self.api_type}')>"
@@ -2067,6 +2111,70 @@ class HarvestSourceFieldMapping(db.Model):
 
     def __repr__(self):
         return f"<FieldMapping(source_id={self.harvest_source_id}, {self.docid_field} <- {self.source_field}, pri={self.priority})>"
+
+
+class HarvestSourceCollection(db.Model):
+    """
+    One DSpace collection DOCiD watches for an institution (for example its
+    Indigenous Knowledge or Cultural Heritage collection).
+
+    Every public record in the collection gets a DOCiD of this row's resource
+    type, and, when write-back is enabled, the DOCiD URL is added to the
+    record's dc.identifier.uri in DSpace. Records are listed as an anonymous
+    visitor, so anything DSpace hides from the public never reaches DOCiD.
+    """
+    __tablename__ = 'harvest_source_collections'
+    __table_args__ = (
+        db.UniqueConstraint('harvest_source_id', 'dspace_collection_uuid',
+                            name='uq_harvest_source_collection_uuid'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    harvest_source_id = db.Column(
+        db.Integer,
+        db.ForeignKey('harvest_sources.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    dspace_collection_uuid = db.Column(db.String(36), nullable=False)
+    dspace_collection_handle = db.Column(db.String(255), nullable=True)
+    collection_name = db.Column(db.String(255), nullable=True)
+    resource_type_id = db.Column(db.Integer, db.ForeignKey('resource_types.id'), nullable=False)
+    write_back_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    write_back_ok = db.Column(db.Boolean, nullable=True)  # last canEditMetadata check; null until tested
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    last_harvested_at = db.Column(db.DateTime, nullable=True)
+    # When the last successful pass (daily or every-minute) started. The
+    # every-minute check asks DSpace for records changed since then.
+    last_checked_at = db.Column(db.DateTime, nullable=True)
+    last_error_message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    source = relationship('HarvestSource', back_populates='collections')
+    resource_type = relationship('ResourceTypes', foreign_keys=[resource_type_id])
+    mappings = relationship('DSpaceMapping', back_populates='harvest_source_collection')
+
+    def __repr__(self):
+        return (f"<HarvestSourceCollection(id={self.id}, source_id={self.harvest_source_id}, "
+                f"collection='{self.collection_name}')>")
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'harvest_source_id': self.harvest_source_id,
+            'dspace_collection_uuid': self.dspace_collection_uuid,
+            'dspace_collection_handle': self.dspace_collection_handle,
+            'collection_name': self.collection_name,
+            'resource_type_id': self.resource_type_id,
+            'resource_type': self.resource_type.resource_type if self.resource_type else None,
+            'write_back_enabled': self.write_back_enabled,
+            'write_back_ok': self.write_back_ok,
+            'is_active': self.is_active,
+            'last_harvested_at': self.last_harvested_at.isoformat() if self.last_harvested_at else None,
+            'last_checked_at': self.last_checked_at.isoformat() if self.last_checked_at else None,
+            'last_error_message': self.last_error_message,
+        }
 
 
 class PublicationExternalEdge(db.Model):

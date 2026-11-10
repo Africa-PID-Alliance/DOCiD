@@ -36,8 +36,9 @@ echo "========================================" >> logs/harvest_repos.log
 echo "Starting repository harvest at $(date)" >> logs/harvest_repos.log
 echo "========================================" >> logs/harvest_repos.log
 
-# Harvest from all configured sources
-python3 harvest_repositories.py --source all >> logs/harvest_repos.log 2>&1
+# Harvest every source that is due. No argument means "all": the script only
+# accepts --source-id <number>, and "--source all" made it exit with code 2.
+python3 harvest_repositories.py >> logs/harvest_repos.log 2>&1
 
 # Check exit code
 if [ $? -eq 0 ]; then

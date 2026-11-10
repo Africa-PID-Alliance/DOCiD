@@ -6,6 +6,7 @@ Handles communication with DSpace repositories and metadata transformation
 import requests
 import hashlib
 import json
+import re
 import threading
 import time
 from datetime import datetime
@@ -57,6 +58,22 @@ class PoliteSession(requests.Session):
                 self._last_request_finished_at = time.monotonic()
 
 
+DEFAULT_TIMEOUT_SECONDS = 30
+UUID_PATTERN = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)
+
+
+class DSpaceAuthError(Exception):
+    """Logging in to DSpace failed (wrong password, account disabled, CSRF trouble)."""
+
+
+class DSpaceWriteError(Exception):
+    """DSpace refused or failed a write. status_code is the HTTP status, or None for network errors."""
+
+    def __init__(self, message: str, status_code: Optional[int] = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 class DSpaceClient:
     """Client for interacting with DSpace REST API"""
 
@@ -102,9 +119,15 @@ class DSpaceClient:
             return False
 
         try:
-            # Step 1: Get CSRF token
-            status_response = self.session.get(f"{self.api_url}/authn/status")
-            self.csrf_token = status_response.headers.get('DSPACE-XSRF-TOKEN')
+            # Step 1: Get CSRF token. DSpace sends the DSPACE-XSRF-TOKEN header only
+            # when it issues a new token; once this session holds the
+            # DSPACE-XSRF-COOKIE (after any earlier request, or before a re-login)
+            # the header is absent and the cookie's value is the token.
+            status_response = self.session.get(f"{self.api_url}/authn/status", timeout=DEFAULT_TIMEOUT_SECONDS)
+            self.csrf_token = (
+                status_response.headers.get('DSPACE-XSRF-TOKEN')
+                or self.session.cookies.get('DSPACE-XSRF-COOKIE')
+            )
 
             if not self.csrf_token:
                 print("Failed to get CSRF token")
@@ -115,7 +138,8 @@ class DSpaceClient:
             response = self.session.post(
                 f"{self.api_url}/authn/login",
                 data={'user': self.username, 'password': self.password},
-                headers=headers
+                headers=headers,
+                timeout=DEFAULT_TIMEOUT_SECONDS,
             )
 
             if response.status_code == 200:
@@ -169,6 +193,9 @@ class DSpaceClient:
         """
         Search items via /api/discover/search/objects (public, no auth needed).
         Use this when /api/core/items requires authentication (e.g., UNILAG DSpace 9).
+
+        Deliberately sends no Authorization header: DOCiD must only ever see
+        what an anonymous visitor sees, so restricted records never reach it.
 
         Args:
             page: Page number (0-indexed)
@@ -308,6 +335,194 @@ class DSpaceClient:
         except Exception as e:
             print(f"Error getting collections: {e}")
             return {}
+
+    # ------------------------------------------------------------------
+    # Watched-collection integration (IK / CH collections with write-back)
+    #
+    # Reads below never send the login token, even on a client that has
+    # logged in: DOCiD may only harvest what the public can see. Only the
+    # write-back (add_identifier_uri) and the role check use the login.
+    # ------------------------------------------------------------------
+
+    def list_public_collection_items(self, collection_uuid: str, page_size: int = 100,
+                                     max_pages: int = 1000,
+                                     changed_since: Optional[datetime] = None) -> List[Dict]:
+        """
+        Every item an anonymous visitor can find in one collection.
+
+        Restricted, private (non-discoverable) and withdrawn items are left out
+        by DSpace itself. Raises on any HTTP or network failure, so a partial
+        listing is never mistaken for records having disappeared.
+
+        With changed_since (naive UTC), only items DSpace last modified at or
+        after that time: one cheap request when nothing has changed.
+        """
+        items: List[Dict] = []
+        page = 0
+        # A stable order keeps pages from overlapping. dc.date.accessioned is a
+        # stock DSpace sort option; a site that removed it answers 400, and
+        # then we fall back to DSpace's default order.
+        sort_option = 'dc.date.accessioned,ASC'
+        while True:
+            params = {'scope': collection_uuid, 'dsoType': 'ITEM', 'page': page, 'size': page_size}
+            if changed_since is not None:
+                # Stock discovery has no lastModified sort, but it filters on it.
+                params['query'] = f"lastModified:[{changed_since.strftime('%Y-%m-%dT%H:%M:%SZ')} TO *]"
+            if sort_option:
+                params['sort'] = sort_option
+            response = self.session.get(
+                f"{self.api_url}/discover/search/objects", params=params, timeout=DEFAULT_TIMEOUT_SECONDS,
+            )
+            if response.status_code == 400 and sort_option and page == 0:
+                sort_option = None
+                continue
+            response.raise_for_status()
+            search_result = response.json().get('_embedded', {}).get('searchResult', {})
+            for search_object in search_result.get('_embedded', {}).get('objects', []):
+                item = search_object.get('_embedded', {}).get('indexableObject', {})
+                if item.get('type') == 'item' and item.get('uuid'):
+                    items.append(item)
+            total_pages = search_result.get('page', {}).get('totalPages', 0)
+            page += 1
+            if page >= total_pages:
+                return items
+            if page >= max_pages:
+                raise RuntimeError(
+                    f"Collection {collection_uuid} has more than {max_pages} pages; refusing a partial listing"
+                )
+
+    def get_public_item_state(self, item_uuid: str) -> Tuple[str, Optional[Dict]]:
+        """
+        How an anonymous visitor sees one item, as (state, item_json).
+
+        state is public | restricted | private | withdrawn | deleted. Raises on
+        5xx and network errors so a DSpace outage is never read as a status change.
+        """
+        response = self.session.get(f"{self.api_url}/core/items/{item_uuid}", timeout=DEFAULT_TIMEOUT_SECONDS)
+        if response.status_code in (401, 403):
+            return 'restricted', None
+        if response.status_code == 404:
+            return 'deleted', None
+        response.raise_for_status()
+        item = response.json()
+        if item.get('withdrawn'):
+            return 'withdrawn', item
+        if item.get('discoverable') is False:
+            return 'private', item
+        return 'public', item
+
+    def find_collection(self, reference: str) -> Optional[Dict]:
+        """
+        Resolve a collection link, handle or UUID to the collection's JSON.
+
+        Accepts e.g. https://repo.example.ac.za/collections/<uuid>,
+        https://repo.example.ac.za/handle/123456789/1149, 123456789/1149 or a bare UUID.
+        Returns None when the reference does not resolve to a collection.
+        """
+        cleaned = (reference or '').strip().split('?')[0].split('#')[0].rstrip('/')
+        if not cleaned:
+            return None
+        uuid_match = UUID_PATTERN.search(cleaned)
+        if uuid_match and ('/collections/' in cleaned or uuid_match.group(0) == cleaned):
+            response = self.session.get(
+                f"{self.api_url}/core/collections/{uuid_match.group(0)}", timeout=DEFAULT_TIMEOUT_SECONDS
+            )
+        else:
+            handle = cleaned
+            for marker in ('/handle/', 'hdl.handle.net/'):
+                if marker in handle:
+                    handle = handle.split(marker, 1)[1]
+            response = self.session.get(
+                f"{self.api_url}/pid/find", params={'id': handle},
+                timeout=DEFAULT_TIMEOUT_SECONDS, allow_redirects=True,
+            )
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        return data if data.get('type') == 'collection' else None
+
+    def _authorized_request(self, method: str, url: str, **kwargs) -> requests.Response:
+        """
+        A logged-in request. Logs in on first use, logs in again once if the
+        token has expired (401), and retries once if DSpace rotated its CSRF
+        token (403 naming CSRF). Raises DSpaceAuthError if login fails.
+        """
+        extra_headers = kwargs.pop('headers', {}) or {}
+        logged_in_again = False
+        retried_for_csrf = False
+        while True:
+            if not self.auth_token and not self.authenticate():
+                raise DSpaceAuthError(f"Login to {self.base_url} as {self.username!r} failed")
+            response = self.session.request(
+                method, url, headers={**extra_headers, **self._get_headers()},
+                timeout=DEFAULT_TIMEOUT_SECONDS, **kwargs,
+            )
+            rotated_csrf = response.headers.get('DSPACE-XSRF-TOKEN')
+            if rotated_csrf:
+                self.csrf_token = rotated_csrf
+            if response.status_code == 401 and not logged_in_again:
+                logged_in_again = True
+                self.auth_token = None
+                continue
+            if (response.status_code == 403 and rotated_csrf and not retried_for_csrf
+                    and 'csrf' in response.text.lower()):
+                retried_for_csrf = True
+                continue
+            return response
+
+    def can_edit_metadata(self, collection_uuid: str) -> bool:
+        """True when the logged-in account may edit metadata in this collection (the write-back permission)."""
+        collection_response = self.session.get(
+            f"{self.api_url}/core/collections/{collection_uuid}", timeout=DEFAULT_TIMEOUT_SECONDS
+        )
+        collection_response.raise_for_status()
+        collection_uri = collection_response.json().get('_links', {}).get('self', {}).get('href') \
+            or f"{self.api_url}/core/collections/{collection_uuid}"
+        response = self._authorized_request(
+            'GET', f"{self.api_url}/authz/authorizations/search/object",
+            params={'uri': collection_uri, 'feature': 'canEditMetadata'},
+        )
+        if response.status_code == 204:
+            return False
+        response.raise_for_status()
+        return (response.json().get('page', {}).get('totalElements') or 0) > 0
+
+    def add_identifier_uri(self, item_uuid: str, url: str) -> str:
+        """
+        Append url to the item's dc.identifier.uri, after the existing values so
+        the handle stays first. Returns 'added', or 'already_present' when the
+        URL is there already, so re-runs never add a duplicate.
+        Raises DSpaceAuthError or DSpaceWriteError.
+        """
+        item_url = f"{self.api_url}/core/items/{item_uuid}"
+        try:
+            current = self._authorized_request('GET', item_url)
+        except requests.RequestException as network_error:
+            raise DSpaceWriteError(f"Reading item failed: {network_error}") from network_error
+        if current.status_code != 200:
+            raise DSpaceWriteError(f"Reading item failed: HTTP {current.status_code}", current.status_code)
+
+        existing_values = current.json().get('metadata', {}).get('dc.identifier.uri', [])
+        if any(value.get('value') == url for value in existing_values):
+            return 'already_present'
+
+        if existing_values:
+            operations = [{'op': 'add', 'path': '/metadata/dc.identifier.uri/-', 'value': {'value': url}}]
+        else:
+            operations = [{'op': 'add', 'path': '/metadata/dc.identifier.uri', 'value': [{'value': url}]}]
+        try:
+            response = self._authorized_request(
+                'PATCH', item_url,
+                headers={'Content-Type': 'application/json-patch+json'},
+                data=json.dumps(operations),
+            )
+        except requests.RequestException as network_error:
+            raise DSpaceWriteError(f"PATCH failed: {network_error}") from network_error
+        if response.status_code != 200:
+            raise DSpaceWriteError(
+                f"PATCH refused: HTTP {response.status_code} {response.text[:300]}", response.status_code
+            )
+        return 'added'
 
     @staticmethod
     def calculate_metadata_hash(metadata: Dict) -> str:

@@ -522,8 +522,17 @@ def main():
                     (Publications.updated_at >= time_threshold)
                 ).all()
             
+            # Never push a tombstoned record: retired by its owner, or restricted /
+            # removed in its holding repository. Pushing would re-publish the
+            # metadata the tombstone exists to hide.
+            tombstoned = [publication for publication in publications if publication.deleted_at is not None]
+            if tombstoned:
+                logger.info(f"Skipping {len(tombstoned)} tombstoned publication(s): "
+                            f"{[publication.id for publication in tombstoned][:20]}")
+            publications = [publication for publication in publications if publication.deleted_at is None]
+
             total_publications = len(publications)
-            
+
             logger.info(f"Found {total_publications} publications to process")
             
             success_count = 0

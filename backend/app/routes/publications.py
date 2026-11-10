@@ -10,6 +10,7 @@ from app.utils.sanitize_html import sanitize_rich_text
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
+from app.models import DSPACE_WITHHELD_STATUSES
 # from app.service_codra import push_apa_metadata
 # CORDRA imports removed - functionality moved to push_to_cordra.py script
 # from app.service_codra import update_object
@@ -1258,6 +1259,7 @@ def get_publication(publication_id):
         # (see module-level _normalize_publication_dict for the rules).
         _normalize_publication_dict(publication_dict, pub=data)
         _redact_national_ids(publication_dict, pub=data)
+        publication_dict['repository_status'] = _repository_status_dto(data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -1459,6 +1461,7 @@ def get_publication_by_docid_prefix():
         # Normalize /uploads URLs (see module-level _normalize_publication_dict).
         _normalize_publication_dict(publication_dict, pub=data)
         _redact_national_ids(publication_dict, pub=data)
+        publication_dict['repository_status'] = _repository_status_dto(data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -1667,6 +1670,7 @@ def get_publication_by_docid_simple(document_docid):
         # Normalize /uploads URLs (see module-level _normalize_publication_dict).
         _normalize_publication_dict(publication_dict, pub=data)
         _redact_national_ids(publication_dict, pub=data)
+        publication_dict['repository_status'] = _repository_status_dto(data)
 
         # Determine response format
         response_type = request.args.get('type', 'json').lower()
@@ -3652,6 +3656,16 @@ def restore_publication(publication_id):
             'publication_id': publication_id,
         }), 200
 
+    # The holding repository hides this record; restoring it on DOCiD would
+    # publish metadata the institution has restricted. It is lifted
+    # automatically when the record is public in DSpace again.
+    mapping = getattr(publication, 'dspace_mapping', None)
+    if mapping is not None and mapping.dspace_status in DSPACE_WITHHELD_STATUSES:
+        return jsonify({
+            'error': 'This record is restricted in its holding repository and cannot be restored here.',
+            'repository_status': mapping.dspace_status,
+        }), 409
+
     publication.deleted_at = None
     publication.deleted_by = None
     publication.deletion_reason = None
@@ -3696,6 +3710,25 @@ def _tombstone_dto(pub):
         'document_docid': pub.document_docid,
         'deleted_at': pub.deleted_at.isoformat() + 'Z' if pub.deleted_at else None,
         'deletion_reason': pub.deletion_reason,
+        # Set when the holding repository (DSpace) restricted, hid or removed
+        # the record, so the page can say so instead of "retired by the creator".
+        'repository_status': _repository_status_dto(pub),
+    }
+
+
+def _repository_status_dto(pub):
+    """
+    The record's state in its holding DSpace repository when it is not plainly
+    public, e.g. {"status": "withdrawn", "changed_at": ..., "institution": ...}.
+    None for public records and for records that did not come from DSpace.
+    """
+    mapping = getattr(pub, 'dspace_mapping', None)
+    if mapping is None or not mapping.dspace_status or mapping.dspace_status == 'public':
+        return None
+    return {
+        'status': mapping.dspace_status,
+        'changed_at': mapping.dspace_status_changed_at.isoformat() + 'Z' if mapping.dspace_status_changed_at else None,
+        'institution': pub.owner,
     }
 
 

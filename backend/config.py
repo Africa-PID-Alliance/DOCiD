@@ -49,6 +49,12 @@ class Config:
     # host that physically holds the upload files (e.g. set to
     # https://docid-core.africapidalliance.org so docker responses point at KENET).
     UPLOADS_BASE_URL = os.getenv('UPLOADS_BASE_URL') or APPLICATION_BASE_URL
+    # Public origin of DOCiD landing pages. Mirrors the frontend's
+    # NEXT_PUBLIC_SITE_ORIGIN so the URL we write into an institution's DSpace
+    # is the same canonical URL the landing page declares. Deliberately not
+    # derived from APPLICATION_BASE_URL, whose localhost default must never
+    # end up in someone else's repository.
+    DOCID_SITE_ORIGIN = os.getenv('DOCID_SITE_ORIGIN', 'https://docid.africapidalliance.org')
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
     _raw_uploads_directory = os.getenv('UPLOADS_DIRECTORY', 'uploads')
     UPLOADS_DIRECTORY = (

@@ -20,6 +20,36 @@ import {
 } from '@/lib/highwire';
 import DocIDClient from './DocIDClient';
 
+// Wording for records whose holding DSpace repository restricted, hid or
+// removed them. The backend sends these as tombstones with
+// `repository_status`; their metadata is never sent.
+const WITHHELD_NOTICES = {
+  restricted: {
+    label: 'RESTRICTED',
+    heading: 'This record is restricted',
+    body: 'has restricted this record in its repository, so DOCiD does not show its details.',
+  },
+  private: {
+    label: 'RESTRICTED',
+    heading: 'This record is not public',
+    body: 'has hidden this record in its repository, so DOCiD does not show its details.',
+  },
+  deleted: {
+    label: 'REMOVED',
+    heading: 'This record has been removed',
+    body: 'has removed this record from its repository, so DOCiD no longer shows its details.',
+  },
+};
+
+function formatLongDate(isoDate) {
+  if (!isoDate) return null;
+  return new Date(isoDate).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 function joinDocidSegments(params) {
   // Next.js dynamic catch-all `[...id]` gives params.id as an array.
   // The DOCiD has the form `<prefix>/<suffix>` -> two segments.
@@ -77,6 +107,18 @@ export async function generateMetadata({ params }) {
   // no old description.
   if (publication.deleted) {
     const canonical = canonicalDocidUrl(publication.document_docid || docid);
+    const withheldNotice = WITHHELD_NOTICES[publication.repository_status?.status];
+    if (withheldNotice) {
+      const withheldTitle = `DOCiD [${withheldNotice.label.toLowerCase()}]`;
+      return {
+        title: withheldTitle,
+        description: `${withheldNotice.heading}.`,
+        alternates: { canonical },
+        robots: { index: false, follow: false, noarchive: true, nosnippet: true },
+        openGraph: { type: 'article', url: canonical, title: withheldTitle, siteName: 'DOCiD' },
+        twitter: { card: 'summary', title: withheldTitle },
+      };
+    }
     return {
       title: 'DOCiD [retired]',
       description: 'This DOCiD has been retired by the original creator.',
@@ -137,13 +179,55 @@ export default async function DocIDLandingPage({ params }) {
   // block, no JSON-LD.
   if (publication.deleted) {
     const canonical = canonicalDocidUrl(publication.document_docid || docid);
-    const deletedAt = publication.deleted_at
-      ? new Date(publication.deleted_at).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
-      : null;
+    const deletedAt = formatLongDate(publication.deleted_at);
+    const withheldNotice = WITHHELD_NOTICES[publication.repository_status?.status];
+    if (withheldNotice) {
+      const institution = publication.repository_status.institution || 'The holding institution';
+      return (
+        <main
+          style={{
+            maxWidth: 720,
+            margin: '64px auto',
+            padding: '32px 24px',
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            color: '#333',
+          }}
+        >
+          <div
+            style={{
+              border: '1px solid #ddd',
+              borderRadius: 8,
+              padding: '32px 28px',
+              background: '#fafafa',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 14, color: '#888', letterSpacing: 1, marginBottom: 12 }}>
+              DOCiD · {withheldNotice.label}
+            </div>
+            <h1 style={{ fontSize: '1.4rem', margin: '0 0 12px', color: '#444' }}>
+              {withheldNotice.heading}
+            </h1>
+            <p style={{ margin: '0 0 16px', lineHeight: 1.6 }}>
+              {institution} {withheldNotice.body} The identifier continues to resolve to this
+              page so existing citations don&apos;t break.
+            </p>
+            <p style={{ margin: '16px 0 0', fontSize: 14, color: '#666' }}>
+              <strong>Identifier:</strong>{' '}
+              <a href={canonical} rel="canonical" style={{ color: '#0066cc' }}>
+                {publication.document_docid || docid}
+              </a>
+            </p>
+            {deletedAt && (
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>
+                <strong>Noted on:</strong> {deletedAt}
+              </p>
+            )}
+          </div>
+        </main>
+      );
+    }
     return (
       <main
         style={{
@@ -345,6 +429,33 @@ export default async function DocIDLandingPage({ params }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdSerialized }}
         />
+      )}
+
+      {publication.repository_status?.status === 'withdrawn' && (
+        <div
+          role="status"
+          style={{
+            maxWidth: 1536,
+            margin: '16px auto 0',
+            padding: '12px 24px',
+            border: '1px solid #f0c36d',
+            borderRadius: 8,
+            background: '#fff8e5',
+            color: '#5c4400',
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontSize: 15,
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>Withdrawn by the holding institution.</strong>{' '}
+          {publication.repository_status.institution || 'The holding institution'} has withdrawn
+          this record from its repository
+          {publication.repository_status.changed_at
+            ? ` (noted on ${formatLongDate(publication.repository_status.changed_at)})`
+            : ''}
+          . The DOCiD and its description remain for reference.
+        </div>
       )}
 
       <DocIDClient initialPublication={publication} docId={docid} />

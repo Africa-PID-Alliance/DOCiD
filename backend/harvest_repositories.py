@@ -12,6 +12,7 @@ Usage:
     python3 harvest_repositories.py --force             # Ignore frequency, harvest now
     python3 harvest_repositories.py --dry-run           # Preview without committing
     python3 harvest_repositories.py --batch-size 100    # Items per page (default: 50)
+    python3 harvest_repositories.py --changes-only      # Every-minute check of watched collections
 """
 
 import os
@@ -23,14 +24,24 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
+# The every-minute check runs 1,440 times a day and must stay silent when
+# nothing changed. The app logs INFO lines while it loads and starts, which
+# would fill its log and rotate logs/app.log (10 KB files) out from under the
+# web app. main() lifts this once the app is up; warnings and errors still pass.
+if '--changes-only' in sys.argv:
+    logging.disable(logging.INFO)
+
 from app import create_app, db
 from app.models import (
     HarvestSource, HarvestSourceFieldMapping, EnrichmentRun,
     Publications, DSpaceMapping, ResourceTypes, CreatorsRoles, PublicationCreators
 )
 from app.utils_crypto import decrypt_value
-from app.service_identifiers import IdentifierService
-from app.service_thumbnails import generate_thumbnail_from_url, get_uploads_dir
+from app.service_dspace_collections import (
+    check_watched_collections_for_changes,
+    create_publication_from_item,
+    harvest_watched_collections,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -38,63 +49,23 @@ logger = logging.getLogger(__name__)
 FREQUENCY_DAYS = {'daily': 1, 'weekly': 7, 'biweekly': 14, 'monthly': 30}
 
 
-def _generate_dspace_thumbnail(client, item_uuid):
-    """Best-effort: download the item's ORIGINAL bitstream and produce a JPEG thumbnail.
-
-    Returns the relative /uploads/<file>.jpg path on success, or None on any failure.
-    Tries the DSpace `/thumbnail` endpoint first (cheap if DSpace already made one),
-    then falls back to the ORIGINAL bundle's first bitstream.
+def is_due_for_harvest(source, now=None):
     """
-    try:
-        base = client.base_url.rstrip('/') if hasattr(client, 'base_url') else None
-        if not base:
-            return None
-        uploads_dir = get_uploads_dir()
+    Whether a source's full harvest is due under its frequency setting.
 
-        # 1. Try DSpace's own thumbnail endpoint
-        try:
-            response = client.session.get(f"{base}/api/core/items/{item_uuid}/thumbnail", timeout=10)
-            if response.status_code == 200 and response.content:
-                # DSpace's thumbnail is already a JPEG — reuse as-is
-                return generate_thumbnail_from_url(
-                    f"{base}/api/core/items/{item_uuid}/thumbnail",
-                    "thumbnail.jpg",
-                    uploads_dir,
-                )
-        except Exception:
-            pass
-
-        # 2. Fall back to ORIGINAL bundle's first bitstream
-        bundles_response = client.session.get(f"{base}/api/core/items/{item_uuid}/bundles", timeout=15)
-        if bundles_response.status_code != 200:
-            return None
-        bundles = bundles_response.json().get('_embedded', {}).get('bundles', [])
-        original = next((bundle for bundle in bundles if bundle.get('name') == 'ORIGINAL'), None)
-        if not original:
-            return None
-        bitstreams_response = client.session.get(
-            f"{base}/api/core/bundles/{original.get('uuid')}/bitstreams", timeout=15
-        )
-        if bitstreams_response.status_code != 200:
-            return None
-        bitstreams = bitstreams_response.json().get('_embedded', {}).get('bitstreams', [])
-        if not bitstreams:
-            return None
-        bitstream = bitstreams[0]
-        bitstream_uuid = bitstream.get('uuid')
-        bitstream_name = bitstream.get('name') or 'bitstream'
-        content_url = f"{base}/api/core/bitstreams/{bitstream_uuid}/content"
-        return generate_thumbnail_from_url(content_url, bitstream_name, uploads_dir)
-    except Exception as exc:
-        logger.warning(f"thumbnail: failed for item {item_uuid}: {exc}")
-        return None
-
-
-def is_due_for_harvest(source):
-    """Check if a source is due for harvesting based on its frequency setting."""
+    Counted in calendar days (UTC): a daily source harvested at 02:05 yesterday
+    is due at 02:00 today. Counting whole 24-hour periods made it wait another
+    day, so a daily cron harvested daily sources only every other day.
+    A watched collection that has never been harvested makes the source due at
+    once: the every-minute check leaves a collection's first harvest to this run.
+    """
     if source.last_harvested_at is None:
         return True
-    elapsed_days = (datetime.utcnow() - source.last_harvested_at).days
+    if any(collection.is_active and collection.last_harvested_at is None
+           for collection in source.collections):
+        return True
+    now = now or datetime.utcnow()
+    elapsed_days = (now.date() - source.last_harvested_at.date()).days
     required_days = FREQUENCY_DAYS.get(source.harvest_frequency, 7)
     return elapsed_days >= required_days
 
@@ -246,68 +217,21 @@ def harvest_modern_source(client, source, batch_size=50, max_pages=10, dry_run=F
                 except Exception:
                     pass
 
-                # Map metadata
-                mapped_data = DSpaceMetadataMapper.dspace_to_docid(full_item, user_id=owner_user_id, collection_name=collection_name)
-                publication_data = mapped_data.get('publication', {})
-
-                # Determine resource type
-                resource_type_name = publication_data.get('resource_type', 'Text')
+                # Determine resource type from dc.type
+                mapped_type = DSpaceMetadataMapper.dspace_to_docid(full_item, user_id=owner_user_id)
+                resource_type_name = mapped_type.get('publication', {}).get('resource_type', 'Text')
                 resource_type_id = resource_type_cache.get(resource_type_name, default_resource_type_id)
 
-                # Build handle URL — use ui_base_url when API and UI domains differ
-                item_handle = full_item.get('handle')
-                handle_url = None
-                if item_handle:
-                    repository_base = source.ui_base_url or source.base_url.replace('/server', '').replace('/rest', '')
-                    handle_url = f"{repository_base}/handle/{item_handle}"
-
-                # Create publication
-                publication = Publications(
-                    user_id=owner_user_id,
-                    document_title=publication_data.get('document_title', 'Untitled')[:255],
-                    document_description=publication_data.get('document_description', ''),
-                    document_docid=item_handle,
-                    doi=publication_data.get('doi'),
-                    handle_url=handle_url,
-                    collection_name=collection_name,
-                    owner=source.owner_name,
-                    resource_type_id=resource_type_id,
+                # Publication, creators, thumbnail and DOCiD mint (shared with watched collections)
+                publication, handle_url, _minted = create_publication_from_item(
+                    client, source, full_item, owner_user_id,
+                    resource_type_id, collection_name, author_role_id,
                 )
-                db.session.add(publication)
-                db.session.flush()
-
-                # Mint a DOCiD via Cordra (same pattern as legacy dspace_legacy.py:118)
-                minted_docid = IdentifierService.generate_handle()
-                if minted_docid:
-                    publication.document_docid = minted_docid
-                    logger.info(f"[{source.name}] Minted DOCiD {minted_docid} for item {item_uuid}")
-                else:
-                    logger.warning(f"[{source.name}] Cordra mint failed for item {item_uuid}, keeping DSpace handle: {item_handle}")
-
-                # Add creators
-                for creator_data in mapped_data.get('creators', []):
-                    family_name = (creator_data.get('family_name') or '')[:255]
-                    given_name = (creator_data.get('given_name') or '')[:255]
-                    if family_name or given_name:
-                        creator = PublicationCreators(
-                            publication_id=publication.id,
-                            family_name=family_name or 'Unknown',
-                            given_name=given_name,
-                            role_id=author_role_id or 'Author',
-                        )
-                        db.session.add(creator)
-
-                # Generate thumbnail from the item's ORIGINAL bitstream when DSpace
-                # didn't provide one. Best-effort: any failure leaves poster empty.
-                thumbnail_path = _generate_dspace_thumbnail(client, item_uuid)
-                if thumbnail_path:
-                    publication.publication_poster_url = thumbnail_path
-                    logger.info(f"[{source.name}] Thumbnail saved for item {item_uuid}: {thumbnail_path}")
 
                 # Create DSpace mapping for dedup
                 dspace_mapping = DSpaceMapping(
                     dspace_uuid=item_uuid,
-                    dspace_handle=item_handle,
+                    dspace_handle=full_item.get('handle'),
                     dspace_url=handle_url,
                     publication_id=publication.id,
                     sync_status='synced',
@@ -467,8 +391,12 @@ def harvest_all_sources(force=False, source_id=None, batch_size=50, dry_run=Fals
                 db.session.commit()
             continue
 
-        # Harvest based on api_type
-        if source.api_type == 'modern':
+        # Harvest based on api_type. A modern source with watched collections
+        # harvests only those collections (anonymously, with write-back);
+        # one without keeps the whole-repository crawl.
+        if source.api_type == 'modern' and any(collection.is_active for collection in source.collections):
+            results = harvest_watched_collections(source, secret_key, dry_run=dry_run)
+        elif source.api_type == 'modern':
             results = harvest_modern_source(client, source, batch_size=batch_size, dry_run=dry_run)
         elif source.api_type == 'legacy':
             results = harvest_legacy_source(client, source, batch_size=batch_size, dry_run=dry_run)
@@ -496,6 +424,55 @@ def harvest_all_sources(force=False, source_id=None, batch_size=50, dry_run=Fals
         logger.info(f"  Errors: {results.get('errors', 0)}")
 
 
+def check_all_sources_for_changes(source_id=None, dry_run=False):
+    """
+    The every-minute pass (--changes-only): for each source with watched
+    collections, harvest the records changed since the last check.
+
+    Quiet when nothing changed: no run record and no log lines. It never
+    touches the source's last_harvested_at, so the daily full pass keeps its
+    own schedule.
+    """
+    from flask import current_app
+    secret_key = current_app.config.get('SECRET_KEY', '')
+
+    query = HarvestSource.query.filter_by(is_active=True, api_type='modern')
+    if source_id:
+        query = query.filter_by(id=source_id)
+
+    for source in query.all():
+        if not any(collection.is_active for collection in source.collections):
+            continue
+        started_at = datetime.utcnow()
+        totals = check_watched_collections_for_changes(source, secret_key, dry_run=dry_run)
+        if totals is None:
+            continue  # its daily pass is running and will see the same records
+        failed = totals['errors'] + totals['writeback_failed']
+        if not (totals['created'] or totals['status_changed'] or totals['written_back'] or failed):
+            continue
+
+        prefix = "[DRY RUN] " if dry_run else ""
+        logger.info(
+            f"{prefix}[{source.name}] Change check: {totals['created']} new, "
+            f"{totals['status_changed']} public again, {totals['written_back']} linked back, {failed} failed"
+        )
+        if dry_run:
+            continue
+        db.session.add(EnrichmentRun(
+            run_type='harvest_changes',
+            source_name=source.name,
+            status='completed',
+            started_at=started_at,
+            completed_at=datetime.utcnow(),
+            publications_processed=totals['total'],
+            publications_enriched=totals['created'],
+            publications_skipped=totals['total'] - totals['created'],
+            publications_failed=failed,
+        ))
+        source.total_items_synced = (source.total_items_synced or 0) + totals['created']
+        db.session.commit()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Harvest new records from all active repository sources"
@@ -504,10 +481,19 @@ def main():
     parser.add_argument("--force", action="store_true", help="Ignore frequency schedule, harvest now")
     parser.add_argument("--batch-size", type=int, default=50, help="Items per page (default: 50)")
     parser.add_argument("--dry-run", action="store_true", help="Preview without committing")
+    parser.add_argument(
+        "--changes-only", action="store_true",
+        help="Every-minute check: in watched collections, harvest only records changed since the last check",
+    )
     args = parser.parse_args()
 
     app = create_app()
+    # Start-up is over: let this run's own lines through (see the top of the file).
+    logging.disable(logging.NOTSET)
     with app.app_context():
+        if args.changes_only:
+            check_all_sources_for_changes(source_id=args.source_id, dry_run=args.dry_run)
+            return
         harvest_all_sources(
             force=args.force,
             source_id=args.source_id,
