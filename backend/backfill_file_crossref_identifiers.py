@@ -13,6 +13,11 @@ Two shapes are repaired:
     the row says identifier='1' with the handle as generated_identifier.
     -> identifier='3', generated_identifier=<DOI>. The handle stays in
        handle_identifier.
+    Only APA Handle rows (identifier='1') are considered. The create flow
+    also stores DataCite files (identifier='2') with their DOI in
+    external_identifier, and those are already labelled correctly. A row is
+    skipped, with a warning, when the handle it shows is not also saved in
+    handle_identifier, so the only copy of a handle is never overwritten.
   * Older Crossref rows: identifier='3' with the DOI in generated_identifier
     but no external_identifier.
     -> external_identifier=<DOI>, external_identifier_type='DOI'.
@@ -40,7 +45,16 @@ from app.routes.publications import coerce_real_doi
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger('backfill_file_crossref_identifiers')
 
+APA_HANDLE_TYPE_ID = '1'
 CROSSREF_TYPE_ID = '3'
+
+
+def _shown_handle_is_saved(row):
+    """True when replacing generated_identifier loses nothing: it is empty or
+    holds the same handle that handle_identifier keeps."""
+    saved = (row.handle_identifier or '').strip()
+    shown = (row.generated_identifier or '').strip()
+    return bool(saved) and shown in ('', saved)
 
 
 def planned_changes():
@@ -48,12 +62,20 @@ def planned_changes():
     plans = []
 
     edit_mode_rows = PublicationFiles.query.filter(
+        PublicationFiles.identifier == APA_HANDLE_TYPE_ID,
         PublicationFiles.external_identifier_type == 'DOI',
         PublicationFiles.external_identifier.isnot(None),
     ).order_by(PublicationFiles.id).all()
     for row in edit_mode_rows:
         doi = coerce_real_doi(row.external_identifier)
         if not doi:
+            continue
+        if not _shown_handle_is_saved(row):
+            logger.warning(
+                f"file {row.id} (publication {row.publication_id}): generated_identifier "
+                f"{row.generated_identifier!r} is not saved in handle_identifier "
+                f"{row.handle_identifier!r}; left alone so the handle is not lost"
+            )
             continue
         target = {'identifier': CROSSREF_TYPE_ID, 'generated_identifier': doi}
         diff = {k: (getattr(row, k), v) for k, v in target.items() if getattr(row, k) != v}

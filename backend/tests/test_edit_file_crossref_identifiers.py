@@ -339,3 +339,34 @@ def test_backfill_repairs_both_inconsistent_shapes_and_is_idempotent(owner_and_p
     assert _reload(plain_handle).generated_identifier == EXISTING_HANDLE
 
     assert backfill.run(apply=True) == 0
+
+
+def test_backfill_leaves_datacite_files_and_unsaved_handles_alone(owner_and_publication):
+    _, publication_id, type_id = owner_and_publication
+    datacite_doi = "10.5555/datacite.0001"
+    # The create flow stores a DataCite file with its DOI in external_identifier too.
+    datacite = _add_file_row(
+        publication_id, type_id,
+        identifier="2", generated_identifier=datacite_doi, handle_identifier=EXISTING_HANDLE,
+        external_identifier=datacite_doi, external_identifier_type="DOI",
+    )
+    # Overwriting generated_identifier here would lose the only copy of the handle.
+    handle_not_saved = _add_file_row(
+        publication_id, type_id,
+        identifier="1", generated_identifier=EXISTING_HANDLE, handle_identifier=None,
+        external_identifier=DOI, external_identifier_type="DOI",
+    )
+    shows_a_different_handle = _add_file_row(
+        publication_id, type_id,
+        identifier="1", generated_identifier="20.500.14351/anotherhandle", handle_identifier=EXISTING_HANDLE,
+        external_identifier=DOI, external_identifier_type="DOI",
+    )
+
+    assert backfill.run(apply=True) == 0
+
+    row = _reload(datacite)
+    assert (row.identifier, row.generated_identifier) == ("2", datacite_doi)
+    row = _reload(handle_not_saved)
+    assert (row.identifier, row.generated_identifier) == ("1", EXISTING_HANDLE)
+    row = _reload(shows_a_different_handle)
+    assert (row.identifier, row.generated_identifier) == ("1", "20.500.14351/anotherhandle")
