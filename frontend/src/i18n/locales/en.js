@@ -155,6 +155,8 @@ const translations = {
   "search_institution": "Institution",
   "search_keywords": "Keywords",
   "filter_by_account_type": "Filter by",
+  "publication_types": "Publication Types",
+  "counting_publications": "Counting publications",
   "all": "All",
   "individual": "Individual",
   "institutional": "Institutional",

@@ -58,6 +58,9 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios'; // Added axios import
 import { updateUserProfile } from '@/redux/slices/authSlice';
 import { useToast } from '@/context/ToastContext';
+import { mapOrcidRecord } from '@/lib/orcidProfile';
+import OrcidProfileSection, { OrcidBadge } from './components/OrcidProfileSection';
+import { loadProfileExtras, saveProfileExtras } from './profileExtrasStore';
 
 const MyAccountPage = () => {
   const router = useRouter();
@@ -72,6 +75,10 @@ const MyAccountPage = () => {
   const [loadingOrcid, setLoadingOrcid] = useState(false);
   const [orcidData, setOrcidData] = useState(null);
   const [orcidError, setOrcidError] = useState(null);
+  const [orcidProfile, setOrcidProfile] = useState(null); // normalized ORCID data (source of truth)
+  const [orcidSyncedAt, setOrcidSyncedAt] = useState(null);
+  const [profileExtras, setProfileExtras] = useState({}); // user-entered values ORCID doesn't provide
+  const orcidSyncRef = useRef(null);
   const [userPublications, setUserPublications] = useState([]);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
   const [userStatistics, setUserStatistics] = useState(null);
@@ -114,7 +121,7 @@ const MyAccountPage = () => {
     if (!email) return null;
     
     // Check if email ends with @orcid.org and extract the ORCID ID part
-    const orcidPattern = /^(\d{4}-\d{4}-\d{4}-\d{4})@orcid\.org$/i;
+    const orcidPattern = /^(\d{4}-\d{4}-\d{4}-\d{3}[\dX])@orcid\.org$/i;
     const match = email.match(orcidPattern);
     
     return match ? match[1] : null;
@@ -511,27 +518,7 @@ const MyAccountPage = () => {
     console.error('Error parsing user data:', error);
   }
 
-    // Fetch ORCID data
-    const orcidId = getOrcidId();
-    console.log("Orcid ID", orcidId);
-    if (orcidId) {
-      const storedUser = localStorage.getItem('user');
-      const userData = storedUser ? JSON.parse(storedUser) : {};
-      
-      // Only fetch ORCID data if we have both ID and access token
-      if (userData.accessToken) {
-        console.log('Both ORCID ID and access token available, fetching ORCID data');
-        // Make ORCID fetch optional - don't block page if it fails
-        fetchOrcidData(orcidId, userData.accessToken).catch(error => {
-          console.warn('ORCID fetch failed, continuing without ORCID data:', error);
-        });
-      } else {
-        console.log('No ORCID access token available, skipping ORCID data fetch');
-        console.log('Page will work with basic user data only');
-      }
-    } else {
-      console.log('No ORCID ID found, page will work without ORCID data');
-    }
+    // ORCID data is loaded by the ORCID sync effect (see syncFromOrcid)
   }, []);
 
   // Function to fetch user statistics
@@ -557,6 +544,97 @@ const MyAccountPage = () => {
     }
   }, [user?.id]);
 
+  // ---------------- ORCID -> DOCiD sync (ORCID is the primary source of truth) ----------------
+  const ORCID_SYNCED_BASIC_FIELDS = ['full_name', 'affiliation', 'role', 'country', 'orcid_id'];
+
+  const orcidLocks = useMemo(() => {
+    const b = orcidProfile?.basic || {};
+    return {
+      fullName: !!b.full_name,
+      faculty: !!b.affiliation,
+      role: !!b.role,
+      country: !!b.country,
+      orcid_id: !!b.orcid_id,
+    };
+  }, [orcidProfile]);
+
+  const syncFromOrcid = useCallback(async ({ force = false, silent = true } = {}) => {
+    if (!user?.id) return;
+    const orcidId = (profileData?.orcid_id || getOrcidId() || '').trim();
+    if (!orcidId) return;
+    if (!force && orcidSyncRef.current === orcidId) return;
+    orcidSyncRef.current = orcidId;
+
+    setLoadingOrcid(true);
+    setOrcidError(null);
+    try {
+      const res = await axios.get(`/api/orcid/record/${encodeURIComponent(orcidId)}`);
+      const mapped = mapOrcidRecord(res.data?.record, res.data?.orcid_id || orcidId);
+      setOrcidProfile(mapped);
+      setOrcidSyncedAt(new Date());
+
+      // Push ORCID values into the DOCiD profile where they differ (ORCID wins)
+      const current = profileData || {};
+      const updates = {};
+      ORCID_SYNCED_BASIC_FIELDS.forEach((field) => {
+        const orcidVal = mapped?.basic?.[field];
+        if (orcidVal && String(orcidVal).trim() !== String(current[field] || '').trim()) {
+          updates[field] = orcidVal;
+        }
+      });
+
+      if (Object.keys(updates).length > 0) {
+        const putRes = await axios.put(`/api/user-profile/${user.id}`, updates);
+        const updatedUser = putRes.data?.user_data || updates;
+        applyUpdatedUser(updatedUser);
+        setEditFormData(mapProfileToForm({ ...current, ...updatedUser }));
+        if (!silent) showToast('Profile synchronized from ORCID.', 'success');
+      } else if (!silent) {
+        showToast('Profile is already up to date with ORCID.', 'info');
+      }
+    } catch (error) {
+      console.error('ORCID sync failed:', error);
+      setOrcidError('Could not load your ORCID record. Showing DOCiD data.');
+      if (!silent) showToast('Could not reach ORCID. Please try again later.', 'error');
+    } finally {
+      setLoadingOrcid(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profileData]);
+
+  // Sync automatically once the DOCiD profile has loaded
+  useEffect(() => {
+    if (profileData) syncFromOrcid();
+  }, [profileData, syncFromOrcid]);
+
+  // Keep ORCID data in sync automatically: every 5 minutes and whenever the tab regains focus
+  useEffect(() => {
+    if (!profileData?.orcid_id && !getOrcidId()) return;
+    const resync = () => { if (document.visibilityState === 'visible') syncFromOrcid({ force: true }); };
+    const interval = setInterval(resync, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', resync);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', resync); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncFromOrcid]);
+
+  // Load user-entered values for fields ORCID doesn't provide
+  useEffect(() => {
+    if (!user?.id) return;
+    loadProfileExtras(user.id).then((extras) => setProfileExtras(extras || {}));
+  }, [user?.id]);
+
+  const saveExtras = async (patch) => {
+    const next = { ...profileExtras, ...patch };
+    await saveProfileExtras(user?.id, next);
+    setProfileExtras(next);
+    showToast('Profile updated successfully!', 'success');
+  };
+
+  const workItems = (works) => (works || []).map((w) => ({
+    text: [w.title, w.journal, w.year].filter(Boolean).join(' · '),
+    url: w.url || undefined,
+  }));
+
   // Redirect if not authenticated (only once on mount)
   useEffect(() => {
     if (!isAuthenticated) {
@@ -580,6 +658,7 @@ const MyAccountPage = () => {
   const basicInfoFields = [
     { 
       label: t('my_account.fields.full_name'), 
+      fromOrcid: !!orcidProfile?.basic?.full_name,
       value: displayValue(profileData?.full_name || user?.name),
       loading: false
     },
@@ -598,11 +677,13 @@ const MyAccountPage = () => {
     },
     {
       label: t('my_account.fields.affiliation'),
+      fromOrcid: !!orcidProfile?.basic?.affiliation,
       value: displayValue(profileData?.affiliation || user?.affiliation),
       loading: false
     },
     { 
       label: t('my_account.fields.role'), 
+      fromOrcid: !!orcidProfile?.basic?.role,
       value: displayValue(
         profileData?.role && !['user', 'admin', 'pid_minter'].includes(String(profileData.role).toLowerCase())
           ? profileData.role
@@ -612,6 +693,7 @@ const MyAccountPage = () => {
     },
     { 
       label: t('my_account.fields.orcid_id'), 
+      fromOrcid: !!orcidProfile?.basic?.orcid_id,
       value: displayValue(profileData?.orcid_id || getOrcidId()),
       loading: false
     },
@@ -622,6 +704,7 @@ const MyAccountPage = () => {
     },
     { 
       label: t('my_account.fields.location'), 
+      fromOrcid: !!orcidProfile?.basic?.country,
       value: displayValue(formatLocation(profileData)),
       loading: false
     },
@@ -897,513 +980,164 @@ const MyAccountPage = () => {
               {field.loading ? (
                 <CircularProgress size={20} sx={{ ml: 2 }} />
               ) : (
-                <Typography sx={{ color: 'text.primary' }}>
-                  {field.value}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                  <Typography sx={{ color: 'text.primary', wordBreak: 'break-word' }}>
+                    {field.value}
+                  </Typography>
+                  {field.fromOrcid && <OrcidBadge />}
+                </Box>
               )}
             </Box>
           ))}
+          {(profileData?.orcid_id || orcidProfile) && (
+            <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="caption" color={orcidError ? 'error' : 'text.secondary'} sx={{ flex: 1 }}>
+                {loadingOrcid
+                  ? 'Syncing with ORCID…'
+                  : orcidError
+                    ? orcidError
+                    : orcidSyncedAt
+                      ? `ORCID: Last synced ${orcidSyncedAt.toLocaleTimeString()}`
+                      : ''}
+              </Typography>
+            </Box>
+          )}
         </Box>
       )
     },
-    { 
-      id: 'professional', 
+    {
+      id: 'professional',
       title: t('my_account.sections.professional_background'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.professional_background')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          <Typography 
-            sx={{ 
-              color: 'text.primary', 
-              mb: 3,
-              lineHeight: 1.6
-            }}
-          >
-            {user?.professional_description || 
-              ""}
-          </Typography>
-
-          {professionalFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== professionalFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '160px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.professional_background')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={160}
+          onSave={saveExtras}
+          fields={[
+            { key: 'professional_description', label: 'Biography:', orcidValue: orcidProfile?.biography, userValue: profileExtras.professional_description ?? user?.professional_description, multiline: true },
+            { key: 'research_field', label: t('my_account.fields.research_field'), orcidValue: orcidProfile?.researchField, userValue: profileExtras.research_field },
+            { key: 'years_experience', label: t('my_account.fields.years_experience'), orcidValue: orcidProfile?.yearsExperience, userValue: profileExtras.years_experience },
+            { key: 'languages', label: t('my_account.fields.languages'), userValue: profileExtras.languages },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'research', 
+    {
+      id: 'research',
       title: t('my_account.sections.research_projects'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.research_projects')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {researchFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== researchFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.research_projects')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={180}
+          onSave={saveExtras}
+          fields={[
+            { key: 'active_projects', label: t('my_account.fields.active_projects'), userValue: profileExtras.active_projects ?? user?.active_projects, multiline: true },
+            { key: 'data_management_plan', label: t('my_account.fields.data_management_plan'), userValue: profileExtras.data_management_plan ?? user?.data_management_plan },
+            { key: 'pid_for_projects', label: t('my_account.fields.pid_for_projects'), userValue: profileExtras.pid_for_projects ?? user?.pid_for_projects },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'publications', 
+    {
+      id: 'publications',
       title: t('my_account.sections.publications_outputs'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.publications_outputs')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {publicationFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== publicationFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.publications_outputs')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={180}
+          onSave={saveExtras}
+          fields={[
+            { key: 'recent_publications', label: t('my_account.fields.recent_publications'), orcidValue: workItems(orcidProfile?.recentPublications), userValue: profileExtras.recent_publications, multiline: true },
+            { key: 'preprints', label: t('my_account.fields.preprints'), orcidValue: workItems(orcidProfile?.preprints), userValue: profileExtras.preprints, multiline: true },
+            { key: 'other_research_outputs', label: t('my_account.fields.other_research_outputs'), orcidValue: workItems(orcidProfile?.otherOutputs), userValue: profileExtras.other_research_outputs, multiline: true },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'funding', 
+    {
+      id: 'funding',
       title: t('my_account.sections.funding'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.funding')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {fundingFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== fundingFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.funding')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={180}
+          onSave={saveExtras}
+          fields={[
+            { key: 'funder_information', label: t('my_account.fields.funder_information'), orcidValue: (orcidProfile?.funders || []).join(', '), userValue: profileExtras.funder_information },
+            { key: 'grants', label: t('my_account.fields.grants'), orcidValue: (orcidProfile?.grants || []).map((g) => ({ text: [g.title, g.funder, g.grantNumber && `#${g.grantNumber}`, g.startYear].filter(Boolean).join(' · ') })), userValue: profileExtras.grants, multiline: true },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'collaboration', 
+    {
+      id: 'collaboration',
       title: t('my_account.sections.collaboration'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.collaboration')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {collaborationFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== collaborationFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.collaboration')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={200}
+          onSave={saveExtras}
+          fields={[
+            { key: 'coauthors_collaborators', label: t('my_account.fields.coauthors_collaborators'), userValue: profileExtras.coauthors_collaborators, multiline: true },
+            { key: 'institutional_affiliations', label: t('my_account.fields.institutional_affiliations'), orcidValue: (orcidProfile?.institutionalAffiliations || []).join(', '), userValue: profileExtras.institutional_affiliations },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'external', 
+    {
+      id: 'external',
       title: t('my_account.sections.external_identifiers'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.external_identifiers')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {externalIdentifierFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== externalIdentifierFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.external_identifiers')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={200}
+          onSave={saveExtras}
+          fields={[
+            { key: 'orcid', label: t('my_account.fields.orcid'), orcidValue: orcidProfile ? { text: orcidProfile.orcidId, url: orcidProfile.orcidUrl } : '', userValue: profileData?.orcid_id },
+            { key: 'researcher_id', label: t('my_account.fields.researcher_id'), orcidValue: orcidProfile?.researcherId ? { text: orcidProfile.researcherId.value, url: orcidProfile.researcherId.url } : '', userValue: profileExtras.researcher_id },
+            { key: 'scopus_author_id', label: t('my_account.fields.scopus_author_id'), orcidValue: orcidProfile?.scopusId ? { text: orcidProfile.scopusId.value, url: orcidProfile.scopusId.url } : '', userValue: profileExtras.scopus_author_id },
+            { key: 'google_scholar_profile', label: t('my_account.fields.google_scholar_profile'), orcidValue: orcidProfile?.googleScholar ? { text: orcidProfile.googleScholar.value, url: orcidProfile.googleScholar.url } : '', userValue: profileExtras.google_scholar_profile },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'licensing', 
+    {
+      id: 'licensing',
       title: t('my_account.sections.licensing_data_sharing'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.licensing_data_sharing')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {licensingFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== licensingFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '280px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.licensing_data_sharing')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={200}
+          onSave={saveExtras}
+          fields={[
+            { key: 'preferred_licensing', label: t('my_account.fields.preferred_licensing'), userValue: profileExtras.preferred_licensing },
+            { key: 'data_sharing_preferences', label: t('my_account.fields.data_sharing_preferences'), userValue: profileExtras.data_sharing_preferences, multiline: true },
+          ]}
+        />
+      ),
     },
-    { 
-      id: 'contact', 
+    {
+      id: 'contact',
       title: t('my_account.sections.contact_information'),
       content: (
-        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: 2
-          }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'primary.main',
-                fontWeight: 500
-              }}
-            >
-              {t('my_account.sections.contact_information')}
-            </Typography>
-            <Button 
-              sx={{ 
-                minWidth: 'auto', 
-                p: 1,
-                color: theme.palette.mode === 'dark' ? theme.palette.common.white : '#1565c0',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? alpha(theme.palette.common.white, 0.1) 
-                    : alpha('#1565c0', 0.1)
-                }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </Button>
-          </Box>
-
-          {contactFields.map((field, index) => (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex',
-                mb: index !== contactFields.length - 1 ? 2 : 0
-              }}
-            >
-              <Typography 
-                sx={{ 
-                  color: 'primary.main',
-                  width: '180px',
-                  flexShrink: 0
-                }}
-              >
-                {field.label}
-              </Typography>
-              <Typography sx={{ color: 'text.primary' }}>
-                {field.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )
+        <OrcidProfileSection
+          title={t('my_account.sections.contact_information')}
+          emptyText={t('my_account.common.no_data_available')}
+          labelWidth={180}
+          onSave={saveExtras}
+          fields={[
+            { key: 'primary_contact', label: t('my_account.fields.primary_contact'), orcidValue: orcidProfile?.primaryContact, userValue: profileExtras.primary_contact || profileData?.email },
+            { key: 'public_profile_link', label: t('my_account.fields.public_profile_link'), orcidValue: orcidProfile?.publicProfileLink ? { url: orcidProfile.publicProfileLink } : '', userValue: profileExtras.public_profile_link },
+          ]}
+        />
+      ),
     },
   ];
 
@@ -1545,6 +1279,8 @@ const MyAccountPage = () => {
                 label={t('my_account.fields.full_name').replace(':', '')}
                 value={editFormData.fullName}
                 onChange={handleEditFormChange}
+                helperText={orcidLocks.fullName ? 'Synced from ORCID' : undefined}
+                disabled={orcidLocks.fullName}
                 variant="outlined"
                 sx={editFieldSx}
               />
@@ -1571,11 +1307,17 @@ const MyAccountPage = () => {
                 label="Role/Position"
                 value={editFormData.role}
                 onChange={handleEditFormChange}
+                helperText={orcidLocks.role ? 'Synced from ORCID' : undefined}
+                disabled={orcidLocks.role}
                 variant="outlined"
                 sx={editFieldSx}
               />
             </Grid>
             <Grid item xs={6}>
+{orcidLocks.faculty ? (
+                <TextField fullWidth size="small" label={t('my_account.fields.affiliation').replace(':', '')}
+                  value={editFormData.faculty} disabled helperText="Synced from ORCID" sx={editFieldSx} />
+              ) : (
               <FormControl fullWidth size="small">
                 <InputLabel>{t('my_account.form.select_faculty')}</InputLabel>
                 <Select
@@ -1592,8 +1334,13 @@ const MyAccountPage = () => {
                   ))}
                 </Select>
               </FormControl>
+              )}
             </Grid>
             <Grid item xs={6}>
+{orcidLocks.country ? (
+                <TextField fullWidth size="small" label="Country"
+                  value={editFormData.country} disabled helperText="Synced from ORCID" sx={editFieldSx} />
+              ) : (
               <FormControl fullWidth size="small">
                 <InputLabel>{t('my_account.form.select_country')}</InputLabel>
                 <Select
@@ -1610,6 +1357,7 @@ const MyAccountPage = () => {
                   ))}
                 </Select>
               </FormControl>
+              )}
             </Grid>
             <Grid item xs={6}>
               <TextField
@@ -1644,6 +1392,8 @@ const MyAccountPage = () => {
                 placeholder="0000-0000-0000-0000"
                 value={editFormData.orcid_id}
                 onChange={handleEditFormChange}
+                helperText={orcidLocks.orcid_id ? 'Synced from ORCID' : undefined}
+                disabled={orcidLocks.orcid_id}
                 variant="outlined"
                 sx={editFieldSx}
               />
