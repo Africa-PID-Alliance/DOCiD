@@ -34,7 +34,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import {
   ThumbUpOutlined,
@@ -66,6 +67,9 @@ const ListDocIds = () => {
   const [publications, setPublications] = useState([]);
   const [resourceTypesList, setResourceTypesList] = useState([]);
   const [resourceTypeCounts, setResourceTypeCounts] = useState({});
+  const [publicationTypesList, setPublicationTypesList] = useState([]);
+  const [publicationTypeCounts, setPublicationTypeCounts] = useState(null); // null = still loading
+  const [publicationTypeProgress, setPublicationTypeProgress] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     page_size: 15,
@@ -163,6 +167,39 @@ const ListDocIds = () => {
       sessionStorage.removeItem('fromAssignDocId');
     }
   }, [searchParams]);
+
+  // Fetch publication types (same list as the assign-docid Publications step)
+  useEffect(() => {
+    axios.get('/api/publications/get-list-publication-types')
+      .then((res) => setPublicationTypesList(Array.isArray(res.data) ? res.data : []))
+      .catch((error) => console.error('Error fetching publication types:', error));
+  }, []);
+
+  // Fetch publication counts per publication_type_id across all DOCiDs (polls while the server scans)
+  useEffect(() => {
+    let cancelled = false;
+    let timer;
+    const load = async () => {
+      try {
+        const res = await axios.get('/api/publications/publication-type-counts', {
+          validateStatus: (s) => s === 200 || s === 202,
+        });
+        if (cancelled) return;
+        if (res.data.status === 'ready') {
+          setPublicationTypeCounts(res.data.counts || {});
+          setPublicationTypeProgress(null);
+        } else {
+          setPublicationTypeProgress(res.data.progress || null);
+          timer = setTimeout(load, 5000);
+        }
+      } catch (error) {
+        console.error('Error fetching publication type counts:', error);
+        if (!cancelled) timer = setTimeout(load, 15000);
+      }
+    };
+    load();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, []);
 
   // Fetch resource types
   useEffect(() => {
@@ -802,6 +839,37 @@ const ListDocIds = () => {
                 );
               })}
             </Box>
+
+            {/* Publication Types (counts of publications across all DOCiDs) */}
+            {publicationTypesList.length > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                  {t('docid.publication_types', 'Publication Types')}:
+                </Typography>
+                {publicationTypeCounts === null ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={14} />
+                    <Typography variant="caption" color="text.secondary">
+                      {publicationTypeProgress?.total
+                        ? `${t('docid.counting_publications', 'Counting publications')}… ${publicationTypeProgress.done}/${publicationTypeProgress.total}`
+                        : `${t('docid.counting_publications', 'Counting publications')}…`}
+                    </Typography>
+                  </Box>
+                ) : (
+                  publicationTypesList
+                    .filter((type) => (publicationTypeCounts[String(type.id)] || 0) > 0)
+                    .sort((x, y) => (publicationTypeCounts[String(y.id)] || 0) - (publicationTypeCounts[String(x.id)] || 0))
+                    .map((type) => (
+                      <Chip
+                        key={type.id}
+                        label={`${type.publication_type_name} (${publicationTypeCounts[String(type.id)]})`}
+                        variant="outlined"
+                        size="small"
+                      />
+                    ))
+                )}
+              </Box>
+            )}
           </Box>
 
           {/* Main Content Area */}
