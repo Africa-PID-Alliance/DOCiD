@@ -542,7 +542,22 @@ const translations = {
     "projects": "Miradi",
     "view": "ONA",
     "number_of": "Idadi ya {{label}}: {{count}}",
-    "related_docids": "DOCiDs Zinazohusiana"
+    "related_docids": "DOCiDs Zinazohusiana",
+    "related_docids_none": "Hakuna DOCiDs zinazohusiana zilizopatikana.",
+    "related_docids_unavailable": "DOCiDs zinazohusiana hazipatikani kwa sasa.",
+    "related_shares_author": "Mwandishi wa pamoja: {{name}}",
+    "related_shares_authors": "Waandishi wa pamoja: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "Maarifa ya Asili",
+      "patent": "Hataza",
+      "cultural_heritage": "Urithi wa Kitamaduni",
+      "project": "Mradi",
+      "funder": "Mfadhili",
+      "dmp": "MPUD",
+      "manuscripts": "Miswada",
+      "masters_thesis": "Tasnifu ya Uzamili",
+      "phd_thesis": "Tasnifu ya Uzamivu"
+    }
   },
   "modal": {
     "title_field": "Kichwa",

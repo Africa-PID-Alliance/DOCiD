@@ -543,7 +543,22 @@ const translations = {
     "projects": "परियोजनाएँ",
     "view": "देखें",
     "number_of": "{{label}} की संख्या: {{count}}",
-    "related_docids": "संबंधित DOCiDs "
+    "related_docids": "संबंधित DOCiDs ",
+    "related_docids_none": "कोई संबंधित DOCiDs नहीं मिले।",
+    "related_docids_unavailable": "संबंधित DOCiDs अभी उपलब्ध नहीं हैं।",
+    "related_shares_author": "साझा लेखक: {{name}}",
+    "related_shares_authors": "साझा लेखक: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "स्वदेशी ज्ञान",
+      "patent": "पेटेंट",
+      "cultural_heritage": "सांस्कृतिक विरासत",
+      "project": "परियोजना",
+      "funder": "वित्त पोषक",
+      "dmp": "DMP",
+      "manuscripts": "पांडुलिपियाँ",
+      "masters_thesis": "स्नातकोत्तर शोध प्रबंध",
+      "phd_thesis": "पीएचडी शोध प्रबंध"
+    }
   },
   "modal": {
     "title_field": "शीर्षक",

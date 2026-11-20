@@ -543,7 +543,22 @@ const translations = {
     "projects": "Mga Proyekto",
     "view": "TINGNAN",
     "number_of": "Bilang ng {{label}}: {{count}}",
-    "related_docids": "Mga Kaugnay na DOCiD "
+    "related_docids": "Mga Kaugnay na DOCiD ",
+    "related_docids_none": "Walang nakitang kaugnay na DOCiD.",
+    "related_docids_unavailable": "Hindi available ang mga kaugnay na DOCiD sa ngayon.",
+    "related_shares_author": "Parehong may-akda: {{name}}",
+    "related_shares_authors": "Parehong may-akda: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "Katutubong Kaalaman",
+      "patent": "Patente",
+      "cultural_heritage": "Kulturang Pamana",
+      "project": "Proyekto",
+      "funder": "Tagapagpondo",
+      "dmp": "DMP",
+      "manuscripts": "Mga Manuskrito",
+      "masters_thesis": "Tesis sa Master",
+      "phd_thesis": "Disertasyon sa PhD"
+    }
   },
   "modal": {
     "title_field": "Pamagat",

@@ -543,7 +543,22 @@ const translations = {
     "projects": "โครงการ",
     "view": "ดู",
     "number_of": "จำนวน {{label}}: {{count}}",
-    "related_docids": "DOCiD ที่เกี่ยวข้อง "
+    "related_docids": "DOCiD ที่เกี่ยวข้อง ",
+    "related_docids_none": "ไม่พบ DOCiD ที่เกี่ยวข้อง",
+    "related_docids_unavailable": "ไม่สามารถแสดง DOCiD ที่เกี่ยวข้องได้ในขณะนี้",
+    "related_shares_author": "ผู้เขียนร่วม: {{name}}",
+    "related_shares_authors": "ผู้เขียนร่วม: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "ภูมิปัญญาท้องถิ่น",
+      "patent": "สิทธิบัตร",
+      "cultural_heritage": "มรดกทางวัฒนธรรม",
+      "project": "โครงการ",
+      "funder": "ผู้ให้ทุน",
+      "dmp": "DMP",
+      "manuscripts": "ต้นฉบับตัวเขียน",
+      "masters_thesis": "วิทยานิพนธ์ปริญญาโท",
+      "phd_thesis": "วิทยานิพนธ์ปริญญาเอก"
+    }
   },
   "modal": {
     "title_field": "ชื่อเรื่อง",

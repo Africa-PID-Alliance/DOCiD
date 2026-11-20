@@ -555,7 +555,22 @@ const translations = {
     "projects": "Project(s)",
     "view": "VIEW",
     "number_of": "Number of {{label}}: {{count}}",
-    "related_docids": "Related DOCiDs "
+    "related_docids": "Related DOCiDs ",
+    "related_docids_none": "No related DOCiDs found.",
+    "related_docids_unavailable": "Related DOCiDs are unavailable right now.",
+    "related_shares_author": "Shares author {{name}}",
+    "related_shares_authors": "Shares authors {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "Indigenous Knowledge",
+      "patent": "Patent",
+      "cultural_heritage": "Cultural Heritage",
+      "project": "Project",
+      "funder": "Funder",
+      "dmp": "DMP",
+      "manuscripts": "Manuscripts",
+      "masters_thesis": "Master's Thesis",
+      "phd_thesis": "PhD Thesis"
+    }
   },
   "modal": {
     "title_field": "Title",

@@ -542,7 +542,22 @@ const translations = {
     "projects": "المشروع/المشاريع",
     "view": "عرض",
     "number_of": "عدد {{label}}: {{count}}",
-    "related_docids": "DOCiDs ذات الصلة"
+    "related_docids": "DOCiDs ذات الصلة",
+    "related_docids_none": "لم يتم العثور على DOCiDs ذات صلة.",
+    "related_docids_unavailable": "DOCiDs ذات الصلة غير متاحة حاليًا.",
+    "related_shares_author": "مؤلف مشترك: {{name}}",
+    "related_shares_authors": "مؤلفون مشتركون: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "المعرفة الأصلية",
+      "patent": "براءة اختراع",
+      "cultural_heritage": "التراث الثقافي",
+      "project": "مشروع",
+      "funder": "الممول",
+      "dmp": "خطة إدارة البيانات",
+      "manuscripts": "مخطوطات",
+      "masters_thesis": "رسالة ماجستير",
+      "phd_thesis": "أطروحة دكتوراه"
+    }
   },
   "modal": {
     "title_field": "العنوان",

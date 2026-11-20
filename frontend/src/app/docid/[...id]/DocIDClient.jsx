@@ -35,6 +35,7 @@ import {
   Link as LinkIcon,
   CalendarToday,
   Person,
+  PersonOutline,
   Description,
   Image,
   ThumbUpOutlined,
@@ -130,7 +131,30 @@ const getCreatorDisplayName = (item) => {
   return fromParts || item?.creator_name || item?.family_name || '';
 };
 
-const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
+// Related DOCiDs: resource_types names as stored (lowercased) -> label keys
+// under docid_page.sections.related_types. The database spells type 1
+// "Indigeneous Knowledge"; the label fixes it. Unknown names show as stored.
+const RELATED_TYPE_KEYS = {
+  'indigeneous knowledge': 'indigenous_knowledge',
+  'indigenous knowledge': 'indigenous_knowledge',
+  'patent': 'patent',
+  'cultural heritage': 'cultural_heritage',
+  'project': 'project',
+  'funder': 'funder',
+  'dmp (data management plan)': 'dmp',
+  'manuscripts': 'manuscripts',
+  'masters thesis': 'masters_thesis',
+  'phd thesis': 'phd_thesis',
+};
+
+// Long owner or author names wrap inside the chip instead of being cut off.
+const RELATED_CHIP_SX = {
+  maxWidth: '100%',
+  height: 'auto',
+  '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 },
+};
+
+const DocIDPage =({ initialPublication = null, docId: propDocId = null }) => {
   const searchParams = useSearchParams();
   const lcDemoProjectId = searchParams?.get('lc_demo') || null;
   const [comment, setComment] = useState('');
@@ -157,6 +181,10 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
   const [stats, setStats] = useState({ views: 0, downloads: 0, comments: 0 });
   const [filesStats, setFilesStats] = useState({ files: [], documents: [] });
   const { showToast } = useToast();
+
+  // Related DOCiDs (URAAS keyword overlap, via /api/publications/<id>/related-docids)
+  const [relatedDocids, setRelatedDocids] = useState([]);
+  const [relatedDocidsStatus, setRelatedDocidsStatus] = useState('loading'); // loading | loaded | unavailable
 
   // Version history state
   const [versionHistory, setVersionHistory] = useState(null);
@@ -290,6 +318,25 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
     if (publicationId) {
       fetchComments();
     }
+  }, [publicationId]);
+
+  // Fetch related DOCiDs when publication ID is available
+  useEffect(() => {
+    if (!publicationId) return;
+    let cancelled = false;
+    setRelatedDocidsStatus('loading');
+    axios.get(`/api/publications/${publicationId}/related-docids`)
+      .then((response) => {
+        if (cancelled) return;
+        setRelatedDocids(Array.isArray(response.data?.related) ? response.data.related : []);
+        setRelatedDocidsStatus('loaded');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRelatedDocids([]);
+        setRelatedDocidsStatus('unavailable');
+      });
+    return () => { cancelled = true; };
   }, [publicationId]);
 
   // Track view and fetch stats when publication ID is available
@@ -3157,20 +3204,69 @@ const DocIDPage = ({ initialPublication = null, docId: propDocId = null }) => {
                   </Box>
                 </Box>
             </Paper>
-            {/* Related Docids */}
-            <Button variant="outlined" fullWidth sx={{ 
-              py: 2,
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              bgcolor: 'background.paper',
-              '&:hover': {
-                borderColor: 'primary.dark',
-                bgcolor: 'primary.light',
-                color: theme.palette.mode === 'dark' ? 'white' : 'white'
-              }
-            }}>
-              {t('docid_page.sections.related_docids')}
-            </Button>
+            {/* Related DOCiDs */}
+            <Paper elevation={0} sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
+              <Typography component="h2" fontWeight={600} mb={1.5} color="text.primary">
+                {t('docid_page.sections.related_docids').trim()}
+              </Typography>
+              {relatedDocidsStatus === 'loading' ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={20} />
+                </Box>
+              ) : relatedDocids.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  {relatedDocidsStatus === 'unavailable'
+                    ? t('docid_page.sections.related_docids_unavailable')
+                    : t('docid_page.sections.related_docids_none')}
+                </Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {relatedDocids.map((related) => {
+                    const typeKey = RELATED_TYPE_KEYS[(related.resource_type || '').trim().toLowerCase()];
+                    const typeLabel = typeKey
+                      ? t(`docid_page.sections.related_types.${typeKey}`)
+                      : related.resource_type;
+                    const sharedAuthors = Array.isArray(related.shared_authors) ? related.shared_authors : [];
+                    const sharedAuthorChip = sharedAuthors.length > 0 && (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={sharedAuthors.length > 1
+                          ? t('docid_page.sections.related_shares_authors', { name: sharedAuthors[0], others: sharedAuthors.length - 1 })
+                          : t('docid_page.sections.related_shares_author', { name: sharedAuthors[0] })}
+                        sx={RELATED_CHIP_SX}
+                      />
+                    );
+                    return (
+                      <Box key={related.id}>
+                        <Link
+                          href={`/docid/${formatDocIdForUrl(related.document_docid)}`}
+                          underline="hover"
+                          sx={{ fontWeight: 500, fontSize: '0.95rem', lineHeight: 1.4, display: 'block' }}
+                        >
+                          {related.document_title}
+                        </Link>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 0.75 }}>
+                          {typeLabel && <Chip size="small" label={typeLabel} sx={RELATED_CHIP_SX} />}
+                          {sharedAuthors.length > 1 ? (
+                            <Tooltip title={sharedAuthors.join(', ')}>{sharedAuthorChip}</Tooltip>
+                          ) : sharedAuthorChip}
+                          {sharedAuthors.length === 0 && related.owner && (
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              icon={<PersonOutline />}
+                              label={related.owner}
+                              sx={RELATED_CHIP_SX}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </Paper>
           </Grid>
         </Grid>
       </Container>

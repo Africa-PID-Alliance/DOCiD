@@ -543,7 +543,22 @@ const translations = {
     "projects": "Projetus",
     "view": "HAREE",
     "number_of": "Nú. {{label}}: {{count}}",
-    "related_docids": "DOCiD Relasionadu "
+    "related_docids": "DOCiD Relasionadu ",
+    "related_docids_none": "La hetan DOCiD relasionadu.",
+    "related_docids_unavailable": "DOCiD relasionadu la disponível agora.",
+    "related_shares_author": "Autór hanesan: {{name}}",
+    "related_shares_authors": "Autór hanesan: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "Koñesimentu Indíjena",
+      "patent": "Patente",
+      "cultural_heritage": "Patrimóniu Kulturál",
+      "project": "Projetu",
+      "funder": "Finansiadór",
+      "dmp": "DMP",
+      "manuscripts": "Manuskritu",
+      "masters_thesis": "Tese Mestradu",
+      "phd_thesis": "Tese Doutoramentu"
+    }
   },
   "modal": {
     "title_field": "Títulu",

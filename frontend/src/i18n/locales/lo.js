@@ -543,7 +543,22 @@ const translations = {
     "projects": "ໂຄງການ",
     "view": "ເບິ່ງ",
     "number_of": "ຈຳນວນ {{label}}: {{count}}",
-    "related_docids": "DOCiDs ທີ່ກ່ຽວຂ້ອງ "
+    "related_docids": "DOCiDs ທີ່ກ່ຽວຂ້ອງ ",
+    "related_docids_none": "ບໍ່ພົບ DOCiDs ທີ່ກ່ຽວຂ້ອງ.",
+    "related_docids_unavailable": "DOCiDs ທີ່ກ່ຽວຂ້ອງບໍ່ສາມາດໃຊ້ໄດ້ໃນຂະນະນີ້.",
+    "related_shares_author": "ຜູ້ຂຽນຮ່ວມ: {{name}}",
+    "related_shares_authors": "ຜູ້ຂຽນຮ່ວມ: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "ຄວາມຮູ້ພື້ນເມືອງ",
+      "patent": "ສິດທິບັດ",
+      "cultural_heritage": "ມໍລະດົກວັດທະນະທຳ",
+      "project": "ໂຄງການ",
+      "funder": "ຜູ້ສະໜັບສະໜູນທຶນ",
+      "dmp": "DMP",
+      "manuscripts": "ຕົ້ນສະບັບ",
+      "masters_thesis": "ວິທະຍານິພົນປະລິນຍາໂທ",
+      "phd_thesis": "ວິທະຍານິພົນປະລິນຍາເອກ"
+    }
   },
   "modal": {
     "title_field": "ຊື່ເລື່ອງ",

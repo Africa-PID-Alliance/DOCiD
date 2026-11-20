@@ -543,7 +543,22 @@ const translations = {
     "projects": "项目",
     "view": "查看",
     "number_of": "{{label}} 数量：{{count}}",
-    "related_docids": "相关 DOCiDs "
+    "related_docids": "相关 DOCiDs ",
+    "related_docids_none": "未找到相关 DOCiD。",
+    "related_docids_unavailable": "暂时无法加载相关 DOCiD。",
+    "related_shares_author": "共同作者：{{name}}",
+    "related_shares_authors": "共同作者：{{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "本土知识",
+      "patent": "专利",
+      "cultural_heritage": "文化遗产",
+      "project": "项目",
+      "funder": "资助方",
+      "dmp": "DMP",
+      "manuscripts": "手稿",
+      "masters_thesis": "硕士论文",
+      "phd_thesis": "博士论文"
+    }
   },
   "modal": {
     "title_field": "标题",

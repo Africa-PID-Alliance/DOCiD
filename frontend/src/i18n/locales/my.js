@@ -543,7 +543,22 @@ const translations = {
     "projects": "စီမံကိန်းများ",
     "view": "ကြည့်ရှုရန်",
     "number_of": "{{label}} အရေအတွက်: {{count}}",
-    "related_docids": "ဆက်စပ် DOCiDs "
+    "related_docids": "ဆက်စပ် DOCiDs ",
+    "related_docids_none": "ဆက်စပ် DOCiDs မတွေ့ပါ။",
+    "related_docids_unavailable": "ဆက်စပ် DOCiDs ကို ယခု မရရှိနိုင်ပါ။",
+    "related_shares_author": "တူညီသောစာရေးသူ - {{name}}",
+    "related_shares_authors": "တူညီသောစာရေးသူ - {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "ဌာနေတိုင်းရင်းသားဗဟုသုတ",
+      "patent": "မူပိုင်ခွင့်",
+      "cultural_heritage": "ယဉ်ကျေးမှုအမွေအနှစ်",
+      "project": "စီမံကိန်း",
+      "funder": "ရန်ပုံငွေပေးသူ",
+      "dmp": "DMP",
+      "manuscripts": "လက်ရေးမူများ",
+      "masters_thesis": "မဟာဘွဲ့ကျမ်း",
+      "phd_thesis": "ပါရဂူဘွဲ့ကျမ်း"
+    }
   },
   "modal": {
     "title_field": "ခေါင်းစဉ်",

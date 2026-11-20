@@ -543,7 +543,22 @@ const translations = {
     "projects": "프로젝트",
     "view": "보기",
     "number_of": "{{label}} 수: {{count}}",
-    "related_docids": "관련 DOCiDs "
+    "related_docids": "관련 DOCiDs ",
+    "related_docids_none": "관련 DOCiDs가 없습니다.",
+    "related_docids_unavailable": "지금은 관련 DOCiDs를 불러올 수 없습니다.",
+    "related_shares_author": "공동 저자: {{name}}",
+    "related_shares_authors": "공동 저자: {{name}} 외 {{others}}명",
+    "related_types": {
+      "indigenous_knowledge": "토착 지식",
+      "patent": "특허",
+      "cultural_heritage": "문화유산",
+      "project": "프로젝트",
+      "funder": "자금 제공자",
+      "dmp": "DMP",
+      "manuscripts": "원고",
+      "masters_thesis": "석사 학위 논문",
+      "phd_thesis": "박사 학위 논문"
+    }
   },
   "modal": {
     "title_field": "제목",

@@ -543,7 +543,22 @@ const translations = {
     "projects": "Dự án",
     "view": "XEM",
     "number_of": "Số lượng {{label}}: {{count}}",
-    "related_docids": "DOCiDs Liên quan "
+    "related_docids": "DOCiDs Liên quan ",
+    "related_docids_none": "Không tìm thấy DOCiDs liên quan.",
+    "related_docids_unavailable": "Hiện không thể tải DOCiDs liên quan.",
+    "related_shares_author": "Cùng tác giả: {{name}}",
+    "related_shares_authors": "Cùng tác giả: {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "Tri thức Bản địa",
+      "patent": "Bằng sáng chế",
+      "cultural_heritage": "Di sản Văn hóa",
+      "project": "Dự án",
+      "funder": "Nhà tài trợ",
+      "dmp": "DMP",
+      "manuscripts": "Bản thảo",
+      "masters_thesis": "Luận văn Thạc sĩ",
+      "phd_thesis": "Luận án Tiến sĩ"
+    }
   },
   "modal": {
     "title_field": "Tiêu đề",

@@ -128,6 +128,7 @@ def create_app(test_config=None):
     from app.routes.enrichment import enrichment_bp
     from app.routes.enrichment_generic import enrichment_generic_bp
     from app.routes.verify import verify_bp
+    from app.routes.uraas import uraas_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(datacite_bp, url_prefix='/api/v1/datacite')
@@ -162,6 +163,7 @@ def create_app(test_config=None):
     app.register_blueprint(enrichment_bp)  # /api/v1/publications/<id>/enrich/openalex
     app.register_blueprint(enrichment_generic_bp)  # /api/v1/publications/<id>/enrich/<source> + /api/v1/harvest/<source>
     app.register_blueprint(verify_bp)  # /api/v1/verify (public integrity verification)
+    app.register_blueprint(uraas_bp)  # /api/v1/publications/<id>/related-docids (URAAS keyword overlap)
 
     # Set up logging
     setup_logging(app)

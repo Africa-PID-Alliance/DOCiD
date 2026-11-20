@@ -544,7 +544,22 @@ const translations = {
     "projects": "គ ម ្ រ ោ ង",
     "view": "ម ើ ល",
     "number_of": "ចំ ន ួ ន {{label}}: {{count}}",
-    "related_docids": "DOCiDs ព ា ក ់ ព ័ ន ្ ធ"
+    "related_docids": "DOCiDs ព ា ក ់ ព ័ ន ្ ធ",
+    "related_docids_none": "រកមិនឃើញ DOCiDs ពាក់ព័ន្ធទេ។",
+    "related_docids_unavailable": "DOCiDs ពាក់ព័ន្ធមិនអាចប្រើបាននៅពេលនេះទេ។",
+    "related_shares_author": "អ្នកនិពន្ធរួម៖ {{name}}",
+    "related_shares_authors": "អ្នកនិពន្ធរួម៖ {{name}} +{{others}}",
+    "related_types": {
+      "indigenous_knowledge": "ចំណេះដឹងជនជាតិដើម",
+      "patent": "ប៉ាតង់",
+      "cultural_heritage": "បេតិកភ័ណ្ឌវប្បធម៌",
+      "project": "គម្រោង",
+      "funder": "អ្នកផ្ដល់ទុន",
+      "dmp": "DMP",
+      "manuscripts": "ឯកសារសរសេរដោយដៃ",
+      "masters_thesis": "និក្ខេបបទថ្នាក់អនុបណ្ឌិត",
+      "phd_thesis": "និក្ខេបបទថ្នាក់បណ្ឌិត"
+    }
   },
   "modal": {
     "title_field": "ចំ ណ ង ជើ ង",

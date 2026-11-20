@@ -110,6 +110,10 @@ class Config:
     WORLDCAT_SEARCH_BASE_URL = os.getenv('WORLDCAT_SEARCH_BASE_URL', 'https://americas.discovery.api.oclc.org/worldcat/search/v2')
     WORLDCAT_METADATA_BASE_URL = os.getenv('WORLDCAT_METADATA_BASE_URL', 'https://metadata.api.oclc.org')
 
+    # URAAS partner API (UNILAG research aggregator), used for Related DOCiDs.
+    URAAS_API_KEY = os.getenv('URAAS_API_KEY', '')
+    URAAS_BASE_URL = os.getenv('URAAS_BASE_URL', 'https://lordkiki-apa-uraas.hf.space')
+
     # Canonical list of active enrichment providers.
     # Routes and CLI both read from this list — no per-provider boolean flags needed.
     # Override via ENRICHMENT_SOURCES env var (comma-separated) to add/remove providers.

@@ -544,7 +544,22 @@ const translations = {
   "projects": "Projek",
   "view": "LIHAT",
   "number_of": "Bilangan {{label}}: {{count}}",
-  "related_docids": "DOCiDs Berkaitan"
+  "related_docids": "DOCiDs Berkaitan",
+  "related_docids_none": "Tiada DOCiDs berkaitan ditemui.",
+  "related_docids_unavailable": "DOCiDs berkaitan tidak tersedia buat masa ini.",
+  "related_shares_author": "Pengarang sama: {{name}}",
+  "related_shares_authors": "Pengarang sama: {{name}} +{{others}}",
+  "related_types": {
+    "indigenous_knowledge": "Ilmu Pengetahuan Orang Asli",
+    "patent": "Paten",
+    "cultural_heritage": "Warisan Budaya",
+    "project": "Projek",
+    "funder": "Pembiaya",
+    "dmp": "DMP",
+    "manuscripts": "Manuskrip",
+    "masters_thesis": "Tesis Sarjana",
+    "phd_thesis": "Tesis PhD"
+  }
 },
 "modal": {
   "title_field": "Tajuk",
