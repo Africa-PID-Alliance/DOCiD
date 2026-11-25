@@ -1,5 +1,6 @@
 "use client";
 
+import { validatePublicationDate } from '@/components/PublicationDateField';
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
@@ -250,6 +251,8 @@ function dbToFormFile(f) {
       identifier: identifierType,
       identifierType,
       generated_identifier: f.generated_identifier || '',
+      // Per-file publication date (YYYY / YYYY-MM / YYYY-MM-DD) once the backend returns it.
+      publicationDate: f.publication_date || '',
     },
   };
 }
@@ -1108,6 +1111,20 @@ export default function EditDocidPage() {
       return;
     }
 
+    const badDateIdx = files.findIndex((f) =>
+      validatePublicationDate(String(f.metadata?.publicationDate || '').trim())
+    );
+    if (badDateIdx !== -1) {
+      const offending = files[badDateIdx];
+      setFeedbackMessage({
+        type: 'error',
+        text:
+          `"${offending.metadata?.title || offending.name || 'untitled file'}": ` +
+          validatePublicationDate(String(offending.metadata.publicationDate).trim()),
+      });
+      return;
+    }
+
     setIsSaving(true);
     let uploaded = 0, replaced = 0, updated = 0, deleted = 0, errors = 0;
     const defaultType = publicationsData.publicationType || '1';
@@ -1139,11 +1156,14 @@ export default function EditDocidPage() {
         const origExtType = orig.externalIdentifierType === 'DOI' ? 'DOI' : '';
         const extIdentifierChanged =
           newExtId !== origExtId || newExtType !== origExtType;
+        const newPubDate = String(meta.publicationDate || '').trim();
+        const pubDateChanged = newPubDate !== String(origMeta.publicationDate || '').trim();
         const changed =
           (meta.title || '') !== (origMeta.title || '') ||
           (meta.description || '') !== (origMeta.description || '') ||
           String(newType) !== String(origType) ||
-          extIdentifierChanged;
+          extIdentifierChanged ||
+          pubDateChanged;
         if (!changed) continue;
         try {
           const payload = {
@@ -1151,6 +1171,8 @@ export default function EditDocidPage() {
             description: meta.description || '',
             publication_type_id: newType,
           };
+          // Omit = keep, "" = clear, value = set (same as publicationDate on update-publication).
+          if (pubDateChanged) payload.publication_date = newPubDate;
           if (extIdentifierChanged) {
             // Three-state semantics on the backend:
             //   omit fields = no change · empty = clear · non-empty = set.
@@ -1192,6 +1214,9 @@ export default function EditDocidPage() {
         fd.append('title', String(meta.title).trim());
         fd.append('description', meta.description || '');
         fd.append('publication_type_id', f.publicationType || defaultType);
+        if (String(meta.publicationDate || '').trim()) {
+          fd.append('publication_date', String(meta.publicationDate).trim());
+        }
         // Optional external identifier (CrossRef DOI). Only send if the user
         // picked CrossRef AND we have a non-empty DOI. Pre-save validation
         // above guarantees we never reach here with an empty DOI when

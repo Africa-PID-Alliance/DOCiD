@@ -19,14 +19,17 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemButton
+  ListItemButton,
+  Autocomplete
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import MaskedNationalIdField from '@/components/MaskedNationalIdField';
+import { COUNTRY_NAMES } from '@/constants/countries';
 
 const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, loadGeneration = 0 }) => {
   const theme = useTheme();
@@ -61,8 +64,12 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
   const [showLookupId, setShowLookupId] = useState(false);
   const [showManualId, setShowManualId] = useState(false);
   const [revealedCreatorIndexes, setRevealedCreatorIndexes] = useState({});
+  // Index of the creator being edited, or null when adding a new one.
+  const [editingIndex, setEditingIndex] = useState(null);
+  const isEditing = editingIndex !== null;
 
   const handleModalOpen = () => {
+    setEditingIndex(null);
     setIsModalOpen(true);
     setNewCreator({ name: '', nationalIdNumber: '', country: '' });
     setErrors({});
@@ -78,6 +85,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
 
   const handleModalClose = () => {
     setIsModalOpen(false);
+    setEditingIndex(null);
     setNewCreator({ name: '', nationalIdNumber: '', country: '' });
     setErrors({});
     setSearchResults([]);
@@ -108,10 +116,31 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
       setErrors(validationErrors);
       return;
     }
-    const updatedCreators = [...creators, newCreator];
+    // When editing, keep any other fields on the row (e.g. its DB id on the
+    // edit-docid page) and only overwrite the three editable ones.
+    const updatedCreators = isEditing
+      ? creators.map((c, i) => (i === editingIndex ? { ...c, ...newCreator } : c))
+      : [...creators, newCreator];
     setCreators(updatedCreators);
     updateFormData({ ...formData, creators: updatedCreators });
     handleModalClose();
+  };
+
+  const handleEditCreator = (index) => {
+    const creator = creators[index] || {};
+    setNewCreator({
+      name: creator.name || '',
+      nationalIdNumber: creator.nationalIdNumber || '',
+      country: creator.country || ''
+    });
+    setErrors({});
+    setSearchResults([]);
+    setSearchError('');
+    setLookupError('');
+    setShowManualId(false);
+    setActiveTab(1);
+    setEditingIndex(index);
+    setIsModalOpen(true);
   };
 
   const handleRemoveCreator = (index) => {
@@ -290,7 +319,21 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                 <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
                   Creator {index + 1}
                 </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
                 <IconButton
+                  aria-label="Edit creator"
+                  title="Edit"
+                  onClick={() => handleEditCreator(index)}
+                  sx={{
+                    color: theme.palette.primary.main,
+                    '&:hover': { bgcolor: theme.palette.action.hover }
+                  }}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  aria-label="Remove creator"
+                  title="Remove"
                   onClick={() => handleRemoveCreator(index)}
                   sx={{
                     color: theme.palette.error.main,
@@ -299,6 +342,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                 >
                   <DeleteIcon />
                 </IconButton>
+                </Box>
               </Box>
 
               <Grid container spacing={3}>
@@ -373,7 +417,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
             }}
           >
             <Typography variant="h6" component="h2">
-              Add Creator (National ID)
+              {isEditing ? 'Edit Creator (National ID)' : 'Add Creator (National ID)'}
             </Typography>
             <IconButton onClick={handleModalClose} sx={{ color: '#fff' }}>
               <CloseIcon />
@@ -381,6 +425,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
           </Box>
 
           <Box sx={{ px: 3, pt: 2 }}>
+            {!isEditing && (
             <Tabs
               value={activeTab}
               onChange={(event, newTabValue) => {
@@ -394,6 +439,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
               <Tab label="Lookup by ID" />
               <Tab label="Manual Entry" />
             </Tabs>
+            )}
 
             {/* Tab 0: Lookup by National ID */}
             {activeTab === 0 && (
@@ -532,14 +578,26 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
+                    <Autocomplete
                       fullWidth
-                      label="Country"
-                      value={newCreator.country}
-                      onChange={handleInputChange('country')}
-                      required
-                      error={!!errors.country}
-                      helperText={errors.country}
+                      options={COUNTRY_NAMES}
+                      value={newCreator.country || null}
+                      onChange={(_, value) =>
+                        handleInputChange('country')({ target: { value: value || '' } })
+                      }
+                      autoHighlight
+                      openOnFocus
+                      noOptionsText="No matching country"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Country"
+                          placeholder="Search country"
+                          required
+                          error={!!errors.country}
+                          helperText={errors.country}
+                        />
+                      )}
                     />
                   </Grid>
                   <Grid item xs={12}>
@@ -549,7 +607,7 @@ const CreatorsNationalIdForm = ({ formData = { creators: [] }, updateFormData, l
                       fullWidth
                       sx={{ mt: 1 }}
                     >
-                      Add Creator
+                      {isEditing ? 'Save Changes' : 'Add Creator'}
                     </Button>
                   </Grid>
                 </Grid>

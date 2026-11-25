@@ -582,10 +582,11 @@ label={t('assign_docid.docid_form.title_field')}
             }}
           >
             <MenuBar editor={editor} />
-            <EditorContent 
-              editor={editor}
-              style={{
+            <Box
+              onClick={() => editor?.chain().focus().run()}
+              sx={{
                 minHeight: '200px',
+                cursor: 'text',
                 '& .ProseMirror': {
                   minHeight: '200px',
                   outline: 'none',
@@ -593,15 +594,13 @@ label={t('assign_docid.docid_form.title_field')}
                   color: theme.palette.text.primary,
                   padding: '16px 8px'
                 },
-                '& .ProseMirror p.isEditorEmpty:firstChild::before': {
-                  content: 'attr(data-placeholder)',
-                  color: theme.palette.text.disabled,
-                  float: 'left',
-                  height: 0,
-                  pointerEvents: 'none'
-                }
+                '& .ProseMirror p': { margin: 0, marginBottom: '0.5em' },
+                '& .ProseMirror p:last-child': { marginBottom: 0 },
+                '& .ProseMirror ul, & .ProseMirror ol': { paddingLeft: '1.5em' }
               }}
-            />
+            >
+              <EditorContent editor={editor} />
+            </Box>
           </Paper>
         </Grid>
 

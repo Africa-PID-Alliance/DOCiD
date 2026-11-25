@@ -40,6 +40,7 @@ import { useToast } from '@/context/ToastContext';
 
 // Step components will be imported here
 import DocIDForm from './components/DocIDForm';
+import { validatePublicationDate } from '@/components/PublicationDateField';
 import PublicationsForm from './components/PublicationsForm';
 import DocumentsForm from './components/DocumentsForm';
 import CreatorsForm from './components/CreatorsForm';
@@ -609,6 +610,20 @@ const AssignDocID = () => {
       return;
     }
 
+    // Each uploaded publication can carry its own optional publication date.
+    const badDateIndex = (formData.publications?.files || []).findIndex(
+      (file) => validatePublicationDate((file.metadata?.publicationDate || '').trim())
+    );
+    if (badDateIndex !== -1) {
+      const file = formData.publications.files[badDateIndex];
+      setActiveStep(1);
+      showToast(
+        `Publication ${badDateIndex + 1}: ${validatePublicationDate(file.metadata.publicationDate.trim())}`,
+        'error'
+      );
+      return;
+    }
+
     setLoading(true);
     const submitData = new FormData();
 
@@ -649,6 +664,10 @@ const AssignDocID = () => {
           submitData.append(`filesPublications[${index}][identifier]`, file.metadata.identifier);
           submitData.append(`filesPublications[${index}][publication_type]`, formData.publications.publicationType);
           submitData.append(`filesPublications[${index}][generated_identifier]`, file.metadata.generated_identifier);
+          // Optional per-publication date (YYYY-MM-DD). Not stored by the backend yet.
+          if (file.metadata?.publicationDate) {
+            submitData.append(`filesPublications[${index}][publication_date]`, file.metadata.publicationDate.trim());
+          }
 
           if (file.type === 'video') {
             // Video link — send URL instead of physical file

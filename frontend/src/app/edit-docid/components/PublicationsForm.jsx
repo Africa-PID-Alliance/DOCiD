@@ -38,6 +38,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import RichTextEditor from '@/components/RichTextEditor';
+import PublicationDateField from '@/components/PublicationDateField';
 
 const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0, recordDoi = '' }) => {
   const theme = useTheme();
@@ -612,6 +613,13 @@ const PublicationsForm = ({ formData, updateFormData, loadGeneration = 0, record
                     minHeight={160}
                   />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <PublicationDateField
+                    value={file.metadata?.publicationDate || ''}
+                    onChange={(date) => handleMetadataChange(index, 'publicationDate', date)}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} />
                 <Grid item xs={6}>
                   <FormControl fullWidth>
                     <InputLabel>{t('assign_docid.publications_form.identifier_type')}</InputLabel>

@@ -33,7 +33,6 @@ import {
 } from '@mui/icons-material';
 import Chip from '@mui/material/Chip';
 import { useTranslation } from 'react-i18next';
-import RridSearchModal from '@/components/RridSearch/RridSearchModal';
 
 
 const TabPanel = ({ children, value, index, ...other }) => (
@@ -83,7 +82,6 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
   const [showRorForm, setShowRorForm] = useState(false);
   const [rorError, setRorError] = useState('');
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
-  const [rridModalOpen, setRridModalOpen] = useState(false);
 
   // Ringgold autocomplete (Details tab) — type-as-you-search against the local 17,329-row seed
   const [ringgoldOptions, setRinggoldOptions] = useState([]);
@@ -456,28 +454,6 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
             value={newOrganization.otherName}
             onChange={handleInputChange('otherName')}
           />
-        </Grid>
-        <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-            Research Resource (RRID) — Optional
-          </Typography>
-          {newOrganization.rrid ? (
-            <Chip
-              label={newOrganization.rrid}
-              color="primary"
-              onDelete={() => setNewOrganization((prev) => ({ ...prev, rrid: '' }))}
-              sx={{ mb: 1 }}
-            />
-          ) : (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<SearchIcon />}
-              onClick={() => setRridModalOpen(true)}
-            >
-              Search RRID
-            </Button>
-          )}
         </Grid>
       </Grid>
       <Box sx={{ mt: 3 }}>
@@ -937,19 +913,6 @@ const OrganizationsForm = ({ formData = { organizations: [] }, updateFormData, t
         </Box>
       </Modal>
 
-      {/* RRID Search Modal */}
-      <RridSearchModal
-        open={rridModalOpen}
-        onClose={() => setRridModalOpen(false)}
-        collectOnly={true}
-        allowedResourceTypes={['core_facility']}
-        onSelectRrid={(rridData) => {
-          if (rridData?.rrid) {
-            setNewOrganization((prev) => ({ ...prev, rrid: rridData.rrid }));
-          }
-          setRridModalOpen(false);
-        }}
-      />
 
       {/* Organization-identifier info dialog (ROR / ISNI / Ringgold) */}
       <Dialog

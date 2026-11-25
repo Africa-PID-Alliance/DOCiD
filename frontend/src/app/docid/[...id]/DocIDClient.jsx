@@ -154,6 +154,20 @@ const RELATED_CHIP_SX = {
   '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 },
 };
 
+// Show a publication_date at the precision it was given:
+// "2019" -> "2019", "2019-05" -> "May 2019", "2019-05-14" -> "14 May 2019".
+const formatPublicationDate = (value) => {
+  if (!value) return '';
+  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?/.exec(String(value));
+  if (!m) return String(value);
+  const [, y, mo, d] = m;
+  if (!mo) return y;
+  const date = new Date(Number(y), Number(mo) - 1, d ? Number(d) : 1);
+  return date.toLocaleDateString('en-GB', d
+    ? { day: 'numeric', month: 'long', year: 'numeric' }
+    : { month: 'long', year: 'numeric' });
+};
+
 const DocIDPage =({ initialPublication = null, docId: propDocId = null }) => {
   const searchParams = useSearchParams();
   const lcDemoProjectId = searchParams?.get('lc_demo') || null;
@@ -166,6 +180,21 @@ const DocIDPage =({ initialPublication = null, docId: propDocId = null }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [revealedNationalIds, setRevealedNationalIds] = useState({});
   const [creatorRoles, setCreatorRoles] = useState([]);
+  // Maps publication_type_id -> publication_type_name for the Publication(s) modal.
+  const [publicationTypeNames, setPublicationTypeNames] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    axios.get('/api/publications/get-list-publication-types')
+      .then((res) => {
+        if (cancelled || !Array.isArray(res.data)) return;
+        const map = {};
+        res.data.forEach((row) => { map[row.id] = row.publication_type_name; });
+        setPublicationTypeNames(map);
+      })
+      .catch((err) => console.error('Error fetching publication types:', err));
+    return () => { cancelled = true; };
+  }, []);
   const [featureModal, setFeatureModal] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -1885,6 +1914,38 @@ const DocIDPage =({ initialPublication = null, docId: propDocId = null }) => {
                                   </Typography>
                                 </Box>
                               </Box>
+
+                              {selectedSection?.type === 'publications' && (
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                      {t('assign_docid.publications_form.publication_type')}
+                                    </Typography>
+                                    <TextField
+                                      fullWidth
+                                      value={publicationTypeNames[item.publication_type_id] || '—'}
+                                      InputProps={{ readOnly: true, disableUnderline: true }}
+                                      variant="filled"
+                                      size="small"
+                                      sx={{ mb: 2, '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                    />
+                                  </Grid>
+                                  <Grid item xs={12} sm={6}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                                      Publication Date
+                                    </Typography>
+                                    <TextField
+                                      fullWidth
+                                      // Per-file date once the backend returns it; until then the DOCiD's own date.
+                                      value={formatPublicationDate(item.publication_date || docData?.publication_date) || 'Not specified'}
+                                      InputProps={{ readOnly: true, disableUnderline: true }}
+                                      variant="filled"
+                                      size="small"
+                                      sx={{ mb: 2, '& .MuiFilledInput-root': { cursor: 'default' }, '& .MuiFilledInput-input': { cursor: 'default' } }}
+                                    />
+                                  </Grid>
+                                </Grid>
+                              )}
 
                               <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                                 {t('docid_page.modal.description_field')}
