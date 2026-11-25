@@ -11,6 +11,7 @@ from app.models import Publications, ResourceTypes, PublicationCreators, Creator
 from app.service_figshare import FigshareClient, FigshareMetadataMapper
 from app.authz import database_user_required
 from app.reference_filters import is_resource_type_allowed_strict
+from app.utils.publication_dates import apply_source_publication_date
 import os
 import logging
 from datetime import datetime
@@ -622,6 +623,8 @@ def _apply_figshare_data_to_publication(publication, pub_data, resource_type_id,
     """
     publication.document_title = pub_data['document_title']
     publication.document_description = pub_data.get('document_description', '')
+    # Figshare published_date; on re-sync a missing source date never clears ours.
+    apply_source_publication_date(publication, pub_data.get('publication_date'))
     publication.resource_type_id = resource_type_id
     publication.figshare_article_id = str(article_id)
     publication.figshare_url = pub_data.get('figshare_url', '')

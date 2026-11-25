@@ -346,7 +346,8 @@ class DSpaceLegacyMetadataMapper:
             'document_title': title or 'Untitled',
             'document_description': description or '',
             'resource_type': resource_type,
-            'published_date': date_issued,
+            # Raw dc.date.issued, parsed with its precision by app.utils.publication_dates.
+            'publication_date': date_issued,
         }
 
         # Extract creators/authors

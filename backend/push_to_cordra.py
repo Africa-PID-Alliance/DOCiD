@@ -2,7 +2,7 @@
 """
 Script to push all publication data and semantics to CORDRA
 
-This script runs after update_all_cstr_identifiers.py and pushes:
+This script pushes:
 - Publications
 - PublicationFiles  
 - PublicationDocuments
@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 try:
     from config import Config
     from app.service_codra import update_object, create_or_update_semantic_object, build_openalex_external_metadata
+    from app.utils.publication_dates import publication_date_of
     from app.models import (
         Publications, PublicationFiles, PublicationDocuments,
         PublicationCreators, PublicationOrganization, PublicationFunders,
@@ -99,8 +100,16 @@ def push_publication_to_cordra(publication):
             "avatar": publication.avatar,
             "poster_url": fix_file_url(publication.publication_poster_url),
             "groupName": publication.document_title,  # Container iD requires groupName
+            # When the record was created in DOCiD (Unix seconds); unchanged for existing readers.
             "created_on": int(publication.published.timestamp()) if publication.published else None
         }
+
+        # The work's own publication date as ISO 8601 at its precision ("2019",
+        # "2019-05" or "2019-05-14"); a string because a year alone has no timestamp.
+        # Left out when unknown rather than sent as null.
+        publication_date = publication_date_of(publication)
+        if publication_date:
+            metadata["publication_date"] = publication_date
 
         # Inject OpenAlex enrichment + provenance if available (Phase 1)
         external_metadata, provenance_events = build_openalex_external_metadata(publication)

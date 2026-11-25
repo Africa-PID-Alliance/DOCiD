@@ -1,4 +1,4 @@
-from app import create_app, db, migrate
+from app import create_app, db
 from app.models import UserAccount
 from flask.cli import with_appcontext
 import click
@@ -15,32 +15,7 @@ def drop_db():
     db.drop_all()
     print('Database dropped.')
 
-# Migration commands
-@app.cli.command('db-init')
-def db_init():
-    """Initialize migrations."""
-    migrate.init()
-    print('Migration repository initialized.')
-
-@app.cli.command('db-migrate')
-@click.option('--message', '-m', help='Migration message')
-def db_migrate(message=None):
-    """Create a new migration."""
-    migrate.migrate(message=message)
-    print('Migration script created.')
-
-@app.cli.command('db-upgrade')
-def db_upgrade():
-    """Upgrade to the latest migration."""
-    migrate.upgrade()
-    print('Database upgraded to latest migration.')
-
-@app.cli.command('db-downgrade')
-@click.option('--revision', '-r', default='-1', help='Revision to downgrade to')
-def db_downgrade(revision):
-    """Downgrade the database."""
-    migrate.downgrade(revision)
-    print(f'Database downgraded to {revision}.')
+# Migrations: use Flask-Migrate's own group, e.g. `flask --app run.py db upgrade`.
 
 if __name__ == '__main__':
     app.run(

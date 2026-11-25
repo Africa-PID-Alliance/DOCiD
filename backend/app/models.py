@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, DateTime, Enum, Boolean, event
+from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, Date, DateTime, Enum, Boolean, event
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
@@ -520,7 +520,14 @@ class Publications(db.Model):
     doi = Column(String(50), nullable=True)
     handle_url = Column(String(500), nullable=True)  # Full resolvable URL for DSpace/repository handles
     collection_name = Column(String(500), nullable=True)  # DSpace collection name (e.g., "City Centre & Atlantic Seaboard")
+    # When the record was created in DOCiD (returned to clients as created_at).
+    # Not the work's own publication date: that is publication_date below.
     published = Column(DateTime, default=datetime.utcnow)
+    # The work's own publication date, at the precision the source gave it:
+    # 'year' (stored as YYYY-01-01), 'month' (YYYY-MM-01) or 'day'. Both are
+    # NULL when unknown. See app/utils/publication_dates.py.
+    publication_date = Column(Date, nullable=True, index=True)
+    publication_date_precision = Column(String(5), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
 

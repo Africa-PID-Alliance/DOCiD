@@ -254,8 +254,8 @@
                                     <pre><code># Push recent publications to CORDRA
 python push_recent_to_cordra.py
 
-# Update and push all publications
-python update_and_push_to_cordra.py
+# Push all publications
+python push_to_cordra.py --all
 
 # Individual publication push
 python push_to_cordra.py --publication-id 123</code></pre>
@@ -521,16 +521,7 @@ Content-Type: application/json
                             <div class="code-example">
                                 <div class="code-header">CSTR Management Scripts</div>
                                 <div class="code-content">
-                                    <pre><code># Setup CSTR service
-./setup_cstr_service.sh
-
-# Test single CSTR registration
-python test_single_cstr.py
-
-# Update all CSTR identifiers
-python update_all_cstr_identifiers.py
-
-# CSTR identifier format
+                                    <pre><code># CSTR identifier format
 CSTR:16389.09.A08V-0001</code></pre>
                                 </div>
                             </div>

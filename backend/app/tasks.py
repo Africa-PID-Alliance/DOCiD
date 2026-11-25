@@ -61,9 +61,10 @@ def push_to_cordra_async(publication_id):
         except ImportError:
             logger.warning("Could not import app for idempotency check, proceeding with CORDRA push")
 
-        # Run the update and push script
+        # Push just this publication. (This used to run scripts/update_and_push_to_cordra.py,
+        # a path that never existed; that wrapper ignored --publication-id and has been removed.)
         result = subprocess.run(
-            [sys.executable, 'scripts/update_and_push_to_cordra.py', '--publication-id', str(publication_id)],
+            [sys.executable, 'push_to_cordra.py', '--publication-id', str(publication_id)],
             capture_output=True,
             text=True,
             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

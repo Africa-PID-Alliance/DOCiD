@@ -328,6 +328,8 @@ class FigshareMetadataMapper:
             'doi': doi,
             'figshare_article_id': figshare_article_id,
             'figshare_url': figshare_url,
+            # The work's publication date on Figshare (e.g. "2019-05-14T10:00:00Z").
+            'publication_date': figshare_article.get('published_date'),
         }
 
         # Extract creators/authors

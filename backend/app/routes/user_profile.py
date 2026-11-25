@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.models import UserAccount, Publications, AccountTypes
 from app.authz import owner_or_admin_required
+from app.utils.publication_dates import created_at_of, publication_date_of
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from datetime import datetime
 
@@ -555,7 +556,7 @@ def get_user_publications(user_id):
       - name: sort
         in: query
         type: string
-        description: Sort field published title updated_at or id
+        description: Sort field published (DOCiD record creation), publication_date (the work's own date, unknown last), title, updated_at or id
       - name: order
         in: query
         type: string
@@ -592,7 +593,7 @@ def get_user_publications(user_id):
         if order not in ['asc', 'desc']:
             return jsonify({'message': 'Invalid order parameter (must be "asc" or "desc")'}), 400
 
-        valid_sort_fields = ['published', 'title', 'updated_at', 'id']
+        valid_sort_fields = ['published', 'publication_date', 'title', 'updated_at', 'id']
         if sort_field not in valid_sort_fields:
             return jsonify({'message': f'Invalid sort field (must be one of {valid_sort_fields})'}), 400
 
@@ -602,11 +603,19 @@ def get_user_publications(user_id):
         query = Publications.query.filter_by(user_id=user_id)
 
         # Apply sorting
-        sort_column = getattr(Publications, sort_field)
-        if order == 'desc':
-            query = query.order_by(sql_desc(sort_column))
-        else:
-            query = query.order_by(sql_asc(sort_column))
+        # The API's sort names are not all column names ("title" is document_title).
+        sort_column = {
+            'published': Publications.published,
+            'publication_date': Publications.publication_date,
+            'title': Publications.document_title,
+            'updated_at': Publications.updated_at,
+            'id': Publications.id,
+        }[sort_field]
+        sort_expression = sql_desc(sort_column) if order == 'desc' else sql_asc(sort_column)
+        if sort_field == 'publication_date':
+            # Records with no known publication date go last in either direction.
+            sort_expression = sort_expression.nullslast()
+        query = query.order_by(sort_expression)
 
         # Get total count
         total_publications = query.count()
@@ -627,7 +636,9 @@ def get_user_publications(user_id):
                 'doi': pub.doi,
                 'owner': pub.owner,
                 'avatar': pub.avatar,
-                'published': pub.published.isoformat() if pub.published else None,
+                'publication_date': publication_date_of(pub),
+                'created_at': created_at_of(pub),
+                'published': pub.published.isoformat() if pub.published else None,  # deprecated: use created_at
                 'updated_at': pub.updated_at.isoformat() if pub.updated_at else None,
                 'updated_by': pub.updated_by,
                 # Retired records stay in the owner's list so they can be labelled as such

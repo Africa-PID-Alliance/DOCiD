@@ -10,6 +10,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app import create_app, db
+from app.utils.publication_dates import apply_source_publication_date
 from app.models import (
     DSpaceMapping, Publications, PublicationCreators,
     PublicationViews, FileDownloads, PublicationFiles, PublicationDocuments
@@ -191,6 +192,8 @@ def resync_dspace_items():
                         owner='DSpace Repository',
                         collection_name=mapped_data.get('collection_name'),
                     )
+                    # dc.date.issued, kept at its precision.
+                    apply_source_publication_date(publication, mapped_data['publication'].get('publication_date'))
 
                     db.session.add(publication)
                     db.session.flush()

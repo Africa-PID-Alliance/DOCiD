@@ -10,6 +10,7 @@ from app.service_dspace import DSpaceClient, DSpaceMetadataMapper
 from app.service_identifiers import IdentifierService
 from app.authz import admin_required, database_user_required
 from app.reference_filters import is_resource_type_allowed_strict
+from app.utils.publication_dates import apply_source_publication_date
 import os
 import logging
 
@@ -132,6 +133,8 @@ def _apply_dspace_data_to_publication(publication, mapped_data, resource_type_id
     """Apply mapped DSpace metadata to a Publication object."""
     publication.document_title = mapped_data['publication']['document_title']
     publication.document_description = mapped_data['publication'].get('document_description', '')
+    # dc.date.issued; on re-sync a missing source date never clears ours.
+    apply_source_publication_date(publication, mapped_data['publication'].get('publication_date'))
     publication.resource_type_id = resource_type_id
     publication.doi = doi
 

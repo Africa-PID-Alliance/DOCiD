@@ -11,6 +11,7 @@ from app.models import Publications, ResourceTypes, PublicationCreators, Creator
 from app.service_ojs import OJSClient, OJSMetadataMapper
 from app.authz import database_user_required
 from app.reference_filters import is_resource_type_allowed_strict
+from app.utils.publication_dates import apply_source_publication_date
 import os
 import logging
 from datetime import datetime
@@ -796,6 +797,8 @@ def sync_single_submission(submission_id):
             ojs_url=pub_data.get('ojs_url', ''),
             owner='OJS Repository',
         )
+        # OJS datePublished, kept at its precision.
+        apply_source_publication_date(publication, pub_data.get('publication_date'))
 
         db.session.add(publication)
         db.session.flush()  # Get publication ID
@@ -989,6 +992,8 @@ def sync_batch():
                     ojs_url=pub_data.get('ojs_url', ''),
                     owner='OJS Repository',
                 )
+                # OJS datePublished, kept at its precision.
+                apply_source_publication_date(publication, pub_data.get('publication_date'))
 
                 db.session.add(publication)
                 db.session.flush()

@@ -22,6 +22,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app import db
 from app.models import Publications, PublicationEnrichment, UserAccount
+from app.utils.publication_dates import publication_date_of
 from app.service_openalex import (
     OpenAlexClient,
     OpenAlexEnrichmentMapper,
@@ -118,7 +119,8 @@ def _build_conflicts(publication, summary):
         })
 
     oa_year = summary.get('publication_year')
-    pub_year = publication.publication_date.year if getattr(publication, 'publication_date', None) else None
+    # Years only: a year-precision date is stored as 1 January, so finer comparison would mislead.
+    pub_year = publication.publication_date.year if publication.publication_date else None
     if oa_year and pub_year and oa_year != pub_year:
         conflicts.append({
             'field': 'publication_year',
@@ -517,7 +519,10 @@ def publication_jsonld(publication_id):
         'identifier': publication.doi,
         'sameAs': same_as or None,
         'author': creators_list or None,
-        'datePublished': publication.published.isoformat() if publication.published else None,
+        # The work's own date at its stored precision ("2019", "2019-05", "2019-05-14").
+        # Left out when unknown: `published` is when the DOCiD record was created,
+        # which is not the work's publication date (nor schema.org dateCreated).
+        'datePublished': publication_date_of(publication),
         'abstract': publication.abstract_text or None,
         'keywords': ', '.join(keywords) if keywords else None,
         'citation': publication.citation_count,

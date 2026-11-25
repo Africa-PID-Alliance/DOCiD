@@ -640,7 +640,9 @@ class DSpaceMetadataMapper:
             'user_id': user_id,
             'document_title': title,
             'document_description': description,
-            'published_date': cls._parse_date(date_issued),
+            # Raw dc.date.issued; importers parse it with its precision via
+            # app.utils.publication_dates (a bare year must not become 1 January).
+            'publication_date': date_issued,
             'resource_type': resource_type,
             'doi': extracted_doi,
             'dspace_handle': dspace_item.get('handle'),
@@ -834,40 +836,5 @@ class DSpaceMetadataMapper:
                 return datetime.strptime(last_modified_str, fmt)
             except ValueError:
                 continue
-
-        return None
-
-    @staticmethod
-    def _parse_date(date_str: Optional[str]) -> Optional[str]:
-        """
-        Parse DSpace date to ISO format
-
-        Args:
-            date_str: Date string (various formats: YYYY, YYYY-MM-DD, etc.)
-
-        Returns:
-            ISO formatted date or None
-        """
-        if not date_str:
-            return None
-
-        # Try different date formats
-        formats = [
-            '%Y-%m-%d',
-            '%Y-%m',
-            '%Y',
-            '%Y-%m-%dT%H:%M:%SZ',
-        ]
-
-        for fmt in formats:
-            try:
-                dt = datetime.strptime(date_str, fmt)
-                return dt.strftime('%Y-%m-%d')
-            except ValueError:
-                continue
-
-        # If all formats fail, return as-is if it looks like a year
-        if date_str.isdigit() and len(date_str) == 4:
-            return f"{date_str}-01-01"
 
         return None

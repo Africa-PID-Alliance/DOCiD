@@ -71,31 +71,6 @@ def check_database_connection():
         print(f"  ❌ Database check failed: {str(e)}")
         return False
 
-def check_file_permissions():
-    """Check that key scripts have execute permissions."""
-    scripts = [
-        'run_migrations.sh',
-        'update_all_cstr_identifiers.py',
-        'clear_non_seeded_tables.py',
-        'truncate_all_tables.py',
-        'setup_permissions.sh'
-    ]
-    
-    print("🔍 Checking file permissions...")
-    all_good = True
-    
-    for script in scripts:
-        if os.path.exists(script):
-            if os.access(script, os.X_OK):
-                print(f"  ✅ {script} is executable")
-            else:
-                print(f"  ❌ {script} is not executable")
-                all_good = False
-        else:
-            print(f"  ⚠️  {script} not found")
-    
-    return all_good
-
 def main():
     """Run the complete system health check."""
     print("="*60)
@@ -125,13 +100,10 @@ def main():
     checks.append(check_database_connection())
     
     # 5. Check migrations
-    checks.append(run_command("./run_migrations.sh current 2>/dev/null | tail -1", 
+    checks.append(run_command(f'"{sys.executable}" -m flask --app run.py db current',
                              "Checking migration status"))
     
-    # 6. Check file permissions
-    checks.append(check_file_permissions())
-    
-    # 7. Check logs directory
+    # 6. Check logs directory
     if os.path.exists('logs'):
         print("🔍 Checking logs directory...")
         log_files = os.listdir('logs')
@@ -142,7 +114,7 @@ def main():
         print("  ⚠️  Logs directory not found")
         checks.append(False)
     
-    # 8. Check uploads directory
+    # 7. Check uploads directory
     if os.path.exists('uploads'):
         print("🔍 Checking uploads directory...")
         upload_files = os.listdir('uploads')

@@ -68,17 +68,21 @@ DOCiD is a Flask-based REST API serving as a comprehensive publication and docum
 ## Development Commands
 
 ### Database Operations
+Run from `backend/`; the commands read `DATABASE_URL` from `backend/.env`.
 ```bash
-# Database management
-python manage.py create-db           # Create all tables
-python manage.py seed-db             # Load reference data
-python run.py db migrate -m "msg"    # Create migration
-python run.py db upgrade             # Apply migrations
-python run.py db downgrade           # Rollback migration
+# Migrations (Flask-Migrate)
+flask --app run.py db migrate -m "msg"   # Create migration
+flask --app run.py db upgrade            # Apply migrations
+flask --app run.py db downgrade          # Roll back the last migration
+flask --app run.py db current            # Show the applied revision
 
-# Migration scripts
-./run_migrations.sh                  # Apply all pending migrations
-./init_migrations.py                 # Initialize migration environment
+# Empty database: create tables from the models, mark them current, seed
+flask --app run.py create-db
+flask --app run.py db stamp head
+python seed_reference_data.py            # Load reference data
+
+# Interactive menu over the same migration commands
+python init_migrations.py
 ```
 
 ### Server Operations
@@ -90,29 +94,26 @@ python run.py
 gunicorn -c gunicorn.conf.py wsgi:app
 
 # Background services
-./setup_cstr_service.sh              # Configure CSTR integration
 python push_to_cordra.py             # Sync to CORDRA repository
 ```
 
 ### Testing
+The pytest pinned in requirements.txt (2.6.0) crashes on Python 3.11, so install a
+current one into a separate folder instead of the project venv. Tests use in-memory
+SQLite (see tests/conftest.py) and never touch a real database.
 ```bash
-# API testing
-python test_comments_api.py          # Comprehensive comments API tests
-python test_comments_fetch.py        # Live API endpoint testing
-python diagnose_comments_error.py    # Error diagnosis
+# Once: test tools outside the venv
+.venv/bin/python -m pip install --target /tmp/docid-pydeps "pytest>=8" "responses>=0.25" "bleach[css]==6.2.0"
 
-# Service testing
-python test_single_cstr.py           # CSTR integration testing
+# Run the suite (from backend/)
+PYTHONPATH=/tmp/docid-pydeps .venv/bin/python -m pytest tests -q -p no:cacheprovider
 ```
 
 ### External Service Management
 ```bash
 # CORDRA operations
 python push_recent_to_cordra.py      # Sync recent publications
-python update_and_push_to_cordra.py  # Update and sync all
-
-# CSTR operations  
-python update_all_cstr_identifiers.py # Batch update CSTR IDs
+python push_to_cordra.py --all      # Push all publications
 ```
 
 ## Key Configuration

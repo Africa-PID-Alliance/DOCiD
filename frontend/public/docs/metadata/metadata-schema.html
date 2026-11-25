@@ -861,24 +861,25 @@
 
                     <div class="code-example">
                         <h4>Migration Commands</h4>
-                        <pre><code># Initialize migrations
-python run.py db init
+                        <pre><code># Run from backend/; commands read DATABASE_URL from backend/.env
 
 # Create a new migration
-python run.py db migrate -m "Description of changes"
+flask --app run.py db migrate -m "Description of changes"
 
 # Apply migrations
-python run.py db upgrade
+flask --app run.py db upgrade
 
-# Rollback migration
-python run.py db downgrade
+# Rollback the last migration
+flask --app run.py db downgrade
 
-# View migration history
-python run.py db history
+# Show the applied revision and the migration history
+flask --app run.py db current
+flask --app run.py db history
 
-# Create database and seed data
-python manage.py create-db
-python manage.py seed-db</code></pre>
+# Create the tables on an empty database and seed reference data
+flask --app run.py create-db
+flask --app run.py db stamp head
+python seed_reference_data.py</code></pre>
                     </div>
                 </section>
 

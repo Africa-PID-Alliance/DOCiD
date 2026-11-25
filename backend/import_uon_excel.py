@@ -52,6 +52,7 @@ from app.models import (
 )
 from app.service_dspace import DSpaceMetadataMapper
 from app.service_identifiers import IdentifierService
+from app.utils.publication_dates import apply_source_publication_date
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('import_uon')
@@ -349,6 +350,8 @@ def import_items(source_dir, dry_run=False, limit=None, mint=False):
                 owner=OWNER_NAME,
                 resource_type_id=resource_type_id,
             )
+            # dc.date.issued, kept at its precision.
+            apply_source_publication_date(publication, publication_data.get('publication_date'))
             db.session.add(publication)
             db.session.flush()
 

@@ -7,6 +7,9 @@ from werkzeug.utils import secure_filename
 from flask import Blueprint, jsonify, request, Response, abort, g
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app.utils.sanitize_html import sanitize_rich_text
+from app.utils.publication_dates import (
+    created_at_of, parse_publication_date_input, publication_date_of,
+)
 from app import db
 from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
@@ -661,7 +664,11 @@ def get_all_publications():
       - in: query
         name: sort
         type: string
-        description: Sorting criteria ("published", "title", "id" or "updated_at"). Default is "published", or "updated_at" when modified_since is set.
+        description: >
+          Sorting criteria ("published", "publication_date", "title", "id" or "updated_at").
+          Default is "published", or "updated_at" when modified_since is set.
+          "published" is when the record was created in DOCiD; "publication_date"
+          is the work's own publication date, with unknown dates sorted last.
       - in: query
         name: order
         type: string
@@ -707,8 +714,18 @@ def get_all_publications():
                     type: integer
                   user_id:
                     type: integer
-                  published:
+                  publication_date:
                     type: string
+                    description: The work's own publication date ("2019", "2019-05" or "2019-05-14"); null when unknown.
+                  created_at:
+                    type: string
+                    description: When the record was created in DOCiD (ISO 8601, UTC).
+                  published:
+                    type: integer
+                    description: Deprecated, use created_at. Record creation time as Unix seconds.
+                  published_isoformat:
+                    type: string
+                    description: Deprecated, use created_at.
             pagination:
               type: object
               properties:
@@ -788,7 +805,7 @@ def get_all_publications():
             return jsonify({'message': 'Invalid order parameter (must be "asc" or "desc")'}), 400
 
         # Validate and set sort field
-        valid_sort_fields = ['published', 'title', 'id', 'updated_at']
+        valid_sort_fields = ['published', 'publication_date', 'title', 'id', 'updated_at']
         if sort_field not in valid_sort_fields:
             return jsonify({'message': f'Invalid sort field (must be one of {valid_sort_fields})'}), 400
 
@@ -884,11 +901,21 @@ def get_all_publications():
 
         # Apply sorting. id is a tiebreaker so rows sharing a timestamp keep a
         # stable order across pages (bulk imports share updated_at values).
-        sort_column = last_changed_at if sort_field == 'updated_at' else getattr(Publications, sort_field)
+        # The API's sort names are not all column names ("title" is document_title).
+        sort_column = {
+            'published': Publications.published,
+            'publication_date': Publications.publication_date,
+            'title': Publications.document_title,
+            'id': Publications.id,
+            'updated_at': last_changed_at,
+        }[sort_field]
         tiebreak_column = Publications.id
         if order == 'desc':
             sort_column = desc(sort_column)
             tiebreak_column = desc(tiebreak_column)
+        if sort_field == 'publication_date':
+            # Records with no known publication date go last in either direction.
+            sort_column = sort_column.nullslast()
 
         # Apply sorting and pagination
         offset = (page - 1) * page_size
@@ -948,6 +975,11 @@ def get_all_publications():
                 'doi': pub.doi,
                 'owner': pub.owner,
                 'avatar': _resolve_publication_avatar(pub),
+                # The work's own publication date ("2019", "2019-05" or "2019-05-14"), null when unknown.
+                'publication_date': publication_date_of(pub),
+                # When the record was created in DOCiD.
+                'created_at': created_at_of(pub),
+                # Deprecated: same instant as created_at; kept until the frontend switches.
                 'published_isoformat': pub.published.isoformat() if pub.published else None,
                 'published': int(pub.published.timestamp()) if pub.published else None,  # Converted to Unix timestamp
                 'account_type_name': pub.user_account.account_type.account_type_name if pub.user_account and pub.user_account.account_type else None,
@@ -1157,6 +1189,11 @@ def get_publication(publication_id):
                 else:
                     publication_dict[field] = getattr(data, field)
 
+        # `published` above is the record's creation time in DOCiD (deprecated
+        # key); these say what each date is.
+        publication_dict['publication_date'] = publication_date_of(data)
+        publication_dict['created_at'] = created_at_of(data)
+
         # Add related data
         publication_dict['publications_files'] = [
             {
@@ -1359,6 +1396,11 @@ def get_publication_by_docid_prefix():
                     publication_dict[field] = int(getattr(data, field).timestamp())
                 else:
                     publication_dict[field] = getattr(data, field)
+
+        # `published` above is the record's creation time in DOCiD (deprecated
+        # key); these say what each date is.
+        publication_dict['publication_date'] = publication_date_of(data)
+        publication_dict['created_at'] = created_at_of(data)
 
         # Add related data
         publication_dict['publications_files'] = [
@@ -1569,6 +1611,11 @@ def get_publication_by_docid_simple(document_docid):
                 else:
                     publication_dict[field] = getattr(data, field)
 
+        # `published` above is the record's creation time in DOCiD (deprecated
+        # key); these say what each date is.
+        publication_dict['publication_date'] = publication_date_of(data)
+        publication_dict['created_at'] = created_at_of(data)
+
         # Add related data
         publication_dict['publications_files'] = [
             {
@@ -1758,6 +1805,13 @@ def create_publication():
         type: string
         required: false
         description: URL to the avatar image of the owner.
+      - name: publicationDate
+        in: formData
+        type: string
+        required: false
+        description: >
+          The work's own publication date: YYYY, YYYY-MM or YYYY-MM-DD, not in
+          the future. Leave it out when unknown. Not the DOCiD registration date.
     responses:
       200:
         description:  Publication created successfully.
@@ -1877,6 +1931,13 @@ def create_publication():
             logger.warning(f"Missing required fields: {', '.join(missing_fields)}")
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
 
+        # Optional: the work's own publication date (YYYY, YYYY-MM or YYYY-MM-DD).
+        try:
+            publication_date, publication_date_precision = parse_publication_date_input(
+                request.form.get('publicationDate'))
+        except ValueError as e:
+            return jsonify({'message': str(e)}), 400
+
         # Try to convert the resource_type to an integer
         try:
             resource_type = int(resource_type)
@@ -1923,7 +1984,9 @@ def create_publication():
             doi=doi,
             resource_type_id=resource_type_id,
             avatar=avatar,
-            publication_poster_url=publication_poster_url
+            publication_poster_url=publication_poster_url,
+            publication_date=publication_date,
+            publication_date_precision=publication_date_precision,
         )
         db.session.add(publication)
 
@@ -2713,6 +2776,9 @@ def create_publication():
             'doi': publication.doi,
             'avatar': publication.avatar,
             'publication_poster_url': publication.publication_poster_url,
+            'publication_date': publication_date_of(publication),
+            'created_at': created_at_of(publication),
+            # Deprecated: record creation time; use created_at.
             'published': int(publication.published.timestamp()) if publication.published else None
         }
 
@@ -3094,6 +3160,14 @@ def update_publication(publication_id):
         type: string
         required: false
         description: Updated URL to the avatar image of the owner.
+      - name: publicationDate
+        in: formData
+        type: string
+        required: false
+        description: >
+          The work's own publication date: YYYY, YYYY-MM or YYYY-MM-DD, not in
+          the future. Leave the field out to keep the current value; send an
+          empty string to clear it.
     responses:
       200:
         description: Publication updated successfully.
@@ -3145,13 +3219,33 @@ def update_publication(publication_id):
         
         # Track changes for audit trail
         changes_made = []
-        
+
         # Log request data for debugging
         logger.info("Update request form data:")
         for key, value in request.form.items():
             display_value = value[:100] + "..." if len(value) > 100 else value
             logger.info(f"  {key}: {display_value}")
-        
+
+        # Publication date: absent (or the string "undefined") keeps the current
+        # value, an empty string clears it. Validated before anything else changes.
+        raw_publication_date = request.form.get('publicationDate')
+        if raw_publication_date is not None and raw_publication_date.strip() != 'undefined':
+            try:
+                new_publication_date, new_precision = parse_publication_date_input(raw_publication_date)
+            except ValueError as e:
+                return jsonify({'message': str(e)}), 400
+            old_value = publication_date_of(publication)
+            publication.publication_date = new_publication_date
+            publication.publication_date_precision = new_precision
+            new_value = publication_date_of(publication)
+            if new_value != old_value:
+                changes_made.append({
+                    'field': 'publication_date',
+                    'old_value': old_value,
+                    'new_value': new_value
+                })
+                logger.info(f"Publication date updated from '{old_value}' to '{new_value}'")
+
         # Update title if provided
         new_title = request.form.get('documentTitle')
         if new_title and new_title != publication.document_title:
@@ -3386,7 +3480,11 @@ def get_publication_for_edit(publication_id):
                     publication_dict[field] = int(value.timestamp())
                 else:
                     publication_dict[field] = value
-        
+
+        # The edit form pre-fills publicationDate from this ("2019", "2019-05" or "2019-05-14").
+        publication_dict['publication_date'] = publication_date_of(data)
+        publication_dict['created_at'] = created_at_of(data)
+
         # Add related data
         publication_dict['publications_files'] = [
             {
@@ -3777,7 +3875,9 @@ def get_my_docids(user_id):
                 'document_docid': publication.document_docid,
                 'document_title': publication.document_title,
                 'version_number': publication.version_number,
-                'published': publication.published.isoformat() if publication.published else None
+                'publication_date': publication_date_of(publication),
+                'created_at': created_at_of(publication),
+                'published': publication.published.isoformat() if publication.published else None  # deprecated: use created_at
             })
 
         return jsonify(docid_list), 200
@@ -3826,7 +3926,9 @@ def get_publication_versions(publication_id):
             'document_docid': root_parent.document_docid,
             'document_title': root_parent.document_title,
             'version_number': root_parent.version_number or 1,
-            'published': root_parent.published.isoformat() if root_parent.published else None
+            'publication_date': publication_date_of(root_parent),
+            'created_at': created_at_of(root_parent),
+            'published': root_parent.published.isoformat() if root_parent.published else None  # deprecated: use created_at
         }
 
         versions_data = []
@@ -3836,7 +3938,9 @@ def get_publication_versions(publication_id):
                 'document_docid': version_record.document_docid,
                 'document_title': version_record.document_title,
                 'version_number': version_record.version_number,
-                'published': version_record.published.isoformat() if version_record.published else None
+                'publication_date': publication_date_of(version_record),
+                'created_at': created_at_of(version_record),
+                'published': version_record.published.isoformat() if version_record.published else None  # deprecated: use created_at
             })
 
         return jsonify({
@@ -3893,6 +3997,13 @@ def create_version():
         in: formData
         type: string
         required: true
+      - name: publicationDate
+        in: formData
+        type: string
+        required: false
+        description: >
+          This version's own publication date (YYYY, YYYY-MM or YYYY-MM-DD).
+          Not copied from the parent; leave it out when unknown.
     responses:
       200:
         description: Version created successfully
@@ -3945,6 +4056,13 @@ def create_version():
             missing_fields.append('resourceType')
         if missing_fields:
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+
+        # Optional, and never copied from the parent: a new version has its own date.
+        try:
+            publication_date, publication_date_precision = parse_publication_date_input(
+                request.form.get('publicationDate'))
+        except ValueError as e:
+            return jsonify({'message': str(e)}), 400
 
         try:
             resource_type = int(resource_type)
@@ -4009,7 +4127,9 @@ def create_version():
             avatar=avatar,
             publication_poster_url=publication_poster_url,
             parent_id=root_parent_id,
-            version_number=new_version_number
+            version_number=new_version_number,
+            publication_date=publication_date,
+            publication_date_precision=publication_date_precision,
         )
         db.session.add(publication)
         db.session.flush()
