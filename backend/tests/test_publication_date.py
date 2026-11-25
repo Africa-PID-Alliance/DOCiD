@@ -230,3 +230,24 @@ def test_cordra_payload_adds_publication_date_and_keeps_created_on():
     assert dated_content["publication_date"] == "2019-05"
     assert dated_content["created_on"] == int(datetime(2026, 11, 20, 8, 30, 0).timestamp())
     assert "publication_date" not in undated_content
+
+
+# --- DSpace: dc.date.issued, else dc.date.created ------------------------------
+
+@pytest.mark.parametrize("dates, expected", [
+    ({"dc.date.issued": "2019", "dc.date.created": "1924"}, "2019"),     # issued wins
+    ({"dc.date.created": "1924"}, "1924"),                              # heritage item: only created
+    ({"dc.date.issued": "n.d.", "dc.date.created": "1924"}, "1924"),     # unusable issued falls back
+    ({"dc.date.accessioned": "2016-04-04T10:00:58Z",
+      "dc.date.available": "2016-04-04T10:00:58Z"}, None),              # repository dates never used
+])
+def test_dspace_mappers_fall_back_to_dc_date_created(dates, expected):
+    from app.service_dspace_legacy import DSpaceLegacyMetadataMapper
+
+    modern_item = {"uuid": "u", "handle": "1/1", "metadata": {
+        "dc.title": [{"value": "Photo"}], **{key: [{"value": value}] for key, value in dates.items()}}}
+    legacy_item = {"uuid": "u", "handle": "1/1", "metadata": [
+        {"key": "dc.title", "value": "Photo"}, *({"key": key, "value": value} for key, value in dates.items())]}
+
+    assert DSpaceMetadataMapper.dspace_to_docid(modern_item, user_id=1)["publication"]["publication_date"] == expected
+    assert DSpaceLegacyMetadataMapper.dspace_to_docid(legacy_item, user_id=1)["publication"]["publication_date"] == expected

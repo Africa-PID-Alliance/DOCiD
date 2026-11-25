@@ -5,8 +5,9 @@ Backfill publications.publication_date for records imported before the column ex
 Each record's date is read again from where it came from, through the same mapper
 its importer uses, so a backfilled date is exactly what a fresh import would store:
 
-  dspace    DSpace 7 or legacy DSpace item (dc.date.issued), fetched anonymously
-  uon       University of Nairobi Excel exports (dc.date.issued); UoN records were
+  dspace    DSpace 7 or legacy DSpace item (dc.date.issued, else dc.date.created),
+            fetched anonymously
+  uon       University of Nairobi Excel exports (same DSpace fields); UoN records were
             imported offline, so pass the folder with --uon-source-dir
   figshare  Figshare article (published_date)
   ojs       OJS submission (datePublished)
@@ -47,6 +48,7 @@ from app.utils.publication_dates import (
 
 SOURCES = ('dspace', 'uon', 'figshare', 'ojs')
 COMMIT_EVERY = 50
+RETRY_PAUSE_SECONDS = 3
 UON_ITEM_URL_PREFIX = 'https://erepository.uonbi.ac.ke/items/'
 LEGACY_ITEM_PREFIX = 'legacy-item-'
 
@@ -97,6 +99,21 @@ class RepositoryResolver:
         if self.env_legacy_url and dspace_url == self.env_legacy_url:
             return 'legacy', self.env_legacy_url
         return None
+
+
+def fetch_with_one_retry(fetch, *args):
+    """
+    Call a client fetch, and once more after a short pause if it comes back empty.
+
+    The clients return None both for a missing record and for a dropped connection
+    (e.g. "Remote end closed connection without response"), so one retry stops a
+    momentary server hiccup from being counted as "not found".
+    """
+    result = fetch(*args)
+    if not result:
+        time.sleep(RETRY_PAUSE_SECONDS)
+        result = fetch(*args)
+    return result
 
 
 class SourceReader:
@@ -151,12 +168,12 @@ class SourceReader:
             item_id = mapping.dspace_uuid
             if item_id.startswith(LEGACY_ITEM_PREFIX):
                 item_id = item_id[len(LEGACY_ITEM_PREFIX):]
-            item = client.get_item(item_id)
+            item = fetch_with_one_retry(client.get_item, item_id)
             if not item:
                 raise LookupError(item_id)
             return DSpaceLegacyMetadataMapper.dspace_to_docid(item, user_id)['publication'].get('publication_date')
         from app.service_dspace import DSpaceMetadataMapper
-        item = client.get_item(mapping.dspace_uuid)
+        item = fetch_with_one_retry(client.get_item, mapping.dspace_uuid)
         if not item:
             raise LookupError(mapping.dspace_uuid)
         return DSpaceMetadataMapper.dspace_to_docid(item, user_id)['publication'].get('publication_date')
@@ -178,7 +195,7 @@ class SourceReader:
         from app.service_figshare import FigshareMetadataMapper
         if self._figshare_client is None:
             self._figshare_client = get_figshare_client()
-        article = self._figshare_client.get_article(int(publication.figshare_article_id))
+        article = fetch_with_one_retry(self._figshare_client.get_article, int(publication.figshare_article_id))
         if not article:
             raise LookupError(publication.figshare_article_id)
         return FigshareMetadataMapper.figshare_to_docid(article, publication.user_id)['publication'].get('publication_date')
@@ -188,7 +205,7 @@ class SourceReader:
         from app.service_ojs import OJSMetadataMapper
         if self._ojs_client is None:
             self._ojs_client = get_ojs_client()
-        submission = self._ojs_client.get_submission(int(publication.ojs_submission_id))
+        submission = fetch_with_one_retry(self._ojs_client.get_submission, int(publication.ojs_submission_id))
         if not submission:
             raise LookupError(publication.ojs_submission_id)
         return OJSMetadataMapper.ojs_to_docid(submission, publication.user_id)['publication'].get('publication_date')

@@ -312,3 +312,15 @@ def test_cli_rejects_repush_without_apply(capsys):
         except SystemExit as exit_signal:
             assert exit_signal.code == 2
     assert "--repush-cordra needs --apply" in capsys.readouterr().err
+
+
+def test_an_empty_fetch_is_retried_once():
+    answers = iter([None, {"found": True}])
+    with patch.object(backfill_module.time, "sleep") as sleep:
+        assert backfill_module.fetch_with_one_retry(lambda item_id: next(answers), "x") == {"found": True}
+    assert sleep.call_count == 1
+
+    calls = []
+    with patch.object(backfill_module.time, "sleep"):
+        assert backfill_module.fetch_with_one_retry(lambda item_id: calls.append(item_id), "missing") is None
+    assert calls == ["missing", "missing"]  # exactly one retry, then give up

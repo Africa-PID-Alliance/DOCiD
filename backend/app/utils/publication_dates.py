@@ -96,6 +96,19 @@ def parse_source_publication_date(raw_value):
     return value, precision
 
 
+def first_usable_source_date(*raw_values):
+    """
+    The first value that reads as a publication date, or None.
+
+    Lets a mapper prefer one source field and fall back to the next, e.g.
+    dc.date.issued, then dc.date.created when issued is missing or "n.d.".
+    """
+    for raw_value in raw_values:
+        if parse_source_publication_date(raw_value)[0] is not None:
+            return raw_value
+    return None
+
+
 def format_publication_date(value, precision):
     """Serialise at the stored precision: "2019", "2019-05" or "2019-05-14"; None when unknown."""
     if value is None:
