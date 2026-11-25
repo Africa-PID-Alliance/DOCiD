@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import backfill_publication_dates as backfill_module
 from backfill_publication_dates import (
-    ERROR, NEEDS_UON_DIR, NO_DATE_AT_SOURCE, NOT_FOUND, SET, UNKNOWN_REPOSITORY, WOULD_SET,
+    ERROR, NEEDS_UON_DIR, NO_DATE_AT_SOURCE, NOT_FOUND, REPOSITORY_UNREACHABLE, SET, UNKNOWN_REPOSITORY, WOULD_SET,
     RepositoryResolver, SourceReader, backfill,
 )
 from app import db
@@ -57,9 +57,13 @@ def _source(name, base_url, api_type="modern", ui_base_url=None):
 class FakeReader:
     """Stands in for SourceReader: answers by publication id."""
 
-    def __init__(self, answers):
+    def __init__(self, answers, unreachable=()):
         self.answers = answers  # publication id -> raw date, or an exception to raise
+        self.unreachable = set(unreachable)  # base URLs that are down
         self.dspace_calls = []
+
+    def repository_reachable(self, api_type, base_url):
+        return base_url not in self.unreachable
 
     def _answer(self, publication_id):
         answer = self.answers[publication_id]
@@ -160,6 +164,50 @@ def test_apply_sets_dates_at_their_precision_and_counts_every_outcome():
     dated = db.session.get(Publications, year_only.id)
     assert (dated.publication_date, dated.publication_date_precision) == (date(2019, 1, 1), "year")
     assert db.session.get(Publications, already_dated.id).publication_date == date(2001, 1, 1)
+
+
+def test_an_unreachable_repository_is_skipped_without_fetching_its_items():
+    owner_id = _owner()
+    _source("UNILAG", "https://api-ir.unilag.edu.ng/server", ui_base_url="https://ir.unilag.edu.ng")
+    _source("Other", "https://repo.example/server")
+    down = [_publication(owner_id, 50 + n) for n in range(3)]
+    for n, publication in enumerate(down):
+        _mapping(publication, f"u-down-{n}", f"https://ir.unilag.edu.ng/handle/123/{n}")
+    up = _publication(owner_id, 60)
+    _mapping(up, "u-up", "https://repo.example/handle/1/1")
+    db.session.commit()
+
+    reader = FakeReader({up.id: "2017"}, unreachable={"https://api-ir.unilag.edu.ng/server"})
+    with patch.object(backfill_module.time, "sleep") as sleep:
+        outcomes = backfill(apply=False, sources=("dspace",), delay_seconds=0.2, reader=reader,
+                            resolver=RepositoryResolver(HarvestSource.query.all()), log=_quiet)
+
+    assert outcomes[("dspace", REPOSITORY_UNREACHABLE)] == 3
+    assert outcomes[("dspace", WOULD_SET)] == 1
+    assert [uuid for (_, _, uuid) in reader.dspace_calls] == ["u-up"]  # no item requests to the dead host
+    assert sleep.call_count == 1  # only after the one real request
+
+
+def test_reachability_is_checked_once_per_repository():
+    import requests
+
+    messages = []
+    reader = SourceReader(log=messages.append)
+    calls = []
+
+    def failing_get(url, timeout):
+        calls.append(url)
+        raise requests.exceptions.ConnectionError("Name or service not known")
+
+    reader._dspace_clients[("modern", "https://down.example/server")] = SimpleNamespace(session=SimpleNamespace(get=failing_get))
+    reader._dspace_clients[("legacy", "https://up.example")] = SimpleNamespace(
+        session=SimpleNamespace(get=lambda url, timeout: calls.append(url) or SimpleNamespace(status_code=200)))
+
+    assert reader.repository_reachable("modern", "https://down.example/server") is False
+    assert reader.repository_reachable("modern", "https://down.example/server") is False
+    assert reader.repository_reachable("legacy", "https://up.example") is True
+    assert calls == ["https://down.example/server/api", "https://up.example/rest/status"]
+    assert len(messages) == 1 and "https://down.example/server is unreachable" in messages[0]
 
 
 def test_uon_records_need_the_excel_folder():

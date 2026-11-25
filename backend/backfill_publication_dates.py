@@ -55,6 +55,7 @@ WOULD_SET = 'would set'
 SET = 'set'
 NO_DATE_AT_SOURCE = 'source has no usable date'
 NOT_FOUND = 'not found at source (removed, restricted or unreachable)'
+REPOSITORY_UNREACHABLE = 'repository unreachable (its records were skipped)'
 UNKNOWN_REPOSITORY = 'repository not identified'
 NEEDS_UON_DIR = 'UoN record, --uon-source-dir not given'
 ERROR = 'error'
@@ -101,12 +102,35 @@ class RepositoryResolver:
 class SourceReader:
     """Fetches one record from its source and returns the raw publication date."""
 
-    def __init__(self, uon_source_dir=None):
+    def __init__(self, uon_source_dir=None, log=print):
         self._dspace_clients = {}
+        self._reachable = {}
+        self._log = log
         self._uon_items = None
         self._uon_source_dir = uon_source_dir
         self._figshare_client = None
         self._ojs_client = None
+
+    def repository_reachable(self, api_type, base_url):
+        """
+        Whether a DSpace instance answers at all, checked once per instance.
+
+        When its DNS or server is down, every item request would retry and wait
+        in turn, so the whole repository is skipped after one failed check.
+        """
+        key = (api_type, base_url)
+        if key not in self._reachable:
+            probe_url = f"{base_url.rstrip('/')}/rest/status" if api_type == 'legacy' else f"{base_url.rstrip('/')}/api"
+            try:
+                response = self._dspace_client(api_type, base_url).session.get(probe_url, timeout=15)
+                reachable = response.status_code < 500
+                reason = f"HTTP {response.status_code}"
+            except Exception as error:
+                reachable, reason = False, f"{type(error).__name__}: {error}"
+            self._reachable[key] = reachable
+            if not reachable:
+                self._log(f"  repository {base_url} is unreachable ({reason[:200]}); skipping its records")
+        return self._reachable[key]
 
     def _dspace_client(self, api_type, base_url):
         key = (api_type, base_url)
@@ -205,6 +229,8 @@ def read_raw_date(source, publication, reader, resolver, uon_source_dir):
     if resolved is None:
         return None, UNKNOWN_REPOSITORY
     api_type, base_url = resolved
+    if not reader.repository_reachable(api_type, base_url):
+        return None, REPOSITORY_UNREACHABLE
     return reader.dspace_date(api_type, base_url, mapping, publication.user_id), None
 
 
@@ -212,7 +238,7 @@ def backfill(apply=False, sources=SOURCES, limit=None, publication_id=None,
              uon_source_dir=None, repush_cordra=False, delay_seconds=0.0,
              reader=None, resolver=None, log=print):
     """Run the backfill; returns a Counter of outcomes per source, e.g. {('dspace', 'set'): 12}."""
-    reader = reader or SourceReader(uon_source_dir)
+    reader = reader or SourceReader(uon_source_dir, log=log)
     if resolver is None:
         from app.routes.dspace import DSPACE_BASE_URL
         from app.routes.dspace_legacy import DSPACE_LEGACY_URL
@@ -235,7 +261,9 @@ def backfill(apply=False, sources=SOURCES, limit=None, publication_id=None,
             except Exception as error:  # one bad record must not stop the run
                 raw_date, outcome = None, ERROR
                 log(f"  publication {publication.id}: {type(error).__name__}: {error}")
-            if delay_seconds and source != 'uon':
+            # Wait only after a real remote request, not after a record that was skipped.
+            if delay_seconds and source != 'uon' and outcome not in (
+                    REPOSITORY_UNREACHABLE, UNKNOWN_REPOSITORY, NEEDS_UON_DIR):
                 time.sleep(delay_seconds)
 
             if outcome is None:
