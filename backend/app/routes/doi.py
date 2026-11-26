@@ -13,7 +13,7 @@ from flasgger import swag_from
 # App-specific imports
 from app import db
 from app.routes.publications import _redact_national_ids, _national_id_creator_countries
-from app.utils.publication_dates import created_at_of, publication_date_of
+from app.utils.publication_dates import created_at_of
 from app.models import (
     DocIdLookup,
     Publications,
@@ -112,7 +112,6 @@ def handle_doi(prefix, suffix):
                     publication_dict[field] = getattr(data, field)
 
         # `published` above is the record's creation time in DOCiD (deprecated key).
-        publication_dict['publication_date'] = publication_date_of(data)
         publication_dict['created_at'] = created_at_of(data)
 
         # Add related data

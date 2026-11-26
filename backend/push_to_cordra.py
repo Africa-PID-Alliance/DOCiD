@@ -78,6 +78,20 @@ def fix_file_url(url):
     
     return url
 
+def add_file_date_and_license(metadata, publication_file):
+    """
+    Add a publication file's publication date ("2019", "2019-05" or "2019-05-14")
+    and licence ({"code", "name", "url"}) to its Cordra payload, each left out
+    when unknown rather than sent as null.
+    """
+    publication_date = publication_date_of(publication_file)
+    if publication_date:
+        metadata["publication_date"] = publication_date
+    licence = publication_file.license
+    if licence is not None:
+        metadata["license"] = {"code": licence.code, "name": licence.name, "url": licence.url}
+
+
 def push_publication_to_cordra(publication):
     """Push main publication metadata to CORDRA"""
     try:
@@ -100,16 +114,8 @@ def push_publication_to_cordra(publication):
             "avatar": publication.avatar,
             "poster_url": fix_file_url(publication.publication_poster_url),
             "groupName": publication.document_title,  # Container iD requires groupName
-            # When the record was created in DOCiD (Unix seconds); unchanged for existing readers.
             "created_on": int(publication.published.timestamp()) if publication.published else None
         }
-
-        # The work's own publication date as ISO 8601 at its precision ("2019",
-        # "2019-05" or "2019-05-14"); a string because a year alone has no timestamp.
-        # Left out when unknown rather than sent as null.
-        publication_date = publication_date_of(publication)
-        if publication_date:
-            metadata["publication_date"] = publication_date
 
         # Inject OpenAlex enrichment + provenance if available (Phase 1)
         external_metadata, provenance_events = build_openalex_external_metadata(publication)
@@ -165,7 +171,9 @@ def push_publication_files_to_cordra(publication):
                 "parentId": publication.document_docid,
                 "createdOn": int(datetime.now().timestamp())
             }
-            
+            # This file's own publication date and licence.
+            add_file_date_and_license(metadata, file)
+
             if file.external_identifier:
                 metadata["externalIdentifier"] = file.external_identifier
                 metadata["externalIdentifierType"] = file.external_identifier_type

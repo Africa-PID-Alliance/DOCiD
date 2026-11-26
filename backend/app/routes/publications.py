@@ -10,8 +10,13 @@ from app.utils.sanitize_html import sanitize_rich_text
 from app.utils.publication_dates import (
     created_at_of, parse_publication_date_input, publication_date_of,
 )
+from app.utils.licenses import (
+    MISSING_LICENSE_MESSAGE, RIGHTS_DECLARATION_REQUIRED_MESSAGE, RIGHTS_DECLARATION_TEXT,
+    RIGHTS_DECLARATION_VERSION, is_rights_declared, license_details, license_summary,
+    resolve_license_input, rights_declaration_record,
+)
 from app import db
-from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher
+from app.models import Publications,PublicationFiles,PublicationDocuments,PublicationCreators,PublicationOrganization,PublicationFunders,PublicationProjects,DocidRrid,NationalIdResearcher,Licenses
 from app.models import ResourceTypes,FunderTypes,CreatorsRoles,creatorsIdentifiers,PublicationIdentifierTypes,PublicationTypes,UserAccount,PublicationDrafts,PublicationAuditTrail,AccountTypes
 from app.models import DSPACE_WITHHELD_STATUSES
 # from app.service_codra import push_apa_metadata
@@ -274,6 +279,58 @@ def clean_undefined_string(value):
     if value and isinstance(value, str) and value.lower() == 'undefined':
         return None
     return value
+
+
+def _read_file_dates_and_licenses():
+    """
+    Read every publication file's date and licence from a /publish or /version
+    form (filesPublications[i][publication_date] and [license_id]), before
+    anything is created.
+
+    The date is optional; the licence is required for every file, with no
+    default. When there is at least one file, rightsDeclaration must be true.
+    Returns ({index: (date, precision, licence)}, None), or (None, error_response)
+    naming the first invalid file ("Publication 2: ...").
+    """
+    values = {}
+    index = 0
+    while request.form.get(f'filesPublications[{index}][title]') is not None:
+        try:
+            date_value, precision = parse_publication_date_input(
+                request.form.get(f'filesPublications[{index}][publication_date]'))
+            licence = resolve_license_input(request.form.get(f'filesPublications[{index}][license_id]'))
+        except ValueError as e:
+            return None, (jsonify({'message': f'Publication {index + 1}: {e}'}), 400)
+        if licence is None:
+            return None, (jsonify({'message': f'Publication {index + 1}: {MISSING_LICENSE_MESSAGE}'}), 400)
+        values[index] = (date_value, precision, licence)
+        index += 1
+    if values and not is_rights_declared(request.form.get('rightsDeclaration')):
+        return None, (jsonify({'message': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
+    return values, None
+
+
+def _file_columns(file_values):
+    """Model columns for one file from _read_file_dates_and_licenses."""
+    date_value, precision, licence = file_values
+    return {
+        'publication_date': date_value,
+        'publication_date_precision': precision,
+        'license_id': licence.id,
+    }
+
+
+def _add_rights_declaration(publication_id, user_id, record):
+    """Queue the RIGHTS_DECLARED audit row; it commits with the rest of the request."""
+    db.session.add(PublicationAuditTrail(
+        publication_id=publication_id,
+        user_id=user_id,
+        action='RIGHTS_DECLARED',
+        field_name='license',
+        new_value=record,
+        ip_address=request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
+        user_agent=request.headers.get('User-Agent', ''),
+    ))
 
 
 def build_raid_link(raid_id):
@@ -595,6 +652,52 @@ def get_publication_types():
         return jsonify({'error': str(e)}), 500
 
 
+@publications_bp.route('/get-list-licenses', methods=['GET'])
+def get_licenses():
+    """
+    The licences a depositor can choose, and the rights declaration they confirm
+    ---
+    tags:
+      - Publications
+    description: >
+      Licences in the order to offer them for each publication file, with what
+      each permits, plus the exact rights-declaration wording to show next to
+      the confirmation box. Send a licence's `id` (or `code`) as a file's
+      `license_id`. No licence is preselected. Licences kept only to match
+      other sources are not listed.
+    responses:
+      200:
+        description: Selectable licences and the rights declaration
+        schema:
+          type: object
+          properties:
+            licenses:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: {type: integer}
+                  code: {type: string, example: CC-BY-4.0}
+                  short_name: {type: string, example: CC BY 4.0}
+                  name: {type: string}
+                  url: {type: string}
+                  requires_attribution: {type: boolean}
+                  allows_commercial: {type: boolean}
+                  allows_adaptations: {type: boolean}
+                  share_alike: {type: boolean}
+            rights_declaration:
+              type: object
+              properties:
+                version: {type: string, example: decl-v1}
+                text: {type: string}
+    """
+    licences = Licenses.query.filter_by(is_selectable=True).order_by(Licenses.sort_order).all()
+    return jsonify({
+        'licenses': [license_details(licence) for licence in licences],
+        'rights_declaration': {'version': RIGHTS_DECLARATION_VERSION, 'text': RIGHTS_DECLARATION_TEXT},
+    }), 200
+
+
 @publications_bp.route('/get-publications/<title>', methods=['GET'])
 # @jwt_required()
 def get_publications_title(title):
@@ -665,10 +768,9 @@ def get_all_publications():
         name: sort
         type: string
         description: >
-          Sorting criteria ("published", "publication_date", "title", "id" or "updated_at").
+          Sorting criteria ("published", "title", "id" or "updated_at").
           Default is "published", or "updated_at" when modified_since is set.
-          "published" is when the record was created in DOCiD; "publication_date"
-          is the work's own publication date, with unknown dates sorted last.
+          "published" is when the record was created in DOCiD.
       - in: query
         name: order
         type: string
@@ -714,9 +816,6 @@ def get_all_publications():
                     type: integer
                   user_id:
                     type: integer
-                  publication_date:
-                    type: string
-                    description: The work's own publication date ("2019", "2019-05" or "2019-05-14"); null when unknown.
                   created_at:
                     type: string
                     description: When the record was created in DOCiD (ISO 8601, UTC).
@@ -805,7 +904,7 @@ def get_all_publications():
             return jsonify({'message': 'Invalid order parameter (must be "asc" or "desc")'}), 400
 
         # Validate and set sort field
-        valid_sort_fields = ['published', 'publication_date', 'title', 'id', 'updated_at']
+        valid_sort_fields = ['published', 'title', 'id', 'updated_at']
         if sort_field not in valid_sort_fields:
             return jsonify({'message': f'Invalid sort field (must be one of {valid_sort_fields})'}), 400
 
@@ -904,7 +1003,6 @@ def get_all_publications():
         # The API's sort names are not all column names ("title" is document_title).
         sort_column = {
             'published': Publications.published,
-            'publication_date': Publications.publication_date,
             'title': Publications.document_title,
             'id': Publications.id,
             'updated_at': last_changed_at,
@@ -913,9 +1011,6 @@ def get_all_publications():
         if order == 'desc':
             sort_column = desc(sort_column)
             tiebreak_column = desc(tiebreak_column)
-        if sort_field == 'publication_date':
-            # Records with no known publication date go last in either direction.
-            sort_column = sort_column.nullslast()
 
         # Apply sorting and pagination
         offset = (page - 1) * page_size
@@ -975,8 +1070,6 @@ def get_all_publications():
                 'doi': pub.doi,
                 'owner': pub.owner,
                 'avatar': _resolve_publication_avatar(pub),
-                # The work's own publication date ("2019", "2019-05" or "2019-05-14"), null when unknown.
-                'publication_date': publication_date_of(pub),
                 # When the record was created in DOCiD.
                 'created_at': created_at_of(pub),
                 # Deprecated: same instant as created_at; kept until the frontend switches.
@@ -1190,8 +1283,7 @@ def get_publication(publication_id):
                     publication_dict[field] = getattr(data, field)
 
         # `published` above is the record's creation time in DOCiD (deprecated
-        # key); these say what each date is.
-        publication_dict['publication_date'] = publication_date_of(data)
+        # key); created_at is the same instant as ISO 8601.
         publication_dict['created_at'] = created_at_of(data)
 
         # Add related data
@@ -1205,7 +1297,10 @@ def get_publication(publication_id):
                 'file_type': file.file_type,
                 'file_url': file.file_url,
                 'identifier': file.identifier,
-                'generated_identifier': file.generated_identifier
+                'generated_identifier': file.generated_identifier,
+                # This file's own publication date and licence; null when unknown.
+                'publication_date': publication_date_of(file),
+                'license': license_summary(file.license),
             } for file in data.publications_files
         ]
 
@@ -1398,8 +1493,7 @@ def get_publication_by_docid_prefix():
                     publication_dict[field] = getattr(data, field)
 
         # `published` above is the record's creation time in DOCiD (deprecated
-        # key); these say what each date is.
-        publication_dict['publication_date'] = publication_date_of(data)
+        # key); created_at is the same instant as ISO 8601.
         publication_dict['created_at'] = created_at_of(data)
 
         # Add related data
@@ -1413,7 +1507,10 @@ def get_publication_by_docid_prefix():
                 'file_type': file.file_type,
                 'file_url': file.file_url,
                 'identifier': file.identifier,
-                'generated_identifier': file.generated_identifier
+                'generated_identifier': file.generated_identifier,
+                # This file's own publication date and licence; null when unknown.
+                'publication_date': publication_date_of(file),
+                'license': license_summary(file.license),
             } for file in data.publications_files
         ]
 
@@ -1612,8 +1709,7 @@ def get_publication_by_docid_simple(document_docid):
                     publication_dict[field] = getattr(data, field)
 
         # `published` above is the record's creation time in DOCiD (deprecated
-        # key); these say what each date is.
-        publication_dict['publication_date'] = publication_date_of(data)
+        # key); created_at is the same instant as ISO 8601.
         publication_dict['created_at'] = created_at_of(data)
 
         # Add related data
@@ -1627,7 +1723,10 @@ def get_publication_by_docid_simple(document_docid):
                 'file_type': file.file_type,
                 'file_url': file.file_url,
                 'identifier': file.identifier,
-                'generated_identifier': file.generated_identifier
+                'generated_identifier': file.generated_identifier,
+                # This file's own publication date and licence; null when unknown.
+                'publication_date': publication_date_of(file),
+                'license': license_summary(file.license),
             } for file in data.publications_files
         ]
 
@@ -1805,13 +1904,27 @@ def create_publication():
         type: string
         required: false
         description: URL to the avatar image of the owner.
-      - name: publicationDate
+      - name: filesPublications[i][publication_date]
         in: formData
         type: string
         required: false
         description: >
-          The work's own publication date: YYYY, YYYY-MM or YYYY-MM-DD, not in
-          the future. Leave it out when unknown. Not the DOCiD registration date.
+          That publication file's own publication date: YYYY, YYYY-MM or
+          YYYY-MM-DD, not in the future. Leave it out when unknown.
+      - name: filesPublications[i][license_id]
+        in: formData
+        type: string
+        required: false
+        description: >
+          That publication file's licence: an `id` or `code` from
+          /get-list-licenses. Required for every publication file; no default.
+      - name: rightsDeclaration
+        in: formData
+        type: string
+        required: false
+        description: >
+          Must be "true" when any publication file is sent: the depositor confirms
+          the rights declaration from /get-list-licenses. Recorded in the audit trail.
     responses:
       200:
         description:  Publication created successfully.
@@ -1931,12 +2044,11 @@ def create_publication():
             logger.warning(f"Missing required fields: {', '.join(missing_fields)}")
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
 
-        # Optional: the work's own publication date (YYYY, YYYY-MM or YYYY-MM-DD).
-        try:
-            publication_date, publication_date_precision = parse_publication_date_input(
-                request.form.get('publicationDate'))
-        except ValueError as e:
-            return jsonify({'message': str(e)}), 400
+        # Each publication file's date (optional) and licence (required), plus the
+        # rights declaration, are checked before anything is created.
+        file_values, file_error = _read_file_dates_and_licenses()
+        if file_error:
+            return file_error
 
         # Try to convert the resource_type to an integer
         try:
@@ -1984,9 +2096,7 @@ def create_publication():
             doi=doi,
             resource_type_id=resource_type_id,
             avatar=avatar,
-            publication_poster_url=publication_poster_url,
-            publication_date=publication_date,
-            publication_date_precision=publication_date_precision,
+            publication_poster_url=publication_poster_url
         )
         db.session.add(publication)
 
@@ -2076,6 +2186,7 @@ def create_publication():
                     handle_identifier=handle_id,
                     external_identifier=external_id,
                     external_identifier_type=external_id_type,
+                    **_file_columns(file_values[index]),
                     **checksum_fields
                 ))
 
@@ -2099,6 +2210,7 @@ def create_publication():
                     handle_identifier=None,
                     external_identifier=None,
                     external_identifier_type=None,
+                    **_file_columns(file_values[index]),
                     **external_checksum_fields()
                 ))
             else:
@@ -2726,6 +2838,12 @@ def create_publication():
             db.session.bulk_save_objects(rrid_records)
             logger.info(f"Saved {len(rrid_records)} DocidRrid records")
 
+        # The depositor's rights declaration, covering every publication file's
+        # licence (keyed by the file's 1-based position in the form).
+        if file_values:
+            _add_rights_declaration(publication_id, user_id, rights_declaration_record(
+                {index + 1: values[2] for index, values in file_values.items()}))
+
         # Commit all changes
         db.session.commit()
 
@@ -2776,7 +2894,6 @@ def create_publication():
             'doi': publication.doi,
             'avatar': publication.avatar,
             'publication_poster_url': publication.publication_poster_url,
-            'publication_date': publication_date_of(publication),
             'created_at': created_at_of(publication),
             # Deprecated: record creation time; use created_at.
             'published': int(publication.published.timestamp()) if publication.published else None
@@ -3160,14 +3277,6 @@ def update_publication(publication_id):
         type: string
         required: false
         description: Updated URL to the avatar image of the owner.
-      - name: publicationDate
-        in: formData
-        type: string
-        required: false
-        description: >
-          The work's own publication date: YYYY, YYYY-MM or YYYY-MM-DD, not in
-          the future. Leave the field out to keep the current value; send an
-          empty string to clear it.
     responses:
       200:
         description: Publication updated successfully.
@@ -3219,33 +3328,13 @@ def update_publication(publication_id):
         
         # Track changes for audit trail
         changes_made = []
-
+        
         # Log request data for debugging
         logger.info("Update request form data:")
         for key, value in request.form.items():
             display_value = value[:100] + "..." if len(value) > 100 else value
             logger.info(f"  {key}: {display_value}")
-
-        # Publication date: absent (or the string "undefined") keeps the current
-        # value, an empty string clears it. Validated before anything else changes.
-        raw_publication_date = request.form.get('publicationDate')
-        if raw_publication_date is not None and raw_publication_date.strip() != 'undefined':
-            try:
-                new_publication_date, new_precision = parse_publication_date_input(raw_publication_date)
-            except ValueError as e:
-                return jsonify({'message': str(e)}), 400
-            old_value = publication_date_of(publication)
-            publication.publication_date = new_publication_date
-            publication.publication_date_precision = new_precision
-            new_value = publication_date_of(publication)
-            if new_value != old_value:
-                changes_made.append({
-                    'field': 'publication_date',
-                    'old_value': old_value,
-                    'new_value': new_value
-                })
-                logger.info(f"Publication date updated from '{old_value}' to '{new_value}'")
-
+        
         # Update title if provided
         new_title = request.form.get('documentTitle')
         if new_title and new_title != publication.document_title:
@@ -3480,9 +3569,7 @@ def get_publication_for_edit(publication_id):
                     publication_dict[field] = int(value.timestamp())
                 else:
                     publication_dict[field] = value
-
-        # The edit form pre-fills publicationDate from this ("2019", "2019-05" or "2019-05-14").
-        publication_dict['publication_date'] = publication_date_of(data)
+        
         publication_dict['created_at'] = created_at_of(data)
 
         # Add related data
@@ -3499,7 +3586,10 @@ def get_publication_for_edit(publication_id):
                 'generated_identifier': file.generated_identifier,
                 'handle_identifier': getattr(file, 'handle_identifier', None),
                 'external_identifier': getattr(file, 'external_identifier', None),
-                'external_identifier_type': getattr(file, 'external_identifier_type', None)
+                'external_identifier_type': getattr(file, 'external_identifier_type', None),
+                # The edit form pre-fills each file's date and licence from these.
+                'publication_date': publication_date_of(file),
+                'license': license_summary(file.license),
             } for file in data.publications_files
         ]
 
@@ -3875,7 +3965,6 @@ def get_my_docids(user_id):
                 'document_docid': publication.document_docid,
                 'document_title': publication.document_title,
                 'version_number': publication.version_number,
-                'publication_date': publication_date_of(publication),
                 'created_at': created_at_of(publication),
                 'published': publication.published.isoformat() if publication.published else None  # deprecated: use created_at
             })
@@ -3926,7 +4015,6 @@ def get_publication_versions(publication_id):
             'document_docid': root_parent.document_docid,
             'document_title': root_parent.document_title,
             'version_number': root_parent.version_number or 1,
-            'publication_date': publication_date_of(root_parent),
             'created_at': created_at_of(root_parent),
             'published': root_parent.published.isoformat() if root_parent.published else None  # deprecated: use created_at
         }
@@ -3938,7 +4026,6 @@ def get_publication_versions(publication_id):
                 'document_docid': version_record.document_docid,
                 'document_title': version_record.document_title,
                 'version_number': version_record.version_number,
-                'publication_date': publication_date_of(version_record),
                 'created_at': created_at_of(version_record),
                 'published': version_record.published.isoformat() if version_record.published else None  # deprecated: use created_at
             })
@@ -3997,13 +4084,19 @@ def create_version():
         in: formData
         type: string
         required: true
-      - name: publicationDate
+      - name: filesPublications[i][publication_date]
         in: formData
         type: string
         required: false
         description: >
-          This version's own publication date (YYYY, YYYY-MM or YYYY-MM-DD).
-          Not copied from the parent; leave it out when unknown.
+          Each publication file's own date and licence, as on /publish:
+          filesPublications[i][publication_date] (optional, never copied from the
+          parent) and filesPublications[i][license_id] (required, no default).
+      - name: rightsDeclaration
+        in: formData
+        type: string
+        required: false
+        description: Must be "true" when any publication file is sent.
     responses:
       200:
         description: Version created successfully
@@ -4057,12 +4150,11 @@ def create_version():
         if missing_fields:
             return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
 
-        # Optional, and never copied from the parent: a new version has its own date.
-        try:
-            publication_date, publication_date_precision = parse_publication_date_input(
-                request.form.get('publicationDate'))
-        except ValueError as e:
-            return jsonify({'message': str(e)}), 400
+        # Each publication file's date (optional) and licence (required), plus the
+        # rights declaration, as on /publish. Nothing is copied from the parent.
+        file_values, file_error = _read_file_dates_and_licenses()
+        if file_error:
+            return file_error
 
         try:
             resource_type = int(resource_type)
@@ -4127,9 +4219,7 @@ def create_version():
             avatar=avatar,
             publication_poster_url=publication_poster_url,
             parent_id=root_parent_id,
-            version_number=new_version_number,
-            publication_date=publication_date,
-            publication_date_precision=publication_date_precision,
+            version_number=new_version_number
         )
         db.session.add(publication)
         db.session.flush()
@@ -4182,6 +4272,7 @@ def create_version():
                 file_url=file_url,
                 identifier=identifier or '',
                 generated_identifier=generated_identifier or '',
+                **_file_columns(file_values[index]),
                 **checksum_fields
             )
             db.session.add(pub_file)
@@ -4386,6 +4477,10 @@ def create_version():
             )
             db.session.add(rrid_record)
             index += 1
+
+        if file_values:
+            _add_rights_declaration(publication_id, user_id, rights_declaration_record(
+                {index + 1: values[2] for index, values in file_values.items()}))
 
         # Commit all changes
         db.session.commit()

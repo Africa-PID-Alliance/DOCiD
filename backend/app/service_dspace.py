@@ -12,8 +12,6 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from app.utils.publication_dates import first_usable_source_date
-
 
 # Repository operators read this in their access logs. An unidentified client
 # making rapid requests is indistinguishable from an AI scraper and gets blocked,
@@ -642,12 +640,7 @@ class DSpaceMetadataMapper:
             'user_id': user_id,
             'document_title': title,
             'document_description': description,
-            # The work's own date: dc.date.issued, else dc.date.created (heritage items such as
-            # photographs record when they were made there). Never dc.date.accessioned or
-            # dc.date.available: those are when the repository added the item. Kept raw and
-            # parsed with its precision by app.utils.publication_dates.
-            'publication_date': first_usable_source_date(
-                date_issued, cls._get_metadata_value(metadata, 'dc.date.created')),
+            'published_date': cls._parse_date(date_issued),
             'resource_type': resource_type,
             'doi': extracted_doi,
             'dspace_handle': dspace_item.get('handle'),
@@ -841,5 +834,40 @@ class DSpaceMetadataMapper:
                 return datetime.strptime(last_modified_str, fmt)
             except ValueError:
                 continue
+
+        return None
+
+    @staticmethod
+    def _parse_date(date_str: Optional[str]) -> Optional[str]:
+        """
+        Parse DSpace date to ISO format
+
+        Args:
+            date_str: Date string (various formats: YYYY, YYYY-MM-DD, etc.)
+
+        Returns:
+            ISO formatted date or None
+        """
+        if not date_str:
+            return None
+
+        # Try different date formats
+        formats = [
+            '%Y-%m-%d',
+            '%Y-%m',
+            '%Y',
+            '%Y-%m-%dT%H:%M:%SZ',
+        ]
+
+        for fmt in formats:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+
+        # If all formats fail, return as-is if it looks like a year
+        if date_str.isdigit() and len(date_str) == 4:
+            return f"{date_str}-01-01"
 
         return None

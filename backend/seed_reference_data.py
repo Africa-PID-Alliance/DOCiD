@@ -72,6 +72,9 @@ def seed_reference_data():
     _upsert(creatorsIdentifiers, "identifier_name", ["ORCID", "ISNI", "VIAF"])
     _upsert_creator_roles()
     _upsert_account_categories()
+    # Licences (migration d4f6a8c0e2b1 inserts the same rows on migrated databases).
+    from app.utils.licenses import ensure_license_catalogue
+    ensure_license_catalogue()
     db.session.commit()
     print("Reference seed complete.")
 

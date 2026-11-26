@@ -45,6 +45,11 @@ from app.models import (
     NationalIdResearcher,
 )
 from app.service_identifiers import IdentifierService
+from app.utils.licenses import (
+    MISSING_LICENSE_MESSAGE, RIGHTS_DECLARATION_REQUIRED_MESSAGE, is_blank_input, is_rights_declared,
+    license_summary, resolve_license_input, rights_declaration_record,
+)
+from app.utils.publication_dates import parse_publication_date_input, publication_date_of
 
 logger = logging.getLogger(__name__)
 
@@ -597,6 +602,87 @@ def _identifier_columns(doi, handle):
     return {'identifier': APA_HANDLE_TYPE_ID, 'generated_identifier': (handle or '')[:100]}
 
 
+# ---------- publication date and licence on publication files ----------
+
+def _new_file_rights():
+    """
+    The publication date (optional) and licence (required) of a publication file
+    being added, from the form, plus the rights declaration, which must be
+    "true". Validated before any handle is minted.
+    Returns ({column: value}, licence, None) or (None, None, error_response).
+    """
+    try:
+        date_value, precision = parse_publication_date_input(request.form.get('publication_date'))
+        licence = resolve_license_input(request.form.get('license_id'))
+    except ValueError as e:
+        return None, None, (jsonify({'error': str(e)}), 400)
+    if licence is None:
+        return None, None, (jsonify({'error': MISSING_LICENSE_MESSAGE}), 400)
+    if not is_rights_declared(request.form.get('rights_declaration')):
+        return None, None, (jsonify({'error': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
+    columns = {
+        'publication_date': date_value,
+        'publication_date_precision': precision,
+        'license_id': licence.id,
+    }
+    return columns, licence, None
+
+
+def _file_rights_updates(pub_file, data):
+    """
+    Validate a PUT body's publication_date and license_id for a publication file.
+
+    Same three states as the other fields: an omitted field (or "undefined")
+    keeps the value; for the date, "" or null clears it; the licence can't be
+    cleared. A licence change needs "rights_declaration": true.
+    Returns ({column: new_value}, new_licence_or_None, None) or (None, None, error_response).
+    """
+    updates = {}
+    if 'publication_date' in data and str(data['publication_date']).strip() != 'undefined':
+        raw_date = data['publication_date']
+        try:
+            date_value, precision = parse_publication_date_input('' if raw_date is None else str(raw_date))
+        except ValueError as e:
+            return None, None, (jsonify({'error': str(e)}), 400)
+        updates['publication_date'] = date_value
+        updates['publication_date_precision'] = precision
+    new_licence = None
+    if 'license_id' in data and not is_blank_input(data['license_id']):
+        try:
+            new_licence = resolve_license_input(data['license_id'])
+        except ValueError as e:
+            return None, None, (jsonify({'error': str(e)}), 400)
+        if new_licence.id == pub_file.license_id:
+            new_licence = None
+        elif not is_rights_declared(data.get('rights_declaration')):
+            return None, None, (jsonify({'error': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
+        else:
+            updates['license_id'] = new_licence.id
+    return updates, new_licence, None
+
+
+def _apply_file_rights_updates(pub_file, updates, new_licence, changes):
+    """Apply _file_rights_updates' result, recording readable before/after values in changes."""
+    old_date = publication_date_of(pub_file)
+    old_licence = pub_file.license
+    for field, value in updates.items():
+        setattr(pub_file, field, value)
+    if new_licence is not None:
+        pub_file.license = new_licence
+        changes['license'] = (old_licence.code if old_licence else None, new_licence.code)
+    new_date = publication_date_of(pub_file)
+    if 'publication_date' in updates and new_date != old_date:
+        changes['publication_date'] = (old_date, new_date)
+
+
+def _file_rights_response(pub_file):
+    """The date and licence returned after adding or updating a publication file."""
+    return {
+        'publication_date': publication_date_of(pub_file),
+        'license': license_summary(pub_file.license),
+    }
+
+
 @edit_bp.route('/<int:publication_id>/files', methods=['POST'])
 @jwt_required()
 def add_file(publication_id):
@@ -654,6 +740,11 @@ def add_file(publication_id):
     except (ValueError, TypeError):
         return jsonify({'error': 'Invalid publication_type_id'}), 400
 
+    # Optional publication_date; required license_id and rights_declaration.
+    rights_columns, licence, rights_error = _new_file_rights()
+    if rights_error:
+        return rights_error
+
     # Branch: external video URL (no upload), OR file upload
     if video_url_raw:
         if not video_url_raw.startswith(('http://', 'https://')):
@@ -674,6 +765,7 @@ def add_file(publication_id):
             handle_identifier=minted[:100],
             external_identifier=ext_identifier,
             external_identifier_type=ext_identifier_type,
+            **rights_columns,
             **external_checksum_fields()
         )
         db.session.add(pub_file)
@@ -683,12 +775,15 @@ def add_file(publication_id):
             audit_label += f" doi={ext_identifier}"
         _audit(publication_id, user_id, 'CREATE_FILE',
                field_name='publications_files', new_value=audit_label)
+        _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
+               new_value=rights_declaration_record({pub_file.id: licence}))
         db.session.commit()
         return jsonify({
             'message': 'Video link added',
             'id': pub_file.id,
             'handle': minted,
             'file_url': video_url_raw,
+            **_file_rights_response(pub_file),
         }), 201
 
     # File upload branch
@@ -715,6 +810,7 @@ def add_file(publication_id):
         handle_identifier=minted[:100],
         external_identifier=ext_identifier,
         external_identifier_type=ext_identifier_type,
+        **rights_columns,
         **checksum_fields_for_upload(_abs_path, file_url)
     )
     db.session.add(pub_file)
@@ -724,12 +820,15 @@ def add_file(publication_id):
         audit_label += f" doi={ext_identifier}"
     _audit(publication_id, user_id, 'CREATE_FILE',
            field_name='publications_files', new_value=audit_label)
+    _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
+           new_value=rights_declaration_record({pub_file.id: licence}))
     db.session.commit()
     return jsonify({
         'message': 'File added',
         'id': pub_file.id,
         'handle': minted,
         'file_url': file_url,
+        **_file_rights_response(pub_file),
     }), 201
 
 
@@ -738,7 +837,8 @@ def add_file(publication_id):
 def update_file(publication_id, file_id):
     """Update metadata on an existing file row.
 
-    Mutable: title, description, publication_type_id, plus the external
+    Mutable: title, description, publication_type_id, publication_date,
+    license_id (a change needs "rights_declaration": true), plus the external
     identifier pair (external_identifier_type + external_identifier_value).
     file_url, file_name and file_type are immutable — attempts to change them
     are silently ignored to keep Cordra + disk state in sync. The external
@@ -756,7 +856,11 @@ def update_file(publication_id, file_id):
         return jsonify({'error': 'File not found'}), 404
 
     data = request.get_json(silent=True) or {}
+    rights_updates, new_licence, rights_error = _file_rights_updates(pub_file, data)
+    if rights_error:
+        return rights_error
     changes = {}
+    _apply_file_rights_updates(pub_file, rights_updates, new_licence, changes)
     for field in ('title', 'description', 'publication_type_id'):
         if field not in data:
             continue
@@ -850,8 +954,16 @@ def update_file(publication_id, file_id):
         for field, (old, new) in changes.items():
             _audit(publication_id, user_id, 'UPDATE_FILE',
                    field_name=f'file.{field}', old_value=old, new_value=new)
+        if new_licence is not None:
+            _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
+                   new_value=rights_declaration_record({pub_file.id: new_licence}))
         db.session.commit()
-    return jsonify({'message': 'File updated', 'id': pub_file.id, 'changes': list(changes.keys())}), 200
+    return jsonify({
+        'message': 'File updated',
+        'id': pub_file.id,
+        'changes': list(changes.keys()),
+        **_file_rights_response(pub_file),
+    }), 200
 
 
 @edit_bp.route('/<int:publication_id>/files/<int:file_id>/replace', methods=['POST'])

@@ -119,8 +119,7 @@ def _build_conflicts(publication, summary):
         })
 
     oa_year = summary.get('publication_year')
-    # Years only: a year-precision date is stored as 1 January, so finer comparison would mislead.
-    pub_year = publication.publication_date.year if publication.publication_date else None
+    pub_year = publication.publication_date.year if getattr(publication, 'publication_date', None) else None
     if oa_year and pub_year and oa_year != pub_year:
         conflicts.append({
             'field': 'publication_year',
@@ -508,6 +507,19 @@ def publication_jsonld(publication_id):
     if accepted and publication.openalex_topics:
         keywords = [t.get('name') for t in publication.openalex_topics if isinstance(t, dict) and t.get('name')]
 
+    # Each publication file is a work of its own, with its own publication date and licence.
+    has_part = []
+    for publication_file in publication.publications_files:
+        part = {
+            '@type': 'CreativeWork',
+            'name': publication_file.title,
+            'identifier': f'https://hdl.handle.net/{publication_file.handle_identifier}'
+                          if publication_file.handle_identifier else None,
+            'datePublished': publication_date_of(publication_file),
+            'license': publication_file.license.url if publication_file.license else None,
+        }
+        has_part.append({key: value for key, value in part.items() if value not in (None, '')})
+
     jsonld = {
         '@context': 'https://schema.org',
         '@type': 'ScholarlyArticle',
@@ -519,10 +531,8 @@ def publication_jsonld(publication_id):
         'identifier': publication.doi,
         'sameAs': same_as or None,
         'author': creators_list or None,
-        # The work's own date at its stored precision ("2019", "2019-05", "2019-05-14").
-        # Left out when unknown: `published` is when the DOCiD record was created,
-        # which is not the work's publication date (nor schema.org dateCreated).
-        'datePublished': publication_date_of(publication),
+        'datePublished': publication.published.isoformat() if publication.published else None,
+        'hasPart': has_part or None,
         'abstract': publication.abstract_text or None,
         'keywords': ', '.join(keywords) if keywords else None,
         'citation': publication.citation_count,

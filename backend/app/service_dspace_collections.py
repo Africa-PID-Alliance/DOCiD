@@ -48,7 +48,6 @@ from app.service_dspace import DSpaceAuthError, DSpaceClient, DSpaceMetadataMapp
 from app.service_identifiers import IdentifierService
 from app.service_thumbnails import generate_thumbnail_from_url, get_uploads_dir
 from app.utils_crypto import decrypt_value
-from app.utils.publication_dates import apply_source_publication_date
 
 logger = logging.getLogger(__name__)
 
@@ -216,8 +215,6 @@ def create_publication_from_item(client, source, full_item: Dict, owner_user_id:
         owner=source.owner_name,
         resource_type_id=resource_type_id,
     )
-    # dc.date.issued, kept at its precision.
-    apply_source_publication_date(publication, publication_data.get('publication_date'))
     db.session.add(publication)
     db.session.flush()
 

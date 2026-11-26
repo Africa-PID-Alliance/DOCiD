@@ -19,8 +19,6 @@ import json
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 
-from app.utils.publication_dates import first_usable_source_date
-
 
 class DSpaceLegacyClient:
     """Client for DSpace 6.x REST API"""
@@ -348,12 +346,7 @@ class DSpaceLegacyMetadataMapper:
             'document_title': title or 'Untitled',
             'document_description': description or '',
             'resource_type': resource_type,
-            # The work's own date: dc.date.issued, else dc.date.created (heritage items such as
-            # photographs record when they were made there). Never dc.date.accessioned or
-            # dc.date.available: those are when the repository added the item. Kept raw and
-            # parsed with its precision by app.utils.publication_dates.
-            'publication_date': first_usable_source_date(
-                date_issued, cls._get_metadata_value(metadata, 'dc.date.created')),
+            'published_date': date_issued,
         }
 
         # Extract creators/authors

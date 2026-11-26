@@ -359,8 +359,6 @@ class OJSMetadataMapper:
             'doi': doi,
             'ojs_submission_id': ojs_submission_id,
             'ojs_url': ojs_url,
-            # The article's publication date in OJS (e.g. "2019-05-14").
-            'publication_date': publication.get('datePublished'),
         }
 
         # Extract creators/authors

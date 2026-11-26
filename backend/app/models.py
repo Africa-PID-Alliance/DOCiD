@@ -501,6 +501,32 @@ class PublicationIdentifierTypes(db.Model):
             return None
 
 
+class Licenses(db.Model):
+    """
+    The licences a publication file can carry (PublicationFiles.license_id).
+
+    Seeded from app/utils/licenses.py. Rows with is_selectable=False are never
+    offered to depositors; they exist so licences from other sources (older
+    Creative Commons versions, software licences) can still be matched.
+    """
+    __tablename__ = 'licenses'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(40), nullable=False, unique=True)  # SPDX id where one exists, e.g. CC-BY-4.0
+    short_name = Column(String(50), nullable=False)  # e.g. "CC BY 4.0"
+    name = Column(String(150), nullable=False)
+    url = Column(String(255), nullable=False, unique=True)  # canonical deed / statement URL
+    requires_attribution = Column(Boolean, nullable=False, default=True)
+    allows_commercial = Column(Boolean, nullable=False)
+    allows_adaptations = Column(Boolean, nullable=False)
+    share_alike = Column(Boolean, nullable=False, default=False)
+    is_selectable = Column(Boolean, nullable=False, default=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+    def __repr__(self):
+        return f"<Licenses(code='{self.code}')>"
+
+
 class Publications(db.Model):
     """
     Publications model
@@ -520,14 +546,10 @@ class Publications(db.Model):
     doi = Column(String(50), nullable=True)
     handle_url = Column(String(500), nullable=True)  # Full resolvable URL for DSpace/repository handles
     collection_name = Column(String(500), nullable=True)  # DSpace collection name (e.g., "City Centre & Atlantic Seaboard")
-    # When the record was created in DOCiD (returned to clients as created_at).
-    # Not the work's own publication date: that is publication_date below.
+    # When the record was created in DOCiD (also returned to clients as created_at).
+    # A DOCiD has no publication date of its own; each publication file carries
+    # the date its work was published (PublicationFiles.publication_date).
     published = Column(DateTime, default=datetime.utcnow)
-    # The work's own publication date, at the precision the source gave it:
-    # 'year' (stored as YYYY-01-01), 'month' (YYYY-MM-01) or 'day'. Both are
-    # NULL when unknown. See app/utils/publication_dates.py.
-    publication_date = Column(Date, nullable=True, index=True)
-    publication_date_precision = Column(String(5), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = Column(Integer, ForeignKey('user_accounts.user_id'), nullable=True, index=True)
 
@@ -619,8 +641,17 @@ class PublicationFiles(db.Model):
     checksum_generated_at = Column(DateTime, nullable=True)  # when the hash was computed
     checksum_last_checked_at = Column(DateTime, nullable=True)  # when it was last (re)verified
 
+    # This work's own publication date and precision ('year'|'month'|'day'),
+    # NULL when unknown. Never inherited from the DOCiD.
+    publication_date = Column(Date, nullable=True)
+    publication_date_precision = Column(String(5), nullable=True)
+    # This file's licence, chosen by the depositor (required for new files;
+    # NULL on files added before licences existed). See app/utils/licenses.py.
+    license_id = Column(Integer, ForeignKey('licenses.id', name='fk_publications_files_license_id'), nullable=True, index=True)
+
     # Relationships
     publication = relationship('Publications', back_populates='publications_files')
+    license = relationship('Licenses', foreign_keys=[license_id])
 
     def __repr__(self):
         return f"<PublicationFiles(id={self.id}, title='{self.title}', publication_id={self.publication_id})>"
