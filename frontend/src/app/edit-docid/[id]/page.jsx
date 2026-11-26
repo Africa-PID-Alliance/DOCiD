@@ -1,6 +1,7 @@
 "use client";
 
 import { validatePublicationDate } from '@/components/PublicationDateField';
+import { hasLicense, isRightsDeclared } from '@/components/Licenses';
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
@@ -243,6 +244,8 @@ function dbToFormFile(f) {
     lastModified: 0,
     file: null,
     publicationType: f.publication_type_id != null ? String(f.publication_type_id) : '',
+    // Licence as saved, so the form knows when it has been changed.
+    originalLicenseId: f.license?.id ?? '',
     externalIdentifier: crossrefDoi,
     externalIdentifierType: hasExternalDoi ? 'DOI' : '',
     metadata: {
@@ -253,6 +256,8 @@ function dbToFormFile(f) {
       generated_identifier: f.generated_identifier || '',
       // Per-file publication date (YYYY / YYYY-MM / YYYY-MM-DD) once the backend returns it.
       publicationDate: f.publication_date || '',
+      // Licence id, or '' for files saved before licences existed.
+      licenseId: f.license?.id ?? '',
     },
   };
 }
@@ -1125,6 +1130,35 @@ export default function EditDocidPage() {
       return;
     }
 
+    // New files need a licence. Existing files may keep no licence, but if one is
+    // chosen or changed it is sent, and that needs the rights declaration too.
+    const newWithoutLicense = files.find((f) => !(f.id && f.existing) && !hasLicense(f));
+    if (newWithoutLicense) {
+      setFeedbackMessage({
+        type: 'error',
+        text: `Choose a licence for "${newWithoutLicense.metadata?.title || newWithoutLicense.name || 'untitled file'}".`,
+      });
+      return;
+    }
+    const licenceChangedFor = (f) => {
+      const orig = original.find((x) => x.id === f.id);
+      return !!orig && hasLicense(f) &&
+        String(f.metadata.licenseId) !== String(orig.metadata?.licenseId ?? '');
+    };
+    // A new file or a changed licence needs that file's rights declaration ticked.
+    const undeclared = files.find(
+      (f) => (!(f.id && f.existing) || licenceChangedFor(f)) && !isRightsDeclared(f)
+    );
+    if (undeclared) {
+      setFeedbackMessage({
+        type: 'error',
+        text:
+          `Confirm the rights declaration under the licence of ` +
+          `"${undeclared.metadata?.title || undeclared.name || 'untitled file'}".`,
+      });
+      return;
+    }
+
     setIsSaving(true);
     let uploaded = 0, replaced = 0, updated = 0, deleted = 0, errors = 0;
     const defaultType = publicationsData.publicationType || '1';
@@ -1158,12 +1192,14 @@ export default function EditDocidPage() {
           newExtId !== origExtId || newExtType !== origExtType;
         const newPubDate = String(meta.publicationDate || '').trim();
         const pubDateChanged = newPubDate !== String(origMeta.publicationDate || '').trim();
+        const licenceChanged = licenceChangedFor(f);
         const changed =
           (meta.title || '') !== (origMeta.title || '') ||
           (meta.description || '') !== (origMeta.description || '') ||
           String(newType) !== String(origType) ||
           extIdentifierChanged ||
-          pubDateChanged;
+          pubDateChanged ||
+          licenceChanged;
         if (!changed) continue;
         try {
           const payload = {
@@ -1173,6 +1209,10 @@ export default function EditDocidPage() {
           };
           // Omit = keep, "" = clear, value = set (same as publicationDate on update-publication).
           if (pubDateChanged) payload.publication_date = newPubDate;
+          if (licenceChanged) {
+            payload.license_id = meta.licenseId;
+            payload.rights_declaration = true;
+          }
           if (extIdentifierChanged) {
             // Three-state semantics on the backend:
             //   omit fields = no change · empty = clear · non-empty = set.
@@ -1217,6 +1257,8 @@ export default function EditDocidPage() {
         if (String(meta.publicationDate || '').trim()) {
           fd.append('publication_date', String(meta.publicationDate).trim());
         }
+        fd.append('license_id', String(meta.licenseId));
+        fd.append('rights_declaration', 'true');
         // Optional external identifier (CrossRef DOI). Only send if the user
         // picked CrossRef AND we have a non-empty DOI. Pre-save validation
         // above guarantees we never reach here with an empty DOI when

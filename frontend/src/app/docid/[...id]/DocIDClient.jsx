@@ -54,6 +54,7 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import CopyrightIcon from '@mui/icons-material/Copyright';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import Popover from '@mui/material/Popover';
 import axios from 'axios';
@@ -2147,6 +2148,57 @@ const DocIDPage =({ initialPublication = null, docId: propDocId = null }) => {
                                     </Grid>
                                   );
                                 })()}
+                                {item.license && (
+                                  <Grid item xs={12}>
+                                    {/* Licence footer: one slim line at the bottom of the publication */}
+                                    <Box
+                                      sx={{
+                                        mt: 1,
+                                        pt: 1.5,
+                                        borderTop: '1px solid',
+                                        borderColor: 'divider',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        flexWrap: 'wrap',
+                                      }}
+                                    >
+                                      <CopyrightIcon fontSize="small" color="action" />
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                        Licence
+                                      </Typography>
+                                      <Chip
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                        label={item.license.short_name || item.license.code}
+                                        sx={{ fontWeight: 600, height: 22 }}
+                                      />
+                                      {item.license.name && item.license.name !== item.license.short_name && (
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                          noWrap
+                                          title={item.license.name}
+                                          sx={{ flex: 1, minWidth: 0 }}
+                                        >
+                                          {item.license.name}
+                                        </Typography>
+                                      )}
+                                      {item.license.url && (
+                                        <Link
+                                          href={item.license.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          variant="caption"
+                                          sx={{ ml: 'auto', fontWeight: 600 }}
+                                        >
+                                          View terms
+                                        </Link>
+                                      )}
+                                    </Box>
+                                  </Grid>
+                                )}
                                 {item.rrid && (
                                   <Grid item xs={12}>
                                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>

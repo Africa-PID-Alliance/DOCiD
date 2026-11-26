@@ -38,6 +38,7 @@ import axios from 'axios';
 import { useSelector } from 'react-redux';
 import RichTextEditor from '@/components/RichTextEditor';
 import PublicationDateField from '@/components/PublicationDateField';
+import { LicenseAndRights } from '@/components/Licenses';
 
 const PublicationsForm = ({ formData, updateFormData }) => {
   const theme = useTheme();
@@ -548,13 +549,6 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                     minHeight={160}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <PublicationDateField
-                    value={file.metadata?.publicationDate || ''}
-                    onChange={(date) => handleMetadataChange(index, 'publicationDate', date)}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} />
                 <Grid item xs={6}>
                   <FormControl fullWidth>
                     <InputLabel>{t('assign_docid.publications_form.identifier_type')}</InputLabel>
@@ -638,6 +632,21 @@ const PublicationsForm = ({ formData, updateFormData }) => {
                         InputProps={{ readOnly: true }}
                       />
                     )}
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <PublicationDateField
+                    value={file.metadata?.publicationDate || ''}
+                    onChange={(date) => handleMetadataChange(index, 'publicationDate', date)}
+                  />
+                </Grid>
+                {/* Licence + rights declaration for this publication, kept together */}
+                <Grid item xs={12}>
+                  <LicenseAndRights
+                    licenseId={file.metadata?.licenseId ?? ''}
+                    onLicenseChange={(licenseId) => handleMetadataChange(index, 'licenseId', licenseId)}
+                    declared={!!file.metadata?.rightsDeclared}
+                    onDeclaredChange={(checked) => handleMetadataChange(index, 'rightsDeclared', checked)}
+                  />
                 </Grid>
               </Grid>
             </Paper>

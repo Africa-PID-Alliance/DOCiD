@@ -39,6 +39,8 @@ import FundersForm from '../assign-docid/components/FundersForm';
 import ProjectForm from '../assign-docid/components/ProjectForm';
 import RridForm from '../assign-docid/components/RridForm';
 import ParentDocidSelector from './components/ParentDocidSelector';
+import { validatePublicationDate } from '@/components/PublicationDateField';
+import { hasLicense, isRightsDeclared } from '@/components/Licenses';
 
 const VersionDocIDInner = () => {
   const { t } = useTranslation();
@@ -457,6 +459,28 @@ const VersionDocIDInner = () => {
       return;
     }
 
+    // Publication files: optional valid date, required licence, required rights declaration.
+    const publicationFiles = formData.publications?.files || [];
+    for (let i = 0; i < publicationFiles.length; i++) {
+      const dateError = validatePublicationDate(String(publicationFiles[i].metadata?.publicationDate || '').trim());
+      if (dateError) {
+        setActiveStep(2);
+        showToast(`Publication ${i + 1}: ${dateError}`, 'error');
+        return;
+      }
+      if (!hasLicense(publicationFiles[i])) {
+        setActiveStep(2);
+        showToast(`Publication ${i + 1}: please choose a licence.`, 'error');
+        return;
+      }
+    }
+    const undeclaredIndex = publicationFiles.findIndex((file) => !isRightsDeclared(file));
+    if (undeclaredIndex !== -1) {
+      setActiveStep(2);
+      showToast(`Publication ${undeclaredIndex + 1}: please confirm the rights declaration under its licence.`, 'error');
+      return;
+    }
+
     setLoading(true);
     const submitData = new FormData();
 
@@ -481,6 +505,8 @@ const VersionDocIDInner = () => {
 
       // Publications Files
       if (formData.publications?.files?.length > 0) {
+        // Every file's declaration was ticked (checked above), so the submission is declared.
+        submitData.append("rightsDeclaration", "true");
         formData.publications.files.forEach((file, index) => {
           submitData.append(`filesPublications_${index}_file`, file.file);
           submitData.append(`filesPublications[${index}][file_type]`, file.type);
@@ -489,6 +515,10 @@ const VersionDocIDInner = () => {
           submitData.append(`filesPublications[${index}][identifier]`, file.metadata.identifier);
           submitData.append(`filesPublications[${index}][publication_type]`, formData.publications.publicationType);
           submitData.append(`filesPublications[${index}][generated_identifier]`, file.metadata.generated_identifier);
+          submitData.append(`filesPublications[${index}][license_id]`, String(file.metadata.licenseId));
+          if (file.metadata?.publicationDate) {
+            submitData.append(`filesPublications[${index}][publication_date]`, String(file.metadata.publicationDate).trim());
+          }
         });
       }
 
