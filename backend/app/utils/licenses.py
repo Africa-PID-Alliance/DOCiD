@@ -2,8 +2,9 @@
 Licences on publication files.
 
 Only a publication file (a work uploaded in the assign form) carries a licence:
-a row in the ``licenses`` reference table, chosen by the depositor with no
-default. A DOCiD and its publication documents have none.
+a row in the ``licenses`` reference table. It is optional: the depositor may
+choose one (never preselected) or leave the file unlicensed. A DOCiD and its
+publication documents have none.
 
 Whoever sets a file's licence must confirm they hold the rights
 (``rightsDeclaration`` / ``rights_declaration`` = true). Each confirmation is
@@ -28,7 +29,6 @@ RIGHTS_DECLARATION_REQUIRED_MESSAGE = (
     'confirm you hold the rights to share it under the chosen licence'
 )
 INVALID_LICENSE_MESSAGE = 'license_id must be the id or code of a licence from get-list-licenses'
-MISSING_LICENSE_MESSAGE = 'license_id is required: choose a licence from get-list-licenses'
 
 # The licences DOCiD knows. Selectable ones are offered to depositors; the
 # others exist so licences from other sources can still be matched to a row.

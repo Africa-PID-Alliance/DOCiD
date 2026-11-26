@@ -645,8 +645,8 @@ class PublicationFiles(db.Model):
     # NULL when unknown. Never inherited from the DOCiD.
     publication_date = Column(Date, nullable=True)
     publication_date_precision = Column(String(5), nullable=True)
-    # This file's licence, chosen by the depositor (required for new files;
-    # NULL on files added before licences existed). See app/utils/licenses.py.
+    # This file's licence, if the depositor chose one; NULL when unlicensed.
+    # See app/utils/licenses.py.
     license_id = Column(Integer, ForeignKey('licenses.id', name='fk_publications_files_license_id'), nullable=True, index=True)
 
     # Relationships

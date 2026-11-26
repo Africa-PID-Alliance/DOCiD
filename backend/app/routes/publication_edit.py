@@ -46,7 +46,7 @@ from app.models import (
 )
 from app.service_identifiers import IdentifierService
 from app.utils.licenses import (
-    MISSING_LICENSE_MESSAGE, RIGHTS_DECLARATION_REQUIRED_MESSAGE, is_blank_input, is_rights_declared,
+    RIGHTS_DECLARATION_REQUIRED_MESSAGE, is_blank_input, is_rights_declared,
     license_summary, resolve_license_input, rights_declaration_record,
 )
 from app.utils.publication_dates import parse_publication_date_input, publication_date_of
@@ -606,24 +606,22 @@ def _identifier_columns(doi, handle):
 
 def _new_file_rights():
     """
-    The publication date (optional) and licence (required) of a publication file
-    being added, from the form, plus the rights declaration, which must be
-    "true". Validated before any handle is minted.
-    Returns ({column: value}, licence, None) or (None, None, error_response).
+    The publication date and licence of a publication file being added, from the
+    form. Both are optional; when a licence is given, "rights_declaration" must
+    be "true". Validated before any handle is minted.
+    Returns ({column: value}, licence_or_None, None) or (None, None, error_response).
     """
     try:
         date_value, precision = parse_publication_date_input(request.form.get('publication_date'))
         licence = resolve_license_input(request.form.get('license_id'))
     except ValueError as e:
         return None, None, (jsonify({'error': str(e)}), 400)
-    if licence is None:
-        return None, None, (jsonify({'error': MISSING_LICENSE_MESSAGE}), 400)
-    if not is_rights_declared(request.form.get('rights_declaration')):
+    if licence is not None and not is_rights_declared(request.form.get('rights_declaration')):
         return None, None, (jsonify({'error': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
     columns = {
         'publication_date': date_value,
         'publication_date_precision': precision,
-        'license_id': licence.id,
+        'license_id': licence.id if licence else None,
     }
     return columns, licence, None
 
@@ -632,9 +630,9 @@ def _file_rights_updates(pub_file, data):
     """
     Validate a PUT body's publication_date and license_id for a publication file.
 
-    Same three states as the other fields: an omitted field (or "undefined")
-    keeps the value; for the date, "" or null clears it; the licence can't be
-    cleared. A licence change needs "rights_declaration": true.
+    Same three states as the other fields, for both: an omitted field (or
+    "undefined") keeps the value, "" or null clears it, a value sets it. Setting
+    or changing the licence needs "rights_declaration": true; clearing doesn't.
     Returns ({column: new_value}, new_licence_or_None, None) or (None, None, error_response).
     """
     updates = {}
@@ -647,17 +645,22 @@ def _file_rights_updates(pub_file, data):
         updates['publication_date'] = date_value
         updates['publication_date_precision'] = precision
     new_licence = None
-    if 'license_id' in data and not is_blank_input(data['license_id']):
-        try:
-            new_licence = resolve_license_input(data['license_id'])
-        except ValueError as e:
-            return None, None, (jsonify({'error': str(e)}), 400)
-        if new_licence.id == pub_file.license_id:
-            new_licence = None
-        elif not is_rights_declared(data.get('rights_declaration')):
-            return None, None, (jsonify({'error': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
+    if 'license_id' in data and str(data['license_id']).strip() != 'undefined':
+        raw_licence = data['license_id']
+        if is_blank_input(raw_licence):
+            if pub_file.license_id is not None:
+                updates['license_id'] = None
         else:
-            updates['license_id'] = new_licence.id
+            try:
+                new_licence = resolve_license_input(raw_licence)
+            except ValueError as e:
+                return None, None, (jsonify({'error': str(e)}), 400)
+            if new_licence.id == pub_file.license_id:
+                new_licence = None
+            elif not is_rights_declared(data.get('rights_declaration')):
+                return None, None, (jsonify({'error': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
+            else:
+                updates['license_id'] = new_licence.id
     return updates, new_licence, None
 
 
@@ -667,9 +670,10 @@ def _apply_file_rights_updates(pub_file, updates, new_licence, changes):
     old_licence = pub_file.license
     for field, value in updates.items():
         setattr(pub_file, field, value)
-    if new_licence is not None:
-        pub_file.license = new_licence
-        changes['license'] = (old_licence.code if old_licence else None, new_licence.code)
+    if 'license_id' in updates:
+        pub_file.license = new_licence  # None when cleared
+        changes['license'] = (old_licence.code if old_licence else None,
+                              new_licence.code if new_licence else None)
     new_date = publication_date_of(pub_file)
     if 'publication_date' in updates and new_date != old_date:
         changes['publication_date'] = (old_date, new_date)
@@ -740,7 +744,7 @@ def add_file(publication_id):
     except (ValueError, TypeError):
         return jsonify({'error': 'Invalid publication_type_id'}), 400
 
-    # Optional publication_date; required license_id and rights_declaration.
+    # Optional publication_date and license_id; rights_declaration when licensed.
     rights_columns, licence, rights_error = _new_file_rights()
     if rights_error:
         return rights_error
@@ -775,8 +779,9 @@ def add_file(publication_id):
             audit_label += f" doi={ext_identifier}"
         _audit(publication_id, user_id, 'CREATE_FILE',
                field_name='publications_files', new_value=audit_label)
-        _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
-               new_value=rights_declaration_record({pub_file.id: licence}))
+        if licence is not None:
+            _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
+                   new_value=rights_declaration_record({pub_file.id: licence}))
         db.session.commit()
         return jsonify({
             'message': 'Video link added',
@@ -820,8 +825,9 @@ def add_file(publication_id):
         audit_label += f" doi={ext_identifier}"
     _audit(publication_id, user_id, 'CREATE_FILE',
            field_name='publications_files', new_value=audit_label)
-    _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
-           new_value=rights_declaration_record({pub_file.id: licence}))
+    if licence is not None:
+        _audit(publication_id, user_id, 'RIGHTS_DECLARED', field_name='license',
+               new_value=rights_declaration_record({pub_file.id: licence}))
     db.session.commit()
     return jsonify({
         'message': 'File added',
@@ -838,7 +844,7 @@ def update_file(publication_id, file_id):
     """Update metadata on an existing file row.
 
     Mutable: title, description, publication_type_id, publication_date,
-    license_id (a change needs "rights_declaration": true), plus the external
+    license_id ("" clears it; setting one needs "rights_declaration": true), plus the external
     identifier pair (external_identifier_type + external_identifier_value).
     file_url, file_name and file_type are immutable — attempts to change them
     are silently ignored to keep Cordra + disk state in sync. The external

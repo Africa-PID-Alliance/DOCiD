@@ -96,18 +96,12 @@ def _reload(file_id):
 
 
 def _post_file(client, owner_id, publication_id, publication_type_id, **extra_form):
-    # Every new publication file needs a licence and the rights declaration.
-    from app.utils.licenses import ensure_license_catalogue
-    ensure_license_catalogue()
-    db.session.commit()
     return client.post(
         f"/api/v1/publications/{publication_id}/files",
         data={
             "title": "Article PDF",
             "publication_type_id": str(publication_type_id),
             "file": (io.BytesIO(b"%PDF-1.4 article"), "article.pdf", "application/pdf"),
-            "license_id": "CC-BY-4.0",
-            "rights_declaration": "true",
             **extra_form,
         },
         content_type="multipart/form-data",

@@ -11,7 +11,7 @@ from app.utils.publication_dates import (
     created_at_of, parse_publication_date_input, publication_date_of,
 )
 from app.utils.licenses import (
-    MISSING_LICENSE_MESSAGE, RIGHTS_DECLARATION_REQUIRED_MESSAGE, RIGHTS_DECLARATION_TEXT,
+    RIGHTS_DECLARATION_REQUIRED_MESSAGE, RIGHTS_DECLARATION_TEXT,
     RIGHTS_DECLARATION_VERSION, is_rights_declared, license_details, license_summary,
     resolve_license_input, rights_declaration_record,
 )
@@ -287,10 +287,10 @@ def _read_file_dates_and_licenses():
     form (filesPublications[i][publication_date] and [license_id]), before
     anything is created.
 
-    The date is optional; the licence is required for every file, with no
-    default. When there is at least one file, rightsDeclaration must be true.
-    Returns ({index: (date, precision, licence)}, None), or (None, error_response)
-    naming the first invalid file ("Publication 2: ...").
+    Both are optional: a depositor may leave a file unlicensed. When any file
+    has a licence, rightsDeclaration must be true.
+    Returns ({index: (date, precision, licence_or_None)}, None), or
+    (None, error_response) naming the first invalid file ("Publication 2: ...").
     """
     values = {}
     index = 0
@@ -301,13 +301,16 @@ def _read_file_dates_and_licenses():
             licence = resolve_license_input(request.form.get(f'filesPublications[{index}][license_id]'))
         except ValueError as e:
             return None, (jsonify({'message': f'Publication {index + 1}: {e}'}), 400)
-        if licence is None:
-            return None, (jsonify({'message': f'Publication {index + 1}: {MISSING_LICENSE_MESSAGE}'}), 400)
         values[index] = (date_value, precision, licence)
         index += 1
-    if values and not is_rights_declared(request.form.get('rightsDeclaration')):
+    if _licensed_files(values) and not is_rights_declared(request.form.get('rightsDeclaration')):
         return None, (jsonify({'message': RIGHTS_DECLARATION_REQUIRED_MESSAGE}), 400)
     return values, None
+
+
+def _licensed_files(file_values):
+    """{1-based form position: licence} for the files given a licence."""
+    return {index + 1: values[2] for index, values in file_values.items() if values[2] is not None}
 
 
 def _file_columns(file_values):
@@ -316,7 +319,7 @@ def _file_columns(file_values):
     return {
         'publication_date': date_value,
         'publication_date_precision': precision,
-        'license_id': licence.id,
+        'license_id': licence.id if licence else None,
     }
 
 
@@ -1917,14 +1920,15 @@ def create_publication():
         required: false
         description: >
           That publication file's licence: an `id` or `code` from
-          /get-list-licenses. Required for every publication file; no default.
+          /get-list-licenses. Optional; leave it out to publish the file without one.
       - name: rightsDeclaration
         in: formData
         type: string
         required: false
         description: >
-          Must be "true" when any publication file is sent: the depositor confirms
-          the rights declaration from /get-list-licenses. Recorded in the audit trail.
+          Must be "true" when any publication file has a licence: the depositor
+          confirms the rights declaration from /get-list-licenses. Recorded in the
+          audit trail.
     responses:
       200:
         description:  Publication created successfully.
@@ -2838,11 +2842,11 @@ def create_publication():
             db.session.bulk_save_objects(rrid_records)
             logger.info(f"Saved {len(rrid_records)} DocidRrid records")
 
-        # The depositor's rights declaration, covering every publication file's
-        # licence (keyed by the file's 1-based position in the form).
-        if file_values:
+        # The depositor's rights declaration, covering every licensed publication
+        # file (keyed by the file's 1-based position in the form).
+        if _licensed_files(file_values):
             _add_rights_declaration(publication_id, user_id, rights_declaration_record(
-                {index + 1: values[2] for index, values in file_values.items()}))
+                _licensed_files(file_values)))
 
         # Commit all changes
         db.session.commit()
@@ -4091,12 +4095,12 @@ def create_version():
         description: >
           Each publication file's own date and licence, as on /publish:
           filesPublications[i][publication_date] (optional, never copied from the
-          parent) and filesPublications[i][license_id] (required, no default).
+          parent) and filesPublications[i][license_id] (optional).
       - name: rightsDeclaration
         in: formData
         type: string
         required: false
-        description: Must be "true" when any publication file is sent.
+        description: Must be "true" when any publication file has a licence.
     responses:
       200:
         description: Version created successfully
@@ -4478,9 +4482,9 @@ def create_version():
             db.session.add(rrid_record)
             index += 1
 
-        if file_values:
+        if _licensed_files(file_values):
             _add_rights_declaration(publication_id, user_id, rights_declaration_record(
-                {index + 1: values[2] for index, values in file_values.items()}))
+                _licensed_files(file_values)))
 
         # Commit all changes
         db.session.commit()

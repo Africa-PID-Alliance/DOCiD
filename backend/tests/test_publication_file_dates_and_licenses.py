@@ -193,7 +193,6 @@ def test_publish_saves_each_files_own_date_and_licence(client):
 
 
 @pytest.mark.parametrize("change, message", [
-    ({"filesPublications[1][license_id]": None}, "Publication 2: license_id is required"),
     ({"filesPublications[0][license_id]": "CC-BY-3.0"}, "Publication 1: license_id must be"),  # import-only row
     ({"filesPublications[0][license_id]": "9999"}, "Publication 1: license_id must be"),
     ({"filesPublications[1][publication_date]": "2019-13"}, "Publication 2: publication_date must be"),
@@ -213,6 +212,32 @@ def test_publish_rejects_a_missing_or_invalid_file_licence_or_date(client, chang
     assert Publications.query.filter_by(document_docid="20.500.14351/filerej0001").count() == 0
 
 
+def test_files_without_a_licence_need_no_declaration(client):
+    _, headers = _make_user("file-unlicensed")
+    form = _publish_form("20.500.14351/fileunl0001", declared=False,
+                         files=[{"publication_date": "2020"}, {}])
+    response = client.post("/api/v1/publications/publish", data=form, headers=headers)
+    assert response.status_code == 200, response.get_json()
+    publication_id = response.get_json()["publication_id"]
+    detail = client.get(f"/api/v1/publications/get-publication/{publication_id}").get_json()
+    assert [(f["publication_date"], f["license"]) for f in detail["publications_files"]] == [("2020", None), (None, None)]
+    assert _declarations(publication_id) == []
+
+
+def test_a_mix_declares_only_the_licensed_files(client):
+    _, headers = _make_user("file-mixed")
+    form = _publish_form("20.500.14351/filemix0001", declared=False,
+                         files=[{}, {"license_id": "CC-BY-4.0"}])
+    response = client.post("/api/v1/publications/publish", data=form, headers=headers)
+    assert response.status_code == 400  # one file is licensed, so the declaration is needed
+
+    form["rightsDeclaration"] = "true"
+    response = client.post("/api/v1/publications/publish", data=form, headers=headers)
+    assert response.status_code == 200, response.get_json()
+    assert _declarations(response.get_json()["publication_id"]) == [
+        {"declaration": "decl-v1", "files": {"2": "CC-BY-4.0"}}]
+
+
 def test_publish_without_files_needs_no_licence_or_declaration(client):
     _, headers = _make_user("file-none")
     form = _publish_form("20.500.14351/filenone001", documents=1, declared=False)
@@ -223,17 +248,18 @@ def test_publish_without_files_needs_no_licence_or_declaration(client):
     assert _declarations(response.get_json()["publication_id"]) == []
 
 
-def test_a_version_needs_each_files_licence_and_never_copies_dates(client):
+def test_a_version_saves_each_files_licence_and_never_copies_dates(client):
     owner_id, headers = _make_user("file-version")
     parent = _make_publication(owner_id, "20.500.14351/filever0001")
     _add_file(parent, licence=_licence("CC-BY-4.0"), publication_date=date(2019, 1, 1), publication_date_precision="year")
-    form = {"parentId": str(parent.id), **_publish_form("20.500.14351/filever0002", files=[{}])}
+    form = {"parentId": str(parent.id), **_publish_form("20.500.14351/filever0002", declared=False,
+                                                         files=[{"license_id": "CC-BY-NC-4.0"}])}
 
     response = client.post("/api/v1/publications/version", data=form, headers=headers)
     assert response.status_code == 400
-    assert "license_id is required" in response.get_json()["message"]
+    assert "rights declaration" in response.get_json()["message"]
 
-    form["filesPublications[0][license_id]"] = "CC-BY-NC-4.0"
+    form["rightsDeclaration"] = "true"
     response = client.post("/api/v1/publications/version", data=form, headers=headers)
     assert response.status_code == 200, response.get_json()
     version_file = db.session.get(Publications, response.get_json()["publication_id"]).publications_files[0]
@@ -242,7 +268,7 @@ def test_a_version_needs_each_files_licence_and_never_copies_dates(client):
 
 # --- Edit routes for publication files ----------------------------------------------------
 
-def test_adding_a_file_needs_a_licence_and_the_declaration_before_minting(client):
+def test_adding_a_file_with_or_without_a_licence(client):
     owner_id, headers = _make_user("file-add")
     publication = _make_publication(owner_id, "20.500.14351/fileadd0001")
     _, publication_type_id = _reference_ids()
@@ -252,17 +278,20 @@ def test_adding_a_file_needs_a_licence_and_the_declaration_before_minting(client
 
     with patch("app.routes.publication_edit.IdentifierService.generate_handle",
                return_value="20.500.14351/minted01") as mint:
-        assert "license_id is required" in client.post(url, data=form, headers=headers).get_json()["error"]
+        # A licence needs the declaration, checked before a handle is minted.
         response = client.post(url, data={**form, "license_id": "CC-BY-4.0"}, headers=headers)
         assert "rights declaration" in response.get_json()["error"]
-        assert mint.call_count == 0  # both checked before a handle is minted
+        assert mint.call_count == 0
 
-        response = client.post(url, data={**form, "license_id": "CC-BY-4.0", "rights_declaration": "true"},
+        unlicensed = client.post(url, data=form, headers=headers)
+        licensed = client.post(url, data={**form, "license_id": "CC-BY-4.0", "rights_declaration": "true"},
                                headers=headers)
-    assert response.status_code == 201, response.get_json()
-    body = response.get_json()
-    assert (body["publication_date"], body["license"]["code"]) == ("2024-02", "CC-BY-4.0")
-    assert _declarations(publication.id) == [{"declaration": "decl-v1", "files": {str(body["id"]): "CC-BY-4.0"}}]
+    assert unlicensed.status_code == 201, unlicensed.get_json()
+    assert (unlicensed.get_json()["publication_date"], unlicensed.get_json()["license"]) == ("2024-02", None)
+    assert licensed.status_code == 201, licensed.get_json()
+    assert licensed.get_json()["license"]["code"] == "CC-BY-4.0"
+    assert _declarations(publication.id) == [
+        {"declaration": "decl-v1", "files": {str(licensed.get_json()["id"]): "CC-BY-4.0"}}]
 
 
 def test_updating_a_file_sets_keeps_and_clears_its_date_and_changes_its_licence(client):
@@ -281,10 +310,14 @@ def test_updating_a_file_sets_keeps_and_clears_its_date_and_changes_its_licence(
     body = client.put(url, json={"license_id": "ALL-RIGHTS-RESERVED", "rights_declaration": True},
                       headers=headers).get_json()
     assert body["license"]["code"] == "ALL-RIGHTS-RESERVED"
-    # A blank licence keeps it: a file's licence can't be cleared.
-    assert client.put(url, json={"license_id": ""}, headers=headers).get_json()["license"]["code"] == "ALL-RIGHTS-RESERVED"
-    audit = PublicationAuditTrail.query.filter_by(publication_id=publication.id, field_name="file.license").one()
-    assert (audit.old_value, audit.new_value) == ("CC-BY-4.0", "ALL-RIGHTS-RESERVED")
+    # "undefined" keeps the licence; "" clears it, with no declaration needed.
+    assert client.put(url, json={"license_id": "undefined"}, headers=headers).get_json()["license"]["code"] == "ALL-RIGHTS-RESERVED"
+    assert client.put(url, json={"license_id": ""}, headers=headers).get_json()["license"] is None
+    assert client.put(url, json={"license_id": None}, headers=headers).get_json()["changes"] == []  # already clear
+    audits = PublicationAuditTrail.query.filter_by(publication_id=publication.id, field_name="file.license") \
+        .order_by(PublicationAuditTrail.id).all()
+    assert [(a.old_value, a.new_value) for a in audits] == [
+        ("CC-BY-4.0", "ALL-RIGHTS-RESERVED"), ("ALL-RIGHTS-RESERVED", None)]
     assert _declarations(publication.id) == [
         {"declaration": "decl-v1", "files": {str(publication_file.id): "ALL-RIGHTS-RESERVED"}}]
 
