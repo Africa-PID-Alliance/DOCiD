@@ -71,6 +71,9 @@ export const hasLicense = (file) => {
   return value !== undefined && value !== null && String(value).trim() !== '';
 };
 
+/** A licensed file needs the rights declaration; an unlicensed one doesn't. */
+export const needsRightsDeclaration = (file) => hasLicense(file);
+
 /** The uploader ticked the rights declaration on this file's card. */
 export const isRightsDeclared = (file) => !!file?.metadata?.rightsDeclared;
 
@@ -80,15 +83,15 @@ const licenseLabel = (licence) =>
     : licence.name || licence.code) : '';
 
 // ---------------------------------------------------------------------------
-// LicenseSelect: required, searchable licence picker for one publication file.
-// value / onChange use the licence id ('' = none chosen).
+// LicenseSelect: optional, searchable licence picker for one publication file.
+// value / onChange use the licence id ('' = no licence; the clear button removes it).
 // ---------------------------------------------------------------------------
 
 export const LicenseSelect = ({
   value = '',
   onChange,
   error = false,
-  label = 'Licence',
+  label = 'Licence (optional)',
 }) => {
   const { licenses, loading, error: loadError } = useLicenses();
 
@@ -132,8 +135,7 @@ export const LicenseSelect = ({
           <TextField
             {...params}
             label={label}
-            placeholder="Search licence"
-            required
+            placeholder="No licence — search to choose one"
             error={error || !!loadError}
           />
         )}
@@ -146,7 +148,7 @@ export const LicenseSelect = ({
               Read the {selected.short_name || 'licence'} terms
             </Link>
           </>
-        ) : 'How others may reuse this publication.')}
+        ) : 'Optional. Leave empty if you do not want to license this publication.')}
       </FormHelperText>
     </Box>
   );
@@ -190,7 +192,9 @@ export const LicenseAndRights = ({
 
       <LicenseSelect value={licenseId} onChange={onLicenseChange} error={licenseError} />
 
-      {showDeclaration && !loadError && declarationText && (
+      {/* The declaration only applies once a licence is chosen. */}
+      {showDeclaration && licenseId !== '' && licenseId !== null && licenseId !== undefined
+        && !loadError && declarationText && (
         <Box sx={{ mt: 1.5 }}>
           <FormControlLabel
             sx={{ alignItems: 'flex-start', m: 0 }}

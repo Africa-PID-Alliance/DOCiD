@@ -1130,24 +1130,16 @@ export default function EditDocidPage() {
       return;
     }
 
-    // New files need a licence. Existing files may keep no licence, but if one is
-    // chosen or changed it is sent, and that needs the rights declaration too.
-    const newWithoutLicense = files.find((f) => !(f.id && f.existing) && !hasLicense(f));
-    if (newWithoutLicense) {
-      setFeedbackMessage({
-        type: 'error',
-        text: `Choose a licence for "${newWithoutLicense.metadata?.title || newWithoutLicense.name || 'untitled file'}".`,
-      });
-      return;
-    }
+    // Licences are optional. Setting or changing one needs that file's rights
+    // declaration; clearing one (sent as "") does not.
     const licenceChangedFor = (f) => {
       const orig = original.find((x) => x.id === f.id);
-      return !!orig && hasLicense(f) &&
-        String(f.metadata.licenseId) !== String(orig.metadata?.licenseId ?? '');
+      return !!orig &&
+        String(f.metadata?.licenseId ?? '') !== String(orig.metadata?.licenseId ?? '');
     };
     // A new file or a changed licence needs that file's rights declaration ticked.
     const undeclared = files.find(
-      (f) => (!(f.id && f.existing) || licenceChangedFor(f)) && !isRightsDeclared(f)
+      (f) => hasLicense(f) && (!(f.id && f.existing) || licenceChangedFor(f)) && !isRightsDeclared(f)
     );
     if (undeclared) {
       setFeedbackMessage({
@@ -1210,8 +1202,12 @@ export default function EditDocidPage() {
           // Omit = keep, "" = clear, value = set (same as publicationDate on update-publication).
           if (pubDateChanged) payload.publication_date = newPubDate;
           if (licenceChanged) {
-            payload.license_id = meta.licenseId;
-            payload.rights_declaration = true;
+            if (hasLicense(f)) {
+              payload.license_id = meta.licenseId;
+              payload.rights_declaration = true;
+            } else {
+              payload.license_id = ''; // clears the licence; no declaration needed
+            }
           }
           if (extIdentifierChanged) {
             // Three-state semantics on the backend:
@@ -1257,8 +1253,10 @@ export default function EditDocidPage() {
         if (String(meta.publicationDate || '').trim()) {
           fd.append('publication_date', String(meta.publicationDate).trim());
         }
-        fd.append('license_id', String(meta.licenseId));
-        fd.append('rights_declaration', 'true');
+        if (hasLicense(f)) {
+          fd.append('license_id', String(meta.licenseId));
+          fd.append('rights_declaration', 'true');
+        }
         // Optional external identifier (CrossRef DOI). Only send if the user
         // picked CrossRef AND we have a non-empty DOI. Pre-save validation
         // above guarantees we never reach here with an empty DOI when

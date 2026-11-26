@@ -41,7 +41,7 @@ import { useToast } from '@/context/ToastContext';
 // Step components will be imported here
 import DocIDForm from './components/DocIDForm';
 import { validatePublicationDate } from '@/components/PublicationDateField';
-import { hasLicense, isRightsDeclared } from '@/components/Licenses';
+import { hasLicense, isRightsDeclared, needsRightsDeclaration } from '@/components/Licenses';
 import PublicationsForm from './components/PublicationsForm';
 import DocumentsForm from './components/DocumentsForm';
 import CreatorsForm from './components/CreatorsForm';
@@ -625,15 +625,11 @@ const AssignDocID = () => {
       return;
     }
 
-    // Every publication file needs a licence, and the rights declaration must be ticked.
+    // A licence is optional; a licensed file needs its rights declaration ticked.
     const publicationFiles = formData.publications?.files || [];
-    const noLicenseIndex = publicationFiles.findIndex((file) => !hasLicense(file));
-    if (noLicenseIndex !== -1) {
-      setActiveStep(1);
-      showToast(`Publication ${noLicenseIndex + 1}: please choose a licence.`, 'error');
-      return;
-    }
-    const undeclaredIndex = publicationFiles.findIndex((file) => !isRightsDeclared(file));
+    const undeclaredIndex = publicationFiles.findIndex(
+      (file) => needsRightsDeclaration(file) && !isRightsDeclared(file)
+    );
     if (undeclaredIndex !== -1) {
       setActiveStep(1);
       showToast(`Publication ${undeclaredIndex + 1}: please confirm the rights declaration under its licence.`, 'error');
@@ -674,15 +670,19 @@ const AssignDocID = () => {
 
       // 2. Publications Files
       if (formData.publications?.files?.length > 0) {
-        // Every file's declaration was ticked (checked above), so the submission is declared.
-        submitData.append("rightsDeclaration", "true");
+        // Only needed when at least one file is licensed (each licensed file was ticked above).
+        if (formData.publications.files.some(hasLicense)) {
+          submitData.append("rightsDeclaration", "true");
+        }
         formData.publications.files.forEach((file, index) => {
           submitData.append(`filesPublications[${index}][title]`, file.metadata.title);
           submitData.append(`filesPublications[${index}][description]`, file.metadata.description);
           submitData.append(`filesPublications[${index}][identifier]`, file.metadata.identifier);
           submitData.append(`filesPublications[${index}][publication_type]`, formData.publications.publicationType);
           submitData.append(`filesPublications[${index}][generated_identifier]`, file.metadata.generated_identifier);
-          submitData.append(`filesPublications[${index}][license_id]`, String(file.metadata.licenseId));
+          if (hasLicense(file)) {
+            submitData.append(`filesPublications[${index}][license_id]`, String(file.metadata.licenseId));
+          }
           // Optional per-publication date (YYYY-MM-DD).
           if (file.metadata?.publicationDate) {
             submitData.append(`filesPublications[${index}][publication_date]`, file.metadata.publicationDate.trim());
