@@ -1,0 +1,27 @@
+# Keep the build context small: everything here is either rebuilt inside the
+# image (Python packages come from requirements.txt) or mounted at runtime.
+
+# The Mac virtualenv (~260 MB) — useless in the Linux image
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime data: docker-compose mounts volumes over /app/logs and /app/uploads
+logs/
+uploads/
+*.log
+
+# Not needed to run the app
+tests/
+.DS_Store
+
+# Secrets stay out of the image. docker-compose passes backend/.env to the
+# container at runtime (env_file), so the server's docker-compose.yml must do the
+# same, or the container loses its Cordra, DSpace, mail, RAiD... settings.
+.env
+.env.*
