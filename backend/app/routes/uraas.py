@@ -2,9 +2,12 @@
 
 GET /api/v1/publications/<id>/related-docids
 
-The DOCiD publication id is sent to URAAS as its paper id, and the paper ids
-URAAS returns are looked up as DOCiD publication ids. This assumes the two
-systems share ids.
+URAAS syncs every docid-demo record into its own database and, given a DOCiD
+publication id, returns related records as (DOCiD publication id, DOCiD)
+pairs. It only knows docid-demo's ids, so both DOCiDs are checked: if URAAS
+holds a different DOCiD for this id (another DOCiD instance, such as
+production), nothing is shown, and a related id is shown only when our
+record with that id carries the DOCiD URAAS gave.
 
 Each related record comes back with its resource type, its owner and the
 names of any creators it shares with the page's record.
@@ -18,7 +21,7 @@ from flask import Blueprint, jsonify
 
 from app import cache, db
 from app.models import PublicationCreators, Publications, ResourceTypes
-from app.service_uraas import UraasUnavailable, fetch_related_paper_ids
+from app.service_uraas import UraasUnavailable, fetch_related_docids
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +37,26 @@ UNAVAILABLE_MESSAGE = 'Related DOCiDs are unavailable right now'
 ORCID_PATTERN = re.compile(r'\d{4}-\d{4}-\d{4}-\d{3}[\dX]', re.IGNORECASE)
 
 
-def _related_ids_for(publication_id):
-    """Return URAAS's related ids for publication_id, or None if unavailable."""
-    cache_key = f'uraas:related:{publication_id}'
+def _uraas_answer_for(publication_id):
+    """URAAS's answer for publication_id, or None if unavailable.
+
+    The answer is {'page_docid': str or None, 'related': [[id, docid], ...]}.
+    """
+    # v2: entries cached before URAAS answered in DOCiD ids held its own ids.
+    cache_key = f'uraas:related:v2:{publication_id}'
     cached = cache.get(cache_key)
     if cached is not None:
-        return cached.get('ids')
+        return cached.get('answer')
 
     try:
-        ids = fetch_related_paper_ids(publication_id)
+        page_docid, related = fetch_related_docids(publication_id)
     except UraasUnavailable as exc:
         logger.warning('URAAS related lookup for publication %s failed: %s', publication_id, exc)
-        cache.set(cache_key, {'ids': None}, timeout=FAILURE_CACHE_SECONDS)
+        cache.set(cache_key, {'answer': None}, timeout=FAILURE_CACHE_SECONDS)
         return None
-    cache.set(cache_key, {'ids': ids}, timeout=RELATED_CACHE_SECONDS)
-    return ids
+    answer = {'page_docid': page_docid, 'related': [[rid, docid] for rid, docid in related]}
+    cache.set(cache_key, {'answer': answer}, timeout=RELATED_CACHE_SECONDS)
+    return answer
 
 
 def _letters(text):
@@ -104,10 +112,15 @@ def _shared_authors(page_creators, other_creators):
     return names
 
 
-def _describe_related(publication_id, related_ids):
-    """Live DOCiD records for related_ids, in URAAS's order, as response items."""
-    if not related_ids:
+def _describe_related(publication_id, related):
+    """Live DOCiD records for URAAS's (id, docid) pairs, in URAAS's order, as response items.
+
+    A pair counts only when our record with that id carries the same DOCiD.
+    """
+    if not related:
         return []
+    expected_docid = {rid: docid for rid, docid in related}
+    related_ids = list(expected_docid)
 
     rows = (
         db.session.query(
@@ -126,8 +139,8 @@ def _describe_related(publication_id, related_ids):
         )
         .all()
     )
-    rows_by_id = {row.id: row for row in rows}
-    found_ids = [rid for rid in related_ids if rid in rows_by_id]
+    rows_by_id = {row.id: row for row in rows if row.document_docid == expected_docid[row.id]}
+    found_ids = [rid for rid, _ in related if rid in rows_by_id]
     if not found_ids:
         return []
 
@@ -192,11 +205,19 @@ def get_related_docids(publication_id):
     if publication is None:
         return jsonify({'error': 'Publication not found'}), 404
 
-    related_ids = _related_ids_for(publication_id)
-    if related_ids is None:
+    answer = _uraas_answer_for(publication_id)
+    if answer is None:
         return jsonify({'publication_id': publication_id, 'related': [],
                         'error': UNAVAILABLE_MESSAGE}), 503
 
-    related_ids = [rid for rid in related_ids if rid != publication_id]
+    if answer['page_docid'] != publication.document_docid:
+        # URAAS hasn't ingested this record (no DOCiD, no related), or it knows
+        # this id as another record, e.g. on a different DOCiD instance.
+        if answer['page_docid'] is not None or answer['related']:
+            logger.info('URAAS holds publication %s as %r, not %r; showing no related DOCiDs',
+                        publication_id, answer['page_docid'], publication.document_docid)
+        return jsonify({'publication_id': publication_id, 'related': []})
+
+    related = [(rid, docid) for rid, docid in answer['related'] if rid != publication_id]
     return jsonify({'publication_id': publication_id,
-                    'related': _describe_related(publication_id, related_ids)})
+                    'related': _describe_related(publication_id, related)})

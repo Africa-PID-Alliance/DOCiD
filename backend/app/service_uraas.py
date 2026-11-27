@@ -1,7 +1,9 @@
 """Client for the URAAS partner API (UNILAG research aggregator).
 
-Only the keyword-overlap "related papers" lookup is used so far. The API key
-stays on the server; browsers never see it.
+Only the related-papers lookup is used so far. URAAS keeps its own copy of
+every docid-demo record (synced hourly) and answers in DOCiD terms: each
+related paper carries the DOCiD publication id and DOCiD handle it was
+ingested from. The API key stays on the server; browsers never see it.
 """
 import logging
 
@@ -12,17 +14,20 @@ logger = logging.getLogger(__name__)
 
 # (connect, read) seconds. The Hugging Face Space can be slow to wake up.
 REQUEST_TIMEOUT = (5, 20)
+RELATED_LIMIT = 10
 
 
 class UraasUnavailable(Exception):
     """URAAS is not configured, unreachable, or answered with an error."""
 
 
-def fetch_related_paper_ids(paper_id):
-    """Return the ids URAAS lists as keyword-related to paper_id, best first.
+def fetch_related_docids(publication_id):
+    """Ask URAAS which DOCiD records are related to DOCiD publication_id.
 
-    A paper URAAS doesn't know gives an empty list. Raises UraasUnavailable
-    when the key is missing or the call fails.
+    Returns (page_docid, related): page_docid is the DOCiD URAAS holds for
+    publication_id, and related is a list of (publication_id, docid) pairs,
+    best first. A record URAAS hasn't ingested gives (None, []). Raises
+    UraasUnavailable when the key is missing or the call fails.
     """
     api_key = current_app.config.get('URAAS_API_KEY')
     if not api_key:
@@ -31,7 +36,8 @@ def fetch_related_paper_ids(paper_id):
 
     try:
         response = requests.get(
-            f'{base_url}/api/keywords/{paper_id}/related',
+            f'{base_url}/api/docid/enrichment/{publication_id}/related',
+            params={'limit': RELATED_LIMIT, 'docid_only': 1},
             headers={'X-API-Key': api_key},
             timeout=REQUEST_TIMEOUT,
         )
@@ -39,7 +45,7 @@ def fetch_related_paper_ids(paper_id):
         raise UraasUnavailable(f'request failed: {exc.__class__.__name__}') from exc
 
     if response.status_code == 404:
-        return []
+        return None, []
     if response.status_code != 200:
         raise UraasUnavailable(f'HTTP {response.status_code}')
 
@@ -51,12 +57,24 @@ def fetch_related_paper_ids(paper_id):
     if not isinstance(related, list):
         raise UraasUnavailable('response has no "related" list')
 
-    paper_ids = []
+    page_docid = _clean_docid(body.get('docid'))
+    pairs = []
+    seen_ids = set()
     for item in related:
-        try:
-            related_id = int(item.get('id'))
-        except (AttributeError, TypeError, ValueError):
+        if not isinstance(item, dict):
             continue
-        if related_id not in paper_ids:
-            paper_ids.append(related_id)
-    return paper_ids
+        # docid_publication_id arrives as a string ("4167"); "id" is URAAS's own.
+        try:
+            related_id = int(item.get('docid_publication_id'))
+        except (TypeError, ValueError):
+            continue
+        docid = _clean_docid(item.get('docid'))
+        if docid is None or related_id in seen_ids:
+            continue
+        seen_ids.add(related_id)
+        pairs.append((related_id, docid))
+    return page_docid, pairs
+
+
+def _clean_docid(value):
+    return value.strip() if isinstance(value, str) and value.strip() else None
